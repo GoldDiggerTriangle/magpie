@@ -15,7 +15,16 @@ from django.db import connection
 from django.utils import timezone
 
 
-LOCAL_APP_LABELS = {"core", "catalog", "locations", "acquisitions", "inventory", "photos"}
+LOCAL_APP_LABELS = {
+    "core",
+    "catalog",
+    "locations",
+    "acquisitions",
+    "inventory",
+    "photos",
+    "research",
+    "valuation",
+}
 
 
 class Command(BaseCommand):
@@ -62,6 +71,8 @@ class Command(BaseCommand):
                 "acquisitions",
                 "inventory",
                 "photos",
+                "research",
+                "valuation",
                 indent=2,
                 stdout=handle,
             )

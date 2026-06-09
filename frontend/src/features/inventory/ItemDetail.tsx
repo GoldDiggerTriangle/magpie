@@ -14,7 +14,12 @@ import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
+import { ComparableList } from "../../components/ComparableList";
+import { ProfitBreakdown } from "../../components/ProfitBreakdown";
+import { ResearchLinks } from "../../components/ResearchLinks";
+import { ResearchLog } from "../../components/ResearchLog";
 import { StatusBadge } from "../../components/StatusBadge";
+import { ValuationPanel } from "../../components/ValuationPanel";
 import type { ItemFormPayload, PhotoAsset, UUID } from "../../types";
 
 const statusOptions = [
@@ -58,6 +63,10 @@ export function ItemDetail() {
     condition: "ungraded",
     location: null,
     acquisition_cost: null,
+    refurb_cost: null,
+    inbound_shipping_cost: null,
+    est_outbound_shipping: null,
+    est_packaging_cost: null,
     estimated_value: null,
     notes: "",
     attributes: {}
@@ -74,6 +83,10 @@ export function ItemDetail() {
       condition: item.data.condition,
       location: item.data.location,
       acquisition_cost: item.data.acquisition_cost,
+      refurb_cost: item.data.refurb_cost,
+      inbound_shipping_cost: item.data.inbound_shipping_cost,
+      est_outbound_shipping: item.data.est_outbound_shipping,
+      est_packaging_cost: item.data.est_packaging_cost,
       estimated_value: item.data.estimated_value,
       notes: item.data.notes,
       attributes: item.data.attributes
@@ -201,6 +214,22 @@ export function ItemDetail() {
             <input className="field" inputMode="decimal" value={form.acquisition_cost ?? ""} onChange={(event) => setForm({ ...form, acquisition_cost: event.target.value || null })} />
           </label>
           <label className="label">
+            <span>Refurb cost</span>
+            <input className="field" inputMode="decimal" value={form.refurb_cost ?? ""} onChange={(event) => setForm({ ...form, refurb_cost: event.target.value || null })} />
+          </label>
+          <label className="label">
+            <span>Inbound shipping</span>
+            <input className="field" inputMode="decimal" value={form.inbound_shipping_cost ?? ""} onChange={(event) => setForm({ ...form, inbound_shipping_cost: event.target.value || null })} />
+          </label>
+          <label className="label">
+            <span>Outbound shipping est.</span>
+            <input className="field" inputMode="decimal" value={form.est_outbound_shipping ?? ""} onChange={(event) => setForm({ ...form, est_outbound_shipping: event.target.value || null })} />
+          </label>
+          <label className="label">
+            <span>Packaging est.</span>
+            <input className="field" inputMode="decimal" value={form.est_packaging_cost ?? ""} onChange={(event) => setForm({ ...form, est_packaging_cost: event.target.value || null })} />
+          </label>
+          <label className="label">
             <span>Estimated value</span>
             <input className="field" inputMode="decimal" value={form.estimated_value ?? ""} onChange={(event) => setForm({ ...form, estimated_value: event.target.value || null })} />
           </label>
@@ -213,6 +242,16 @@ export function ItemDetail() {
             Save
           </button>
         </form>
+      </div>
+
+      <div className="mt-8 grid gap-6">
+        <ResearchLinks itemId={itemId} />
+        <div className="grid gap-6 xl:grid-cols-2">
+          <ComparableList itemId={itemId} />
+          <ResearchLog itemId={itemId} />
+        </div>
+        <ValuationPanel item={item.data} />
+        <ProfitBreakdown item={item.data} reportId={item.data.current_valuation?.id ?? null} />
       </div>
 
       <ConfirmDialog

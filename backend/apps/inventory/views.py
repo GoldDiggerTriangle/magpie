@@ -23,7 +23,7 @@ from apps.photos.services import MediaService
 class InventoryItemViewSet(ModelViewSet):
     queryset = (
         InventoryItem.objects.select_related("category", "location", "acquisition", "owner")
-        .prefetch_related("photos")
+        .prefetch_related("photos", "comparables", "valuation_reports")
         .all()
     )
     filterset_class = InventoryItemFilter
@@ -109,6 +109,10 @@ class InventoryItemViewSet(ModelViewSet):
                 "condition",
                 "location",
                 "acquisition_cost",
+                "refurb_cost",
+                "inbound_shipping_cost",
+                "est_outbound_shipping",
+                "est_packaging_cost",
                 "estimated_value",
                 "min_price",
                 "target_price",
@@ -135,6 +139,10 @@ class InventoryItemViewSet(ModelViewSet):
                     item.condition,
                     item.location.label if item.location else "",
                     item.acquisition_cost,
+                    item.refurb_cost,
+                    item.inbound_shipping_cost,
+                    item.est_outbound_shipping,
+                    item.est_packaging_cost,
                     item.estimated_value,
                     item.min_price,
                     item.target_price,

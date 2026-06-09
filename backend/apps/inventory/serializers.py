@@ -1,3 +1,6 @@
+from decimal import Decimal
+from uuid import UUID
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
@@ -37,11 +40,49 @@ class InventoryItemListSerializer(serializers.ModelSerializer):
 
 class InventoryItemDetailSerializer(serializers.ModelSerializer):
     photos = PhotoAssetSerializer(many=True, read_only=True)
+    comps_count = serializers.SerializerMethodField()
+    current_valuation = serializers.SerializerMethodField()
 
     class Meta:
         model = InventoryItem
         fields = "__all__"
-        read_only_fields = ["id", "sku", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "sku",
+            "created_at",
+            "updated_at",
+            "comps_count",
+            "current_valuation",
+        ]
+
+    def get_comps_count(self, obj):
+        manager = getattr(obj, "comparables", None)
+        return manager.count() if manager is not None else 0
+
+    def get_current_valuation(self, obj):
+        manager = getattr(obj, "valuation_reports", None)
+        if manager is None:
+            return None
+        report = (
+            manager.filter(is_current=True)
+            .values(
+                "id",
+                "strategy",
+                "suggested_price",
+                "fast_sale_price",
+                "patient_price",
+                "min_acceptable_price",
+                "confidence_score",
+                "confidence_reason",
+            )
+            .first()
+        )
+        if report is None:
+            return None
+        return {
+            key: (str(value) if isinstance(value, (Decimal, UUID)) else value)
+            for key, value in report.items()
+        }
 
     def validate(self, data):
         attrs = dict(data)
@@ -54,6 +95,10 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
                 "location",
                 "acquisition",
                 "acquisition_cost",
+                "refurb_cost",
+                "inbound_shipping_cost",
+                "est_outbound_shipping",
+                "est_packaging_cost",
                 "estimated_value",
                 "min_price",
                 "target_price",

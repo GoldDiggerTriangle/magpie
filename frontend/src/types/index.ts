@@ -68,16 +68,33 @@ export interface InventoryItemList {
   created_at: string;
 }
 
+export interface CurrentValuationSummary {
+  id: UUID;
+  strategy: string;
+  suggested_price: string | null;
+  fast_sale_price: string | null;
+  patient_price: string | null;
+  min_acceptable_price: string | null;
+  confidence_score: number | null;
+  confidence_reason: string;
+}
+
 export interface InventoryItemDetail extends InventoryItemList {
   location: UUID | null;
   acquisition: UUID | null;
   acquisition_cost: string | null;
+  refurb_cost: string | null;
+  inbound_shipping_cost: string | null;
+  est_outbound_shipping: string | null;
+  est_packaging_cost: string | null;
   min_price: string | null;
   target_price: string | null;
   notes: string;
   attributes: Record<string, unknown>;
   owner: number | null;
   photos: PhotoAsset[];
+  comps_count: number;
+  current_valuation: CurrentValuationSummary | null;
   updated_at: string;
 }
 
@@ -97,7 +114,137 @@ export interface ItemFormPayload {
   status?: string;
   location: UUID | null;
   acquisition_cost: string | null;
+  refurb_cost?: string | null;
+  inbound_shipping_cost?: string | null;
+  est_outbound_shipping?: string | null;
+  est_packaging_cost?: string | null;
   estimated_value: string | null;
   notes: string;
   attributes?: Record<string, unknown>;
+}
+
+export type ComparableKind = "active" | "sold" | "dealer" | "catalogue" | "manual_estimate" | "auction_result";
+
+export interface Comparable {
+  id: UUID;
+  item: UUID;
+  kind: ComparableKind;
+  source: string;
+  title: string;
+  price: string | null;
+  shipping: string | null;
+  currency: string;
+  condition: string;
+  url: string;
+  observed_on: string | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ComparablePayload = Omit<Comparable, "id" | "created_at" | "updated_at">;
+
+export interface ResearchLink {
+  label: string;
+  url: string;
+}
+
+export interface ResearchRecord {
+  id: UUID;
+  item: UUID;
+  source: string;
+  content: string;
+  links: ResearchLink[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type ResearchRecordPayload = Omit<ResearchRecord, "id" | "created_at" | "updated_at">;
+
+export interface FeeSchedule {
+  id: UUID;
+  name: string;
+  effective_from: string;
+  is_active: boolean;
+  final_value_pct: string;
+  per_order_fee: string;
+  promoted_pct: string;
+  gst_pct: string;
+  default_packaging_cost: string;
+  default_outbound_shipping: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ValuationComparable {
+  id?: UUID;
+  comparable: UUID;
+  comparable_summary?: Comparable;
+  included: boolean;
+  exclude_reason: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProfitBreakdown {
+  label?: string;
+  sale_price: string;
+  final_value_fee: string;
+  per_order_fee: string;
+  promoted_fee: string;
+  gst_on_fees: string;
+  outbound_shipping: string;
+  packaging: string;
+  true_cost: string;
+  total_deductions: string;
+  net_profit: string;
+  margin_pct: string;
+}
+
+export interface ValuationReport {
+  id: UUID;
+  item: UUID;
+  strategy: "comp_based" | "commodity_manual" | "commodity_live";
+  is_current: boolean;
+  estimate_low: string | null;
+  estimate_median: string | null;
+  estimate_high: string | null;
+  suggested_price: string | null;
+  fast_sale_price: string | null;
+  patient_price: string | null;
+  min_acceptable_price: string | null;
+  currency: string;
+  confidence_score: number | null;
+  confidence_reason: string;
+  is_overridden: boolean;
+  override_reason: string;
+  inputs: Record<string, unknown>;
+  fee_schedule: UUID | null;
+  notes: string;
+  comp_links: ValuationComparable[];
+  profit_projection: ProfitBreakdown[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ValuationReportPayload {
+  strategy: ValuationReport["strategy"];
+  is_current?: boolean;
+  estimate_low?: string | null;
+  estimate_median?: string | null;
+  estimate_high?: string | null;
+  suggested_price?: string | null;
+  fast_sale_price?: string | null;
+  patient_price?: string | null;
+  min_acceptable_price?: string | null;
+  currency?: string;
+  confidence_score?: number | null;
+  confidence_reason?: string;
+  is_overridden?: boolean;
+  override_reason?: string;
+  inputs?: Record<string, unknown>;
+  fee_schedule?: UUID | null;
+  notes?: string;
+  comp_links?: ValuationComparable[];
 }

@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "apps.acquisitions",
     "apps.inventory",
     "apps.photos",
+    "apps.research",
+    "apps.valuation",
     "apps.dashboard",
     "apps.api",
 ]

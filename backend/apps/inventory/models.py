@@ -70,6 +70,30 @@ class InventoryItem(TimeStampedUUIDModel):
         null=True,
         blank=True,
     )
+    refurb_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    inbound_shipping_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    est_outbound_shipping = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    est_packaging_cost = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     estimated_value = models.DecimalField(
         max_digits=12,
         decimal_places=2,

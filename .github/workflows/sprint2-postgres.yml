@@ -1,22 +1,22 @@
-name: Sprint 1 PostgreSQL Validation
+name: Sprint 2 PostgreSQL Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/sprint1-postgres.yml"
+      - ".github/workflows/sprint2-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
   pull_request:
     paths:
-      - ".github/workflows/sprint1-postgres.yml"
+      - ".github/workflows/sprint2-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
 
 jobs:
-  sprint1-postgres:
+  sprint2-postgres:
     runs-on: ubuntu-24.04
 
     services:
@@ -36,7 +36,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
-      SECRET_KEY: django-insecure-ci-sprint-1-only
+      SECRET_KEY: django-insecure-ci-sprint-2-only
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       PGCONNECT_TIMEOUT: "10"
@@ -74,11 +74,11 @@ jobs:
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run --noinput
 
-      - name: Seed Sprint 1 data
+      - name: Seed Sprint 2 data
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert PostgreSQL JSONB, GIN, seed data, and SKU sequence
+      - name: Assert PostgreSQL JSONB, GIN, Sprint 2 seed data, and SKU sequence
         working-directory: backend
         run: |
           python - <<'PY'
@@ -95,6 +95,8 @@ jobs:
           from apps.catalog.models import ProductCategory
           from apps.inventory.models import InventoryItem
           from apps.locations.models import StorageLocation
+          from apps.research.models import Comparable
+          from apps.valuation.models import FeeSchedule, ValuationReport
 
           assert connection.vendor == "postgresql", connection.vendor
 
@@ -113,6 +115,11 @@ jobs:
           assert ProductCategory.objects.count() == 8
           assert StorageLocation.objects.count() == 5
           assert InventoryItem.objects.count() == 5
+          assert FeeSchedule.objects.filter(name="eBay AU (placeholder)").count() == 1
+          assert Comparable.objects.count() >= 4
+          assert ValuationReport.objects.count() >= 2
+          assert ValuationReport.objects.filter(strategy="comp_based", is_current=True).exists()
+          assert ValuationReport.objects.filter(strategy="commodity_manual", is_current=True).exists()
 
           with connection.cursor() as cursor:
               cursor.execute(
@@ -160,7 +167,7 @@ jobs:
           assert second.sku.startswith("STM-"), second.sku
           assert int(second.sku.rsplit("-", 1)[1]) == int(first.sku.rsplit("-", 1)[1]) + 1
 
-          print("PostgreSQL JSONB, GIN index, seed data, and SKU sequence checks passed.")
+          print("PostgreSQL JSONB, GIN index, Sprint 2 seed data, and SKU sequence checks passed.")
           PY
 
       - name: Run backend tests
@@ -198,6 +205,10 @@ jobs:
           assert manifest["row_counts"]["catalog.productcategory"] == 8, manifest
           assert manifest["row_counts"]["locations.storagelocation"] == 5, manifest
           assert manifest["row_counts"]["inventory.inventoryitem"] >= 7, manifest
+          assert manifest["row_counts"]["research.comparable"] >= 4, manifest
+          assert manifest["row_counts"]["valuation.feeschedule"] >= 1, manifest
+          assert manifest["row_counts"]["valuation.valuationreport"] >= 2, manifest
+          assert manifest["row_counts"]["valuation.valuationcomparable"] >= 4, manifest
 
           print(f"Verified backup bundle: {latest}")
           PY

@@ -42,6 +42,10 @@ class InventoryItemAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "acquisition_cost",
+                    "refurb_cost",
+                    "inbound_shipping_cost",
+                    "est_outbound_shipping",
+                    "est_packaging_cost",
                     "estimated_value",
                     "min_price",
                     "target_price",
