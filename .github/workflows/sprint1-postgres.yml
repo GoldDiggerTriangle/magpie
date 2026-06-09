@@ -1,20 +1,22 @@
-name: Sprint 0 PostgreSQL Validation
+name: Sprint 1 PostgreSQL Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/sprint0-postgres.yml"
+      - ".github/workflows/sprint1-postgres.yml"
       - "backend/**"
+      - "frontend/**"
       - "docker-compose.yml"
   pull_request:
     paths:
-      - ".github/workflows/sprint0-postgres.yml"
+      - ".github/workflows/sprint1-postgres.yml"
       - "backend/**"
+      - "frontend/**"
       - "docker-compose.yml"
 
 jobs:
-  sprint0-postgres:
+  sprint1-postgres:
     runs-on: ubuntu-24.04
 
     services:
@@ -34,7 +36,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
-      SECRET_KEY: django-insecure-ci-sprint-0-only
+      SECRET_KEY: django-insecure-ci-sprint-1-only
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       PGCONNECT_TIMEOUT: "10"
@@ -72,11 +74,11 @@ jobs:
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run --noinput
 
-      - name: Seed Sprint 0 data
+      - name: Seed Sprint 1 data
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert Sprint 0 PostgreSQL state
+      - name: Assert PostgreSQL JSONB, GIN, seed data, and SKU sequence
         working-directory: backend
         run: |
           python - <<'PY'
@@ -161,6 +163,10 @@ jobs:
           print("PostgreSQL JSONB, GIN index, seed data, and SKU sequence checks passed.")
           PY
 
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest
+
       - name: Export items CSV
         working-directory: backend
         run: python manage.py export_items --csv
@@ -195,3 +201,26 @@ jobs:
 
           print(f"Verified backup bundle: {latest}")
           PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build

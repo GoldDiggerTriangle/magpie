@@ -111,8 +111,9 @@ class InventoryItem(TimeStampedUUIDModel):
 
     def clean(self) -> None:
         profile_key = self.category.profile_key if self.category else ""
+        attributes = {} if self.attributes is None else self.attributes
         try:
-            self.attributes = get_schema(profile_key).validate(self.attributes or {})
+            self.attributes = get_schema(profile_key).validate(attributes)
         except ValueError as exc:
             raise ValidationError({"attributes": str(exc)}) from exc
 
