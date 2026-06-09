@@ -1,0 +1,197 @@
+name: Sprint 0 PostgreSQL Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/sprint0-postgres.yml"
+      - "backend/**"
+      - "docker-compose.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/sprint0-postgres.yml"
+      - "backend/**"
+      - "docker-compose.yml"
+
+jobs:
+  sprint0-postgres:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: gsp
+          POSTGRES_USER: gsp
+          POSTGRES_PASSWORD: gsp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gsp -d gsp"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
+      SECRET_KEY: django-insecure-ci-sprint-0-only
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      PGCONNECT_TIMEOUT: "10"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+
+      - name: Run Django check
+        working-directory: backend
+        run: python manage.py check
+
+      - name: Apply PostgreSQL migrations
+        working-directory: backend
+        run: python manage.py migrate --noinput
+
+      - name: Check migrations are committed
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run --noinput
+
+      - name: Seed Sprint 0 data
+        working-directory: backend
+        run: python manage.py seed
+
+      - name: Assert Sprint 0 PostgreSQL state
+        working-directory: backend
+        run: |
+          python - <<'PY'
+          import os
+
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+
+          import django
+
+          django.setup()
+
+          from django.db import connection
+
+          from apps.catalog.models import ProductCategory
+          from apps.inventory.models import InventoryItem
+          from apps.locations.models import StorageLocation
+
+          assert connection.vendor == "postgresql", connection.vendor
+
+          expected_categories = {
+              "stamps",
+              "coins",
+              "phones-electronics",
+              "gold",
+              "tools",
+              "collectibles",
+              "bulk-lots",
+              "unknown",
+          }
+          slugs = set(ProductCategory.objects.values_list("slug", flat=True))
+          assert expected_categories <= slugs, slugs
+          assert ProductCategory.objects.count() == 8
+          assert StorageLocation.objects.count() == 5
+          assert InventoryItem.objects.count() == 5
+
+          with connection.cursor() as cursor:
+              cursor.execute(
+                  """
+                  select udt_name
+                  from information_schema.columns
+                  where table_schema = 'public'
+                    and table_name = 'inventory_inventoryitem'
+                    and column_name = 'attributes'
+                  """
+              )
+              row = cursor.fetchone()
+              assert row == ("jsonb",), row
+
+              cursor.execute(
+                  """
+                  select indexdef
+                  from pg_indexes
+                  where schemaname = 'public'
+                    and tablename = 'inventory_inventoryitem'
+                    and indexname = 'item_attributes_gin'
+                  """
+              )
+              index_row = cursor.fetchone()
+              assert index_row is not None
+              assert "USING gin" in index_row[0], index_row[0]
+
+          stamps = ProductCategory.objects.get(slug="stamps")
+          first = InventoryItem.objects.create(
+              title="CI JSONB smoke 1",
+              category=stamps,
+              attributes={"nested": {"jsonb": True}, "count": 1},
+          )
+          second = InventoryItem.objects.create(
+              title="CI JSONB smoke 2",
+              category=stamps,
+              attributes={"nested": {"jsonb": True}, "count": 2},
+          )
+          first.refresh_from_db()
+          second.refresh_from_db()
+
+          assert first.attributes["nested"]["jsonb"] is True
+          assert second.attributes["count"] == 2
+          assert first.sku.startswith("STM-"), first.sku
+          assert second.sku.startswith("STM-"), second.sku
+          assert int(second.sku.rsplit("-", 1)[1]) == int(first.sku.rsplit("-", 1)[1]) + 1
+
+          print("PostgreSQL JSONB, GIN index, seed data, and SKU sequence checks passed.")
+          PY
+
+      - name: Export items CSV
+        working-directory: backend
+        run: python manage.py export_items --csv
+
+      - name: Create PostgreSQL backup
+        working-directory: backend
+        run: python manage.py backup
+
+      - name: Assert backup bundle uses pg_dump and includes media folder
+        run: |
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+
+          backups = sorted(Path("backups").glob("backup-*.zip"))
+          assert backups, "No backup zip produced"
+          latest = backups[-1]
+
+          with zipfile.ZipFile(latest) as archive:
+              names = set(archive.namelist())
+              assert "manifest.json" in names, names
+              assert "media/" in names, names
+              assert "db.dump" in names, names
+              assert "db.json" not in names, names
+              manifest = json.loads(archive.read("manifest.json"))
+
+          assert manifest["database_artifact"] == "db.dump", manifest
+          assert manifest["row_counts"]["catalog.productcategory"] == 8, manifest
+          assert manifest["row_counts"]["locations.storagelocation"] == 5, manifest
+          assert manifest["row_counts"]["inventory.inventoryitem"] >= 7, manifest
+
+          print(f"Verified backup bundle: {latest}")
+          PY
