@@ -265,7 +265,7 @@ def test_dashboard_totals(api_client, category):
     response = api_client.get("/api/dashboard/summary/")
     assert response.status_code == 200
     assert response.data["total_items"] == 2
-    assert response.data["total_estimated_value"] == "175"
+    assert Decimal(response.data["total_estimated_value"]) == Decimal("175.00")
     assert response.data["by_status"][InventoryItem.Status.CAPTURED] == 1
     assert response.data["missing_photos"] == 1
     assert response.data["high_value_unlisted"] == 1
