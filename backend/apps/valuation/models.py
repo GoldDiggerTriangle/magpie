@@ -3,6 +3,13 @@ from django.db import models
 from apps.core.models import TimeStampedUUIDModel
 
 
+class Metal(models.TextChoices):
+    GOLD = "gold", "Gold"
+    SILVER = "silver", "Silver"
+    PLATINUM = "platinum", "Platinum"
+    PALLADIUM = "palladium", "Palladium"
+
+
 class FeeSchedule(TimeStampedUUIDModel):
     name = models.CharField(max_length=120)
     effective_from = models.DateField()
@@ -119,3 +126,26 @@ class ValuationComparable(TimeStampedUUIDModel):
     def __str__(self) -> str:
         state = "included" if self.included else "excluded"
         return f"{self.comparable} on {self.report_id} ({state})"
+
+
+class MetalSpotCache(TimeStampedUUIDModel):
+    metal = models.CharField(max_length=12, choices=Metal.choices)
+    currency = models.CharField(max_length=3, default="AUD")
+    provider = models.CharField(max_length=60)
+    price_per_gram = models.DecimalField(max_digits=14, decimal_places=6)
+    provider_price = models.DecimalField(max_digits=14, decimal_places=6)
+    provider_units = models.CharField(max_length=20)
+    as_of = models.DateTimeField()
+    fetched_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["metal", "currency", "provider"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["metal", "currency", "provider"],
+                name="uniq_metal_currency_provider",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.metal} {self.currency} via {self.provider}"

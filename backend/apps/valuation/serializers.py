@@ -9,6 +9,7 @@ from apps.valuation.services import (
     true_cost_for_item,
 )
 from apps.valuation.strategies import get_strategy
+from integrations.metals import MetalsUnavailable
 
 
 DERIVED_FIELDS = {
@@ -222,14 +223,40 @@ class ValuationReportSerializer(serializers.ModelSerializer):
         return list(Comparable.objects.filter(id__in=comparable_ids, item=item))
 
     def _apply_strategy_defaults(self, validated_data, strategy_key, included_comps):
+        inputs = validated_data.get("inputs") or {}
+        validated_data["inputs"] = inputs
+        if strategy_key in {
+            ValuationReport.Strategy.COMMODITY_MANUAL,
+            ValuationReport.Strategy.COMMODITY_LIVE,
+        }:
+            validated_data["currency"] = str(
+                inputs.get("currency") or validated_data.get("currency") or "AUD"
+            ).upper()
+
         try:
-            result = get_strategy(strategy_key).estimate(
+            strategy = get_strategy(strategy_key)
+        except ValueError as exc:
+            raise serializers.ValidationError({"strategy": str(exc)}) from exc
+
+        try:
+            result = strategy.estimate(
                 item=validated_data["item"],
                 included_comps=included_comps,
-                inputs=validated_data.get("inputs") or {},
+                inputs=inputs,
             )
+        except MetalsUnavailable:
+            raise
         except (NotImplementedError, ValueError) as exc:
-            raise serializers.ValidationError({"strategy": str(exc)}) from exc
+            target = (
+                "inputs"
+                if strategy_key
+                in {
+                    ValuationReport.Strategy.COMMODITY_MANUAL,
+                    ValuationReport.Strategy.COMMODITY_LIVE,
+                }
+                else "strategy"
+            )
+            raise serializers.ValidationError({target: str(exc)}) from exc
 
         for model_field, result_field in DERIVED_FIELDS.items():
             if validated_data.get(model_field) is None:

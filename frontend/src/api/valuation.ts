@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { PaginatedResponse, ProfitBreakdown, UUID, ValuationReport, ValuationReportPayload } from "../types";
+import type { MetalSpotQuote, PaginatedResponse, ProfitBreakdown, UUID, ValuationReport, ValuationReportPayload } from "../types";
 
 export function listItemValuationReports(itemId: UUID) {
   return apiRequest<PaginatedResponse<ValuationReport>>(`/api/items/${itemId}/valuation-reports/`);
@@ -33,4 +33,12 @@ export function setCurrentValuationReport(id: UUID) {
 
 export function getReportProfit(id: UUID, price: string) {
   return apiRequest<ProfitBreakdown>(`/api/valuation-reports/${id}/profit/?price=${encodeURIComponent(price)}`);
+}
+
+export function getMetalSpot(metal: string, currency = "AUD", refresh = false) {
+  const params = new URLSearchParams({ metal, currency });
+  if (refresh) {
+    params.set("refresh", "true");
+  }
+  return apiRequest<MetalSpotQuote>(`/api/metals/spot/?${params.toString()}`);
 }

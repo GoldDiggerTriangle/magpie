@@ -2,13 +2,19 @@ from decimal import Decimal
 from datetime import date
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.catalog.models import ProductCategory
 from apps.inventory.models import InventoryItem
 from apps.locations.models import StorageLocation
 from apps.research.models import Comparable
-from apps.valuation.models import FeeSchedule, ValuationComparable, ValuationReport
+from apps.valuation.models import (
+    FeeSchedule,
+    MetalSpotCache,
+    ValuationComparable,
+    ValuationReport,
+)
 from apps.valuation.services import set_current
 from apps.valuation.strategies import get_strategy
 
@@ -32,24 +38,24 @@ class Command(BaseCommand):
 
     def seed_categories(self) -> dict[str, ProductCategory]:
         specs = [
-            ("Stamps", "STM"),
-            ("Coins", "COIN"),
-            ("Phones & Electronics", "PH"),
-            ("Gold", "GOLD"),
-            ("Tools", "TOOL"),
-            ("Collectibles", "COL"),
-            ("Bulk Lots", "LOT"),
-            ("Unknown", "UNK"),
+            ("Stamps", "STM", ""),
+            ("Coins", "COIN", ""),
+            ("Phones & Electronics", "PH", ""),
+            ("Gold", "GOLD", "gold"),
+            ("Tools", "TOOL", ""),
+            ("Collectibles", "COL", ""),
+            ("Bulk Lots", "LOT", ""),
+            ("Unknown", "UNK", ""),
         ]
         categories: dict[str, ProductCategory] = {}
-        for name, prefix in specs:
+        for name, prefix, profile_key in specs:
             slug = slugify(name)
             category, _ = ProductCategory.objects.update_or_create(
                 slug=slug,
                 defaults={
                     "name": name,
                     "sku_prefix": prefix,
-                    "profile_key": "",
+                    "profile_key": profile_key,
                     "description": "",
                 },
             )
@@ -133,8 +139,13 @@ class Command(BaseCommand):
                 "condition": InventoryItem.Condition.UNGRADED,
                 "location": locations["bin_2"],
                 "estimated_value": Decimal("350.00"),
-                "notes": "Weigh and test in a later sprint.",
-                "attributes": {"requires_testing": True},
+                "notes": "Seed gold item with fake Sprint 3 commodity fields.",
+                "attributes": {
+                    "metal": "gold",
+                    "weight_g": "8.5",
+                    "fineness": "0.375",
+                    "form": "jewellery",
+                },
             },
             {
                 "title": "Bulk mixed collectibles box",
@@ -151,7 +162,7 @@ class Command(BaseCommand):
         created_count = 0
         items: dict[str, InventoryItem] = {}
         for spec in specs:
-            item, created = InventoryItem.objects.get_or_create(
+            item, created = InventoryItem.objects.update_or_create(
                 title=spec["title"],
                 category=spec["category"],
                 defaults=spec,
@@ -324,3 +335,55 @@ class Command(BaseCommand):
             },
         )
         set_current(gold_report)
+
+        now = timezone.now()
+        MetalSpotCache.objects.update_or_create(
+            metal="gold",
+            currency="AUD",
+            provider="seed-fake",
+            defaults={
+                "price_per_gram": Decimal("100.000000"),
+                "provider_price": Decimal("3110.347680"),
+                "provider_units": "AUD/troy_oz",
+                "as_of": now,
+                "fetched_at": now,
+            },
+        )
+        live_intrinsic = Decimal("318.75")
+        live_inputs = {
+            "metal": "gold",
+            "currency": "AUD",
+            "normalized_price_per_g": "100.000000",
+            "provider_price": "3110.347680",
+            "provider_units": "AUD/troy_oz",
+            "source": "seed-fake",
+            "as_of": now.isoformat(),
+            "fetched_at": now.isoformat(),
+            "cache_hit": False,
+            "weight_g": "8.5",
+            "fineness": "0.375",
+            "calculated_intrinsic_value": str(live_intrinsic),
+            "buy_margin_pct": "8.0",
+        }
+        ValuationReport.objects.update_or_create(
+            item=gold,
+            strategy=ValuationReport.Strategy.COMMODITY_LIVE,
+            notes="Seed fake commodity-live valuation report; no real provider call.",
+            defaults={
+                "fee_schedule": fee_schedule,
+                "estimate_low": live_intrinsic,
+                "estimate_median": live_intrinsic,
+                "estimate_high": live_intrinsic,
+                "suggested_price": live_intrinsic,
+                "fast_sale_price": Decimal("293.25"),
+                "patient_price": live_intrinsic,
+                "min_acceptable_price": Decimal("293.25"),
+                "currency": "AUD",
+                "confidence_score": 0.5,
+                "confidence_reason": "Seed fake live metals quote for UI testing.",
+                "is_overridden": False,
+                "override_reason": "",
+                "inputs": live_inputs,
+                "is_current": False,
+            },
+        )

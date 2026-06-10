@@ -1,22 +1,22 @@
-name: Sprint 2 PostgreSQL Validation
+name: Sprint 3 PostgreSQL Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/sprint2-postgres.yml"
+      - ".github/workflows/sprint3-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
   pull_request:
     paths:
-      - ".github/workflows/sprint2-postgres.yml"
+      - ".github/workflows/sprint3-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
 
 jobs:
-  sprint2-postgres:
+  sprint3-postgres:
     runs-on: ubuntu-24.04
 
     services:
@@ -36,10 +36,13 @@ jobs:
 
     env:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
-      SECRET_KEY: django-insecure-ci-sprint-2-only
+      SECRET_KEY: django-insecure-ci-sprint-3-only
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       PGCONNECT_TIMEOUT: "10"
+      METALS_PROVIDER: fake
+      METALS_BASE_CURRENCY: AUD
+      METALS_CACHE_TTL_SECONDS: "3600"
 
     steps:
       - name: Check out repository
@@ -74,11 +77,11 @@ jobs:
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run --noinput
 
-      - name: Seed Sprint 2 data
+      - name: Seed Sprint 3 data
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert PostgreSQL JSONB, GIN, Sprint 2 seed data, and SKU sequence
+      - name: Assert PostgreSQL JSONB, GIN, Sprint 3 seed data, SKU sequence, and fake metals cache
         working-directory: backend
         run: |
           python - <<'PY'
@@ -96,7 +99,7 @@ jobs:
           from apps.inventory.models import InventoryItem
           from apps.locations.models import StorageLocation
           from apps.research.models import Comparable
-          from apps.valuation.models import FeeSchedule, ValuationReport
+          from apps.valuation.models import FeeSchedule, MetalSpotCache, ValuationReport
 
           assert connection.vendor == "postgresql", connection.vendor
 
@@ -113,13 +116,34 @@ jobs:
           slugs = set(ProductCategory.objects.values_list("slug", flat=True))
           assert expected_categories <= slugs, slugs
           assert ProductCategory.objects.count() == 8
+          assert ProductCategory.objects.get(slug="gold").profile_key == "gold"
           assert StorageLocation.objects.count() == 5
           assert InventoryItem.objects.count() == 5
+          gold_item = InventoryItem.objects.get(title="Small gold jewellery parcel")
+          assert gold_item.attributes["metal"] == "gold"
+          assert gold_item.attributes["weight_g"] == "8.5"
           assert FeeSchedule.objects.filter(name="eBay AU (placeholder)").count() == 1
           assert Comparable.objects.count() >= 4
-          assert ValuationReport.objects.count() >= 2
+          assert ValuationReport.objects.count() >= 3
           assert ValuationReport.objects.filter(strategy="comp_based", is_current=True).exists()
           assert ValuationReport.objects.filter(strategy="commodity_manual", is_current=True).exists()
+          live_report = ValuationReport.objects.get(strategy="commodity_live")
+          for key in {
+              "metal",
+              "currency",
+              "normalized_price_per_g",
+              "provider_price",
+              "provider_units",
+              "source",
+              "as_of",
+              "fetched_at",
+              "cache_hit",
+              "weight_g",
+              "fineness",
+              "calculated_intrinsic_value",
+          }:
+              assert key in live_report.inputs, key
+          assert MetalSpotCache.objects.filter(metal="gold", currency="AUD", provider="seed-fake").count() == 1
 
           with connection.cursor() as cursor:
               cursor.execute(
@@ -167,7 +191,7 @@ jobs:
           assert second.sku.startswith("STM-"), second.sku
           assert int(second.sku.rsplit("-", 1)[1]) == int(first.sku.rsplit("-", 1)[1]) + 1
 
-          print("PostgreSQL JSONB, GIN index, Sprint 2 seed data, and SKU sequence checks passed.")
+          print("PostgreSQL JSONB, GIN index, Sprint 3 seed data, SKU sequence, and fake metals checks passed.")
           PY
 
       - name: Run backend tests
@@ -207,8 +231,9 @@ jobs:
           assert manifest["row_counts"]["inventory.inventoryitem"] >= 7, manifest
           assert manifest["row_counts"]["research.comparable"] >= 4, manifest
           assert manifest["row_counts"]["valuation.feeschedule"] >= 1, manifest
-          assert manifest["row_counts"]["valuation.valuationreport"] >= 2, manifest
+          assert manifest["row_counts"]["valuation.valuationreport"] >= 3, manifest
           assert manifest["row_counts"]["valuation.valuationcomparable"] >= 4, manifest
+          assert manifest["row_counts"]["valuation.metalspotcache"] >= 1, manifest
 
           print(f"Verified backup bundle: {latest}")
           PY

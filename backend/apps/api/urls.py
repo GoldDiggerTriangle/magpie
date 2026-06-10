@@ -15,6 +15,7 @@ from apps.research.views import (
 from apps.valuation.views import (
     FeeScheduleViewSet,
     ItemValuationReportListCreateView,
+    MetalsSpotView,
     ValuationReportViewSet,
 )
 
@@ -56,6 +57,7 @@ urlpatterns = [
         ResearchLinksView.as_view(),
         name="item-research-links",
     ),
+    path("metals/spot/", MetalsSpotView.as_view(), name="metals-spot"),
     path(
         "items/export.csv",
         InventoryItemViewSet.as_view({"get": "export_csv"}),

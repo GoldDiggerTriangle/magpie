@@ -1,9 +1,13 @@
 from dataclasses import asdict, dataclass
 from decimal import Decimal
+from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
-from apps.valuation.models import FeeSchedule, ValuationReport
+from apps.valuation.models import FeeSchedule, MetalSpotCache, ValuationReport
+from integrations.metals import MetalsUnavailable, SpotQuote, get_metals_adapter
 
 
 CENT = Decimal("0.01")
@@ -17,6 +21,75 @@ def money(value: Decimal) -> Decimal:
 
 def ratio(value: Decimal) -> Decimal:
     return value.quantize(RATIO)
+
+
+def get_spot(metal, currency="AUD", *, force_refresh=False) -> SpotQuote:
+    metal_code = str(metal or "").strip().lower()
+    currency_code = str(currency or settings.METALS_BASE_CURRENCY).strip().upper()
+    adapter = get_metals_adapter()
+    provider = adapter.provider_name
+    cached = MetalSpotCache.objects.filter(
+        metal=metal_code,
+        currency=currency_code,
+        provider=provider,
+    ).first()
+
+    if cached is not None and not force_refresh and _is_fresh(cached):
+        return _quote_from_cache(cached, cache_hit=True)
+
+    try:
+        quote = adapter.spot_price(metal_code, currency_code)
+    except MetalsUnavailable:
+        if cached is not None:
+            return _quote_from_cache(cached, cache_hit=True)
+        raise
+
+    MetalSpotCache.objects.update_or_create(
+        metal=quote.metal,
+        currency=quote.currency,
+        provider=quote.source,
+        defaults={
+            "price_per_gram": quote.price_per_gram,
+            "provider_price": quote.provider_price,
+            "provider_units": quote.provider_units,
+            "as_of": quote.as_of,
+            "fetched_at": quote.fetched_at,
+        },
+    )
+    return quote
+
+
+def serialize_spot_quote(quote: SpotQuote) -> dict:
+    return {
+        "metal": quote.metal,
+        "currency": quote.currency,
+        "price_per_gram": str(quote.price_per_gram),
+        "provider_price": str(quote.provider_price),
+        "provider_units": quote.provider_units,
+        "source": quote.source,
+        "as_of": quote.as_of.isoformat(),
+        "fetched_at": quote.fetched_at.isoformat(),
+        "cache_hit": quote.cache_hit,
+    }
+
+
+def _quote_from_cache(cache: MetalSpotCache, *, cache_hit: bool) -> SpotQuote:
+    return SpotQuote(
+        metal=cache.metal,
+        currency=cache.currency,
+        price_per_gram=cache.price_per_gram,
+        provider_price=cache.provider_price,
+        provider_units=cache.provider_units,
+        source=cache.provider,
+        as_of=cache.as_of,
+        fetched_at=cache.fetched_at,
+        cache_hit=cache_hit,
+    )
+
+
+def _is_fresh(cache: MetalSpotCache) -> bool:
+    ttl = timedelta(seconds=settings.METALS_CACHE_TTL_SECONDS)
+    return cache.fetched_at >= timezone.now() - ttl
 
 
 @dataclass

@@ -248,3 +248,15 @@ export interface ValuationReportPayload {
   notes?: string;
   comp_links?: ValuationComparable[];
 }
+
+export interface MetalSpotQuote {
+  metal: string;
+  currency: string;
+  price_per_gram: string;
+  provider_price: string;
+  provider_units: string;
+  source: string;
+  as_of: string;
+  fetched_at: string;
+  cache_hit: boolean;
+}

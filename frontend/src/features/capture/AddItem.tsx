@@ -22,6 +22,14 @@ const conditionOptions = [
   ["for_parts", "For parts"]
 ];
 
+const goldDefaults = {
+  metal: "gold",
+  weight_g: "",
+  fineness: "",
+  karat: "",
+  form: ""
+};
+
 export function AddItem() {
   const navigate = useNavigate();
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
@@ -33,11 +41,19 @@ export function AddItem() {
   const [acquisitionCost, setAcquisitionCost] = useState("");
   const [estimatedValue, setEstimatedValue] = useState("");
   const [notes, setNotes] = useState("");
+  const [goldFields, setGoldFields] = useState<Record<string, string>>(goldDefaults);
   const [files, setFiles] = useState<File[]>([]);
   const [formError, setFormError] = useState("");
+  const selectedCategory = categories.data?.results.find((entry) => entry.id === category);
+  const showGoldFields = selectedCategory?.profile_key === "gold" || selectedCategory?.name.toLowerCase().includes("gold");
 
   const submit = useMutation({
     mutationFn: async () => {
+      const attributes = showGoldFields
+        ? Object.fromEntries(
+          Object.entries(goldFields).filter(([, value]) => value.trim() !== "")
+        )
+        : {};
       const payload: ItemFormPayload = {
         title: title.trim(),
         category,
@@ -46,7 +62,7 @@ export function AddItem() {
         acquisition_cost: acquisitionCost || null,
         estimated_value: estimatedValue || null,
         notes,
-        attributes: {}
+        attributes
       };
       const item = await createItem(payload);
       for (const file of files) {
@@ -112,6 +128,44 @@ export function AddItem() {
             <textarea className="field min-h-28" value={notes} onChange={(event) => setNotes(event.target.value)} />
           </label>
         </div>
+
+        {showGoldFields ? (
+          <div className="grid gap-4 rounded border border-slate-800 bg-slate-950/40 p-4 sm:grid-cols-5">
+            <label className="label">
+              <span>Metal</span>
+              <select className="field" value={goldFields.metal} onChange={(event) => setGoldFields({ ...goldFields, metal: event.target.value })}>
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
+                <option value="platinum">Platinum</option>
+                <option value="palladium">Palladium</option>
+              </select>
+            </label>
+            <label className="label">
+              <span>Weight g</span>
+              <input className="field" inputMode="decimal" value={goldFields.weight_g} onChange={(event) => setGoldFields({ ...goldFields, weight_g: event.target.value })} />
+            </label>
+            <label className="label">
+              <span>Fineness</span>
+              <input className="field" inputMode="decimal" value={goldFields.fineness} onChange={(event) => setGoldFields({ ...goldFields, fineness: event.target.value })} />
+            </label>
+            <label className="label">
+              <span>Karat</span>
+              <input className="field" inputMode="decimal" value={goldFields.karat} onChange={(event) => setGoldFields({ ...goldFields, karat: event.target.value })} />
+            </label>
+            <label className="label">
+              <span>Form</span>
+              <select className="field" value={goldFields.form} onChange={(event) => setGoldFields({ ...goldFields, form: event.target.value })}>
+                <option value="">Unspecified</option>
+                <option value="specimen">Specimen</option>
+                <option value="jewellery">Jewellery</option>
+                <option value="coin">Coin</option>
+                <option value="scrap">Scrap</option>
+                <option value="nugget">Nugget</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
 
         <button className="btn-primary w-full sm:w-auto" disabled={submit.isPending} type="submit">
           {submit.isPending ? "Saving" : "Save item"}

@@ -4,10 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, vi } from "vitest";
 
 import { ValuationPanel } from "./ValuationPanel";
+import { ApiError } from "../api/client";
 import type { InventoryItemDetail } from "../types";
 
 const mocks = vi.hoisted(() => ({
   createValuationReport: vi.fn(),
+  getMetalSpot: vi.fn(),
   comp: {
     id: "comp-1",
     item: "item-1",
@@ -46,6 +48,7 @@ vi.mock("../api/fees", () => ({
 
 vi.mock("../api/valuation", () => ({
   createValuationReport: (...args: unknown[]) => mocks.createValuationReport(...args),
+  getMetalSpot: (...args: unknown[]) => mocks.getMetalSpot(...args),
   listItemValuationReports: vi.fn(async () => ({ count: 0, next: null, previous: null, results: [] })),
   setCurrentValuationReport: vi.fn()
 }));
@@ -82,13 +85,25 @@ const item = {
 
 beforeEach(() => {
   mocks.createValuationReport.mockClear();
+  mocks.getMetalSpot.mockReset();
+  mocks.getMetalSpot.mockResolvedValue({
+    metal: "gold",
+    currency: "AUD",
+    price_per_gram: "100.000000",
+    provider_price: "3110.347680",
+    provider_units: "AUD/troy_oz",
+    source: "fake",
+    as_of: "2026-06-10T00:00:00Z",
+    fetched_at: "2026-06-10T00:01:00Z",
+    cache_hit: false
+  });
 });
 
-function renderPanel() {
+function renderPanel(panelItem: InventoryItemDetail = item) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ValuationPanel item={item} />
+      <ValuationPanel item={panelItem} />
     </QueryClientProvider>
   );
 }
@@ -115,4 +130,30 @@ test("ValuationPanel requires override reason when overriding", async () => {
 
   expect(screen.getByText("Override reason is required when manual override is enabled.")).toBeInTheDocument();
   await waitFor(() => expect(mocks.createValuationReport).not.toHaveBeenCalled());
+});
+
+test("ValuationPanel shows live spot source and timestamp", async () => {
+  const user = userEvent.setup();
+  renderPanel({ ...item, category_name: "Gold" });
+
+  await user.click(await screen.findByRole("button", { name: "Fetch live spot" }));
+
+  expect(await screen.findByText(/100.000000 AUD\/g/)).toBeInTheDocument();
+  expect(screen.getByText(/fake/)).toBeInTheDocument();
+  expect(screen.getByText(/As of/)).toBeInTheDocument();
+  expect(screen.getByText(/Provider 3110.347680 AUD\/troy_oz/)).toBeInTheDocument();
+});
+
+test("ValuationPanel exposes manual spot entry when live spot is unavailable", async () => {
+  const user = userEvent.setup();
+  mocks.getMetalSpot.mockRejectedValueOnce(new ApiError(503, {
+    needs_manual_spot: true,
+    detail: "Live metals pricing is disabled because METALS_PROVIDER is not configured."
+  }));
+  renderPanel({ ...item, category_name: "Gold" });
+
+  await user.click(await screen.findByRole("button", { name: "Fetch live spot" }));
+
+  expect(await screen.findByText(/METALS_PROVIDER is not configured/)).toBeInTheDocument();
+  expect(screen.getByLabelText(/Manual spot \/ g/)).toBeInTheDocument();
 });

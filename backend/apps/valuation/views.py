@@ -2,20 +2,25 @@ from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.inventory.models import InventoryItem
 from apps.valuation.filters import FeeScheduleFilter, ValuationReportFilter
-from apps.valuation.models import FeeSchedule, ValuationReport
+from apps.valuation.models import FeeSchedule, Metal, ValuationReport
 from apps.valuation.serializers import FeeScheduleSerializer, ValuationReportSerializer
 from apps.valuation.services import (
     active_fee_schedule,
     calculate_profit,
+    get_spot,
+    serialize_spot_quote,
     set_current,
     true_cost_for_item,
 )
+from integrations.metals import MetalsUnavailable
 
 
 class FeeScheduleViewSet(ReadOnlyModelViewSet):
@@ -50,6 +55,38 @@ class ItemValuationReportListCreateView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(item=self.get_item())
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+        except MetalsUnavailable as exc:
+            return Response(
+                {
+                    "needs_manual_spot": True,
+                    "detail": str(exc),
+                    "fallback_strategy": ValuationReport.Strategy.COMMODITY_MANUAL,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except DRFValidationError as exc:
+            response_status = (
+                status.HTTP_422_UNPROCESSABLE_ENTITY
+                if self._is_live_input_error(request, exc.detail)
+                else status.HTTP_400_BAD_REQUEST
+            )
+            return Response(exc.detail, status=response_status)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def _is_live_input_error(self, request, detail) -> bool:
+        return (
+            request.data.get("strategy") == ValuationReport.Strategy.COMMODITY_LIVE
+            and isinstance(detail, dict)
+            and "inputs" in detail
+        )
 
 
 class ValuationReportViewSet(ModelViewSet):
@@ -98,3 +135,39 @@ class ValuationReportViewSet(ModelViewSet):
             packaging=report.item.est_packaging_cost,
         )
         return Response(breakdown.as_serialized())
+
+
+class MetalsSpotView(APIView):
+    def get(self, request):
+        metal = str(request.query_params.get("metal") or Metal.GOLD).strip().lower()
+        currency = str(request.query_params.get("currency") or "AUD").strip().upper()
+        refresh = str(request.query_params.get("refresh", "")).lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+        if metal not in Metal.values:
+            return Response(
+                {"metal": [f"Unsupported metal: {metal}"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(currency) != 3:
+            return Response(
+                {"currency": ["Currency must be a three-letter ISO code."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            quote = get_spot(metal, currency, force_refresh=refresh)
+        except MetalsUnavailable as exc:
+            return Response(
+                {
+                    "needs_manual_spot": True,
+                    "detail": str(exc),
+                    "fallback_strategy": ValuationReport.Strategy.COMMODITY_MANUAL,
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response(serialize_spot_quote(quote))

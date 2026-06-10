@@ -157,7 +157,7 @@ def test_valuation_strategies(item):
     assert commodity.median == Decimal("500.00")
     assert commodity.fast_sale == Decimal("450.00")
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         get_strategy("commodity_live").estimate(item=item, included_comps=[], inputs={})
 
 

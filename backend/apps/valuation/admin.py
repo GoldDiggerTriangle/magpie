@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from apps.valuation.models import FeeSchedule, ValuationComparable, ValuationReport
+from apps.valuation.models import (
+    FeeSchedule,
+    MetalSpotCache,
+    ValuationComparable,
+    ValuationReport,
+)
 
 
 @admin.register(FeeSchedule)
@@ -41,4 +46,20 @@ class ValuationComparableAdmin(admin.ModelAdmin):
     list_filter = ("included",)
     search_fields = ("report__item__sku", "comparable__title", "exclude_reason")
     autocomplete_fields = ("report", "comparable")
+    readonly_fields = ("id", "created_at", "updated_at")
+
+
+@admin.register(MetalSpotCache)
+class MetalSpotCacheAdmin(admin.ModelAdmin):
+    list_display = (
+        "metal",
+        "currency",
+        "provider",
+        "price_per_gram",
+        "provider_price",
+        "provider_units",
+        "as_of",
+        "fetched_at",
+    )
+    list_filter = ("metal", "currency", "provider")
     readonly_fields = ("id", "created_at", "updated_at")
