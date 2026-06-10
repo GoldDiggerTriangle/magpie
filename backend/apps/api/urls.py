@@ -5,6 +5,11 @@ from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
 from apps.dashboard.views import DashboardSummaryView
 from apps.inventory.views import InventoryItemViewSet
+from apps.listing.views import (
+    ItemListingDraftListCreateView,
+    ListingBoilerplateViewSet,
+    ListingDraftViewSet,
+)
 from apps.locations.views import StorageLocationViewSet
 from apps.photos.views import PhotoAssetViewSet
 from apps.research.views import (
@@ -28,12 +33,23 @@ router.register("acquisitions", AcquisitionRecordViewSet, basename="acquisition"
 router.register("comparables", ComparableViewSet, basename="comparable")
 router.register("research-records", ResearchRecordViewSet, basename="research-record")
 router.register("fee-schedules", FeeScheduleViewSet, basename="fee-schedule")
+router.register("listing-drafts", ListingDraftViewSet, basename="listing-draft")
+router.register(
+    "listing-boilerplates",
+    ListingBoilerplateViewSet,
+    basename="listing-boilerplate",
+)
 
 urlpatterns = [
     path(
         "items/<uuid:item_id>/valuation-reports/",
         ItemValuationReportListCreateView.as_view(),
         name="item-valuation-reports",
+    ),
+    path(
+        "items/<uuid:item_id>/listing-drafts/",
+        ItemListingDraftListCreateView.as_view(),
+        name="item-listing-drafts",
     ),
     path(
         "valuation-reports/<uuid:pk>/",

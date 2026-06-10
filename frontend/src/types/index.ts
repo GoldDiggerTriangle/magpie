@@ -287,3 +287,76 @@ export interface MetalSpotQuote {
   fetched_at: string;
   cache_hit: boolean;
 }
+
+export interface ListingSpecific {
+  name: string;
+  value: string;
+}
+
+export interface ListingCheck {
+  key: string;
+  level: "pass" | "warn" | "fail";
+  message: string;
+}
+
+export interface ListingReadinessSummary {
+  fail_count: number;
+  warn_count: number;
+  pass_count: number;
+}
+
+export interface ListingBoilerplate {
+  id: UUID;
+  channel: string;
+  name: string;
+  is_active: boolean;
+  body_html: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListingDraft {
+  id: UUID;
+  item: UUID;
+  status: "draft" | "ready" | "exported";
+  channel: string;
+  channel_data: Record<string, unknown>;
+  title: string;
+  subtitle: string;
+  description_html: string;
+  listing_format: "fixed" | "auction";
+  price: string | null;
+  currency: string;
+  quantity: number;
+  est_shipping_note: string;
+  item_specifics: ListingSpecific[];
+  photo_ids: UUID[];
+  include_sku_footer: boolean;
+  boilerplate: UUID | null;
+  title_edited: boolean;
+  description_edited: boolean;
+  generated_meta: Record<string, unknown>;
+  exported_at: string | null;
+  readiness_summary: ListingReadinessSummary;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ListingDraftPayload {
+  status?: ListingDraft["status"];
+  channel?: string;
+  channel_data?: Record<string, unknown>;
+  title?: string;
+  subtitle?: string;
+  description_html?: string;
+  listing_format?: ListingDraft["listing_format"];
+  price?: string | null;
+  currency?: string;
+  quantity?: number;
+  est_shipping_note?: string;
+  item_specifics?: ListingSpecific[];
+  photo_ids?: UUID[];
+  include_sku_footer?: boolean;
+  boilerplate?: UUID | null;
+}

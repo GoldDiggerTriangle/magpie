@@ -1,0 +1,210 @@
+name: Sprint 5 PostgreSQL Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/sprint5-postgres.yml"
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+  pull_request:
+    paths:
+      - ".github/workflows/sprint5-postgres.yml"
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+
+jobs:
+  sprint5-postgres:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: gsp
+          POSTGRES_USER: gsp
+          POSTGRES_PASSWORD: gsp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U gsp -d gsp"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
+      SECRET_KEY: django-insecure-ci-sprint-5-only
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      PGCONNECT_TIMEOUT: "10"
+      METALS_PROVIDER: fake
+      METALS_BASE_CURRENCY: AUD
+      METALS_CACHE_TTL_SECONDS: "3600"
+      PGPASSWORD: gsp
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+
+      - name: Run Django check
+        working-directory: backend
+        run: python manage.py check
+
+      - name: Apply PostgreSQL migrations
+        working-directory: backend
+        run: python manage.py migrate --noinput
+
+      - name: Check migrations are committed
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run --noinput
+
+      - name: Seed Sprint 5 data
+        working-directory: backend
+        run: python manage.py seed
+
+      - name: Assert Sprint 5 listing seed data
+        working-directory: backend
+        run: |
+          python - <<'PY'
+          import os
+
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+
+          import django
+
+          django.setup()
+
+          from django.db import connection
+
+          from apps.inventory.models import InventoryItem
+          from apps.listing.constants import ALLOWED_HTML_TAGS
+          from apps.listing.models import ListingBoilerplate, ListingDraft
+          from apps.valuation.models import ValuationReport
+
+          assert connection.vendor == "postgresql", connection.vendor
+          assert ListingBoilerplate.objects.filter(
+              channel="ebay_au",
+              name="eBay AU — PLACEHOLDER boilerplate",
+              is_active=True,
+          ).count() == 1
+          phone = InventoryItem.objects.get(title="Seed/example phone - Samsung Galaxy S21")
+          draft = ListingDraft.objects.get(item=phone)
+          assert draft.title
+          assert len(draft.title) <= 80
+          assert draft.description_html
+          assert draft.item_specifics
+          assert draft.generated_meta["price_source"]["price_point"] == "suggested"
+          assert ValuationReport.objects.filter(item=phone, is_current=True).exists()
+          assert set(["h2", "p"]) <= ALLOWED_HTML_TAGS
+
+          with connection.cursor() as cursor:
+              cursor.execute(
+                  """
+                  select table_name
+                  from information_schema.tables
+                  where table_schema = 'public'
+                    and table_name in ('listing_listingdraft', 'listing_listingboilerplate')
+                  """
+              )
+              assert {row[0] for row in cursor.fetchall()} == {
+                  "listing_listingdraft",
+                  "listing_listingboilerplate",
+              }
+
+          print("Sprint 5 listing seed and PostgreSQL table checks passed.")
+          PY
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest
+
+      - name: Create PostgreSQL backup
+        working-directory: backend
+        run: python manage.py backup
+
+      - name: Restore PostgreSQL backup into empty database
+        run: |
+          mkdir -p /tmp/sprint5-restore
+          python - <<'PY'
+          import json
+          import zipfile
+          from pathlib import Path
+
+          backups = sorted(Path("backups").glob("backup-*.zip"))
+          assert backups, "No backup zip produced"
+          latest = backups[-1]
+
+          with zipfile.ZipFile(latest) as archive:
+              names = set(archive.namelist())
+              assert "manifest.json" in names, names
+              assert "media/" in names, names
+              assert "db.dump" in names, names
+              manifest = json.loads(archive.read("manifest.json"))
+              archive.extract("db.dump", "/tmp/sprint5-restore")
+
+          assert manifest["database_artifact"] == "db.dump", manifest
+          assert manifest["row_counts"]["listing.listingboilerplate"] == 1, manifest
+          assert manifest["row_counts"]["listing.listingdraft"] == 1, manifest
+          print(latest)
+          PY
+          createdb --host 127.0.0.1 --username gsp gsp_restore
+          pg_restore --host 127.0.0.1 --username gsp --dbname gsp_restore /tmp/sprint5-restore/db.dump
+          cd backend
+          DATABASE_URL=postgres://gsp:gsp@127.0.0.1:5432/gsp_restore python - <<'PY'
+          import os
+
+          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+
+          import django
+
+          django.setup()
+
+          from apps.listing.models import ListingBoilerplate, ListingDraft
+
+          assert ListingBoilerplate.objects.count() == 1
+          assert ListingDraft.objects.count() == 1
+          print("Sprint 5 backup restore checks passed.")
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build

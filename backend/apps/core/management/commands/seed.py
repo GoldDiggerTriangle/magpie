@@ -7,6 +7,8 @@ from django.utils.text import slugify
 
 from apps.catalog.models import ProductCategory
 from apps.inventory.models import InventoryItem
+from apps.listing.models import ListingBoilerplate, ListingDraft
+from apps.listing.views import create_generated_draft
 from apps.locations.models import StorageLocation
 from apps.research.models import Comparable
 from apps.valuation.models import (
@@ -28,6 +30,7 @@ class Command(BaseCommand):
         items, created_items = self.seed_items(categories, locations)
         fee_schedule = self.seed_fee_schedule()
         self.seed_research_and_valuations(items, fee_schedule)
+        self.seed_listing(items)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -256,6 +259,7 @@ class Command(BaseCommand):
         coin = items["Seed/example coin - 1937 Australian Crown"]
         sovereign = items["Seed/example bullion coin - George V sovereign"]
         gold = items["Small gold jewellery parcel"]
+        phone = items["Seed/example phone - Samsung Galaxy S21"]
 
         comp_specs = [
             {
@@ -357,6 +361,30 @@ class Command(BaseCommand):
                 },
             )
         set_current(comp_report)
+
+        phone_report, _ = ValuationReport.objects.update_or_create(
+            item=phone,
+            strategy=ValuationReport.Strategy.COMP_BASED,
+            notes="Seed phone valuation report for listing draft defaults",
+            defaults={
+                "fee_schedule": fee_schedule,
+                "estimate_low": Decimal("150.00"),
+                "estimate_median": Decimal("180.00"),
+                "estimate_high": Decimal("220.00"),
+                "suggested_price": Decimal("199.00"),
+                "fast_sale_price": Decimal("165.00"),
+                "patient_price": Decimal("220.00"),
+                "min_acceptable_price": Decimal("145.00"),
+                "currency": "AUD",
+                "confidence_score": 0.55,
+                "confidence_reason": "Seed placeholder valuation for UI testing.",
+                "is_overridden": False,
+                "override_reason": "",
+                "inputs": {},
+                "is_current": False,
+            },
+        )
+        set_current(phone_report)
 
         sovereign_inputs = {
             "metal": "gold",
@@ -483,3 +511,24 @@ class Command(BaseCommand):
                 "is_current": False,
             },
         )
+
+    def seed_listing(self, items: dict[str, InventoryItem]) -> None:
+        # Placeholder wording only. Replace with Regan's real postage, returns,
+        # and payment wording in Django admin before relying on exports.
+        ListingBoilerplate.objects.update_or_create(
+            channel="ebay_au",
+            name="eBay AU — PLACEHOLDER boilerplate",
+            defaults={
+                "is_active": True,
+                "body_html": (
+                    "<h2>Postage, returns and payment</h2>"
+                    "<p>PLACEHOLDER wording: confirm postage, returns, and payment "
+                    "terms in eBay before listing. No external links are included.</p>"
+                ),
+                "notes": "Placeholder seed boilerplate; edit in admin.",
+            },
+        )
+
+        phone = items["Seed/example phone - Samsung Galaxy S21"]
+        if not ListingDraft.objects.filter(item=phone).exists():
+            create_generated_draft(phone)

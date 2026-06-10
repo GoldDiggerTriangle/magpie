@@ -12,6 +12,7 @@ import { CategorySelect } from "../../components/CategorySelect";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
+import { ListingPanel } from "../../components/ListingPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
 import { ComparableList } from "../../components/ComparableList";
@@ -266,6 +267,7 @@ export function ItemDetail() {
         </div>
         <ValuationPanel item={item.data} />
         <ProfitBreakdown item={item.data} reportId={item.data.current_valuation?.id ?? null} />
+        <ListingPanel item={item.data} />
       </div>
 
       <ConfirmDialog

@@ -24,6 +24,7 @@ LOCAL_APP_LABELS = {
     "photos",
     "research",
     "valuation",
+    "listing",
 }
 
 
@@ -73,6 +74,7 @@ class Command(BaseCommand):
                 "photos",
                 "research",
                 "valuation",
+                "listing",
                 indent=2,
                 stdout=handle,
             )
