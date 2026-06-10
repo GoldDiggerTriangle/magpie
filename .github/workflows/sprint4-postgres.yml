@@ -1,22 +1,22 @@
-name: Sprint 3 PostgreSQL Validation
+name: Sprint 4 PostgreSQL Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/sprint3-postgres.yml"
+      - ".github/workflows/sprint4-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
   pull_request:
     paths:
-      - ".github/workflows/sprint3-postgres.yml"
+      - ".github/workflows/sprint4-postgres.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
 
 jobs:
-  sprint3-postgres:
+  sprint4-postgres:
     runs-on: ubuntu-24.04
 
     services:
@@ -36,7 +36,7 @@ jobs:
 
     env:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
-      SECRET_KEY: django-insecure-ci-sprint-3-only
+      SECRET_KEY: django-insecure-ci-sprint-4-only
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       PGCONNECT_TIMEOUT: "10"
@@ -77,11 +77,11 @@ jobs:
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run --noinput
 
-      - name: Seed Sprint 3 data
+      - name: Seed Sprint 4 data
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert PostgreSQL JSONB, GIN, Sprint 3 seed data, SKU sequence, and fake metals cache
+      - name: Assert PostgreSQL JSONB, GIN, Sprint 4 seed data, SKU sequence, and fake metals cache
         working-directory: backend
         run: |
           python - <<'PY'
@@ -116,17 +116,33 @@ jobs:
           slugs = set(ProductCategory.objects.values_list("slug", flat=True))
           assert expected_categories <= slugs, slugs
           assert ProductCategory.objects.count() == 8
+          assert ProductCategory.objects.get(slug="stamps").profile_key == "stamps"
+          assert ProductCategory.objects.get(slug="coins").profile_key == "coins"
+          assert ProductCategory.objects.get(slug="phones-electronics").profile_key == "phones"
           assert ProductCategory.objects.get(slug="gold").profile_key == "gold"
           assert StorageLocation.objects.count() == 5
-          assert InventoryItem.objects.count() == 5
+          assert InventoryItem.objects.count() == 6
+          stamp_item = InventoryItem.objects.get(title="Seed/example stamp - Australia 1932 Sydney Harbour Bridge 2d")
+          assert stamp_item.attributes["catalogue_refs"] == [{"system": "SG", "number": "144"}]
+          crown_item = InventoryItem.objects.get(title="Seed/example coin - 1937 Australian Crown")
+          assert crown_item.attributes["catalogue_refs"] == [{"system": "KM", "number": "34"}]
+          phone_item = InventoryItem.objects.get(title="Seed/example phone - Samsung Galaxy S21")
+          assert phone_item.attributes["brand"] == "Samsung"
+          assert phone_item.attributes["storage_gb"] == 128
+          assert phone_item.attributes["battery_health_pct"] == 87
           gold_item = InventoryItem.objects.get(title="Small gold jewellery parcel")
           assert gold_item.attributes["metal"] == "gold"
           assert gold_item.attributes["weight_g"] == "8.5"
+          sovereign_item = InventoryItem.objects.get(title="Seed/example bullion coin - George V sovereign")
+          assert sovereign_item.category.profile_key == "coins"
+          assert sovereign_item.attributes["weight_g"] == "7.988"
+          assert sovereign_item.attributes["fineness"] == "0.9167"
           assert FeeSchedule.objects.filter(name="eBay AU (placeholder)").count() == 1
           assert Comparable.objects.count() >= 4
-          assert ValuationReport.objects.count() >= 3
+          assert ValuationReport.objects.count() >= 4
           assert ValuationReport.objects.filter(strategy="comp_based", is_current=True).exists()
           assert ValuationReport.objects.filter(strategy="commodity_manual", is_current=True).exists()
+          assert ValuationReport.objects.filter(item=sovereign_item, strategy="commodity_manual").exists()
           live_report = ValuationReport.objects.get(strategy="commodity_live")
           for key in {
               "metal",
@@ -171,15 +187,15 @@ jobs:
               assert index_row is not None
               assert "USING gin" in index_row[0], index_row[0]
 
-          stamps = ProductCategory.objects.get(slug="stamps")
+          tools = ProductCategory.objects.get(slug="tools")
           first = InventoryItem.objects.create(
               title="CI JSONB smoke 1",
-              category=stamps,
+              category=tools,
               attributes={"nested": {"jsonb": True}, "count": 1},
           )
           second = InventoryItem.objects.create(
               title="CI JSONB smoke 2",
-              category=stamps,
+              category=tools,
               attributes={"nested": {"jsonb": True}, "count": 2},
           )
           first.refresh_from_db()
@@ -187,11 +203,11 @@ jobs:
 
           assert first.attributes["nested"]["jsonb"] is True
           assert second.attributes["count"] == 2
-          assert first.sku.startswith("STM-"), first.sku
-          assert second.sku.startswith("STM-"), second.sku
+          assert first.sku.startswith("TOOL-"), first.sku
+          assert second.sku.startswith("TOOL-"), second.sku
           assert int(second.sku.rsplit("-", 1)[1]) == int(first.sku.rsplit("-", 1)[1]) + 1
 
-          print("PostgreSQL JSONB, GIN index, Sprint 3 seed data, SKU sequence, and fake metals checks passed.")
+          print("PostgreSQL JSONB, GIN index, Sprint 4 seed data, SKU sequence, and fake metals checks passed.")
           PY
 
       - name: Run backend tests
@@ -228,7 +244,7 @@ jobs:
           assert manifest["database_artifact"] == "db.dump", manifest
           assert manifest["row_counts"]["catalog.productcategory"] == 8, manifest
           assert manifest["row_counts"]["locations.storagelocation"] == 5, manifest
-          assert manifest["row_counts"]["inventory.inventoryitem"] >= 7, manifest
+          assert manifest["row_counts"]["inventory.inventoryitem"] >= 8, manifest
           assert manifest["row_counts"]["research.comparable"] >= 4, manifest
           assert manifest["row_counts"]["valuation.feeschedule"] >= 1, manifest
           assert manifest["row_counts"]["valuation.valuationreport"] >= 3, manifest

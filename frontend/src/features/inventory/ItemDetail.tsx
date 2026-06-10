@@ -18,6 +18,7 @@ import { ComparableList } from "../../components/ComparableList";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
 import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
+import { sanitizeSchemaAttributes, SchemaFieldsForm } from "../../components/SchemaFieldsForm";
 import { StatusBadge } from "../../components/StatusBadge";
 import { ValuationPanel } from "../../components/ValuationPanel";
 import type { ItemFormPayload, PhotoAsset, UUID } from "../../types";
@@ -101,7 +102,7 @@ export function ItemDetail() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["item", itemId] });
 
   const saveMutation = useMutation({
-    mutationFn: () => updateItem(itemId, form),
+    mutationFn: () => updateItem(itemId, { ...form, attributes: sanitizeSchemaAttributes(form.attributes ?? {}) }),
     onSuccess: refresh
   });
   const uploadMutation = useMutation({
@@ -203,8 +204,21 @@ export function ItemDetail() {
           </label>
           <label className="label">
             <span>Category</span>
-            <CategorySelect categories={categories.data?.results ?? []} value={form.category} onChange={(value) => setForm({ ...form, category: value })} />
+            <CategorySelect
+              categories={categories.data?.results ?? []}
+              value={form.category}
+              onChange={(value) => setForm({
+                ...form,
+                category: value,
+                attributes: value === form.category ? form.attributes : {}
+              })}
+            />
           </label>
+          <SchemaFieldsForm
+            categoryId={form.category}
+            attributes={form.attributes ?? {}}
+            onChange={(attributes) => setForm((current) => ({ ...current, attributes }))}
+          />
           <label className="label">
             <span>Location</span>
             <LocationSelect locations={locations.data?.results ?? []} value={form.location} onChange={(value) => setForm({ ...form, location: value })} />

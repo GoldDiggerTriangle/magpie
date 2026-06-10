@@ -17,6 +17,25 @@ export interface ProductCategory {
   description: string;
 }
 
+export interface FieldSpec {
+  name: string;
+  label: string;
+  type: "str" | "int" | "decimal" | "choice" | "object" | "list[object]";
+  required: false;
+  choices: string[];
+  min: string | number | null;
+  max: string | number | null;
+  help_text: string;
+  item_shape?: Record<string, FieldSpec>;
+  default?: string;
+  exclusive_min?: boolean;
+}
+
+export interface CategorySchema {
+  profile_key: string;
+  fields: FieldSpec[];
+}
+
 export interface StorageLocation {
   id: UUID;
   label: string;
@@ -145,6 +164,14 @@ export interface Comparable {
 export type ComparablePayload = Omit<Comparable, "id" | "created_at" | "updated_at">;
 
 export interface ResearchLink {
+  type?: "link" | "checklist";
+  label: string;
+  url: string | null;
+  note?: string;
+  source?: string;
+}
+
+export interface ResearchRecordLink {
   label: string;
   url: string;
 }
@@ -154,7 +181,7 @@ export interface ResearchRecord {
   item: UUID;
   source: string;
   content: string;
-  links: ResearchLink[];
+  links: ResearchRecordLink[];
   created_at: string;
   updated_at: string;
 }

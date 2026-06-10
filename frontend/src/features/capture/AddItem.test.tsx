@@ -8,13 +8,15 @@ import { AddItem } from "./AddItem";
 
 const mocks = vi.hoisted(() => ({
   listCategories: vi.fn(),
+  getCategorySchema: vi.fn(),
   listLocations: vi.fn(),
   createItem: vi.fn(),
   uploadItemPhoto: vi.fn()
 }));
 
 vi.mock("../../api/categories", () => ({
-  listCategories: () => mocks.listCategories()
+  listCategories: () => mocks.listCategories(),
+  getCategorySchema: (...args: unknown[]) => mocks.getCategorySchema(...args)
 }));
 
 vi.mock("../../api/locations", () => ({
@@ -28,6 +30,7 @@ vi.mock("../../api/items", () => ({
 
 beforeEach(() => {
   mocks.listCategories.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  mocks.getCategorySchema.mockResolvedValue({ profile_key: "", fields: [] });
   mocks.listLocations.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mocks.createItem.mockResolvedValue({ id: "item-1" });
   mocks.uploadItemPhoto.mockResolvedValue({});
@@ -74,6 +77,62 @@ test("AddItem keeps gold capture fields optional", async () => {
       profile_key: "gold",
       description: ""
     }]
+  });
+  mocks.getCategorySchema.mockResolvedValue({
+    profile_key: "gold",
+    fields: [
+      {
+        name: "metal",
+        label: "Metal",
+        type: "choice",
+        required: false,
+        choices: ["gold", "silver", "platinum", "palladium"],
+        min: null,
+        max: null,
+        help_text: "",
+        default: "gold"
+      },
+      {
+        name: "weight_g",
+        label: "Weight g",
+        type: "decimal",
+        required: false,
+        choices: [],
+        min: "0",
+        max: null,
+        help_text: ""
+      },
+      {
+        name: "fineness",
+        label: "Fineness",
+        type: "decimal",
+        required: false,
+        choices: [],
+        min: "0",
+        max: "1",
+        help_text: ""
+      },
+      {
+        name: "karat",
+        label: "Karat",
+        type: "decimal",
+        required: false,
+        choices: [],
+        min: "1",
+        max: "24",
+        help_text: ""
+      },
+      {
+        name: "form",
+        label: "Form",
+        type: "choice",
+        required: false,
+        choices: ["specimen", "jewellery", "coin", "scrap", "nugget", "other"],
+        min: null,
+        max: null,
+        help_text: ""
+      }
+    ]
   });
   const user = userEvent.setup();
   renderAddItem();

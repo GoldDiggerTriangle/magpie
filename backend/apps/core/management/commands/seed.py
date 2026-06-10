@@ -38,9 +38,9 @@ class Command(BaseCommand):
 
     def seed_categories(self) -> dict[str, ProductCategory]:
         specs = [
-            ("Stamps", "STM", ""),
-            ("Coins", "COIN", ""),
-            ("Phones & Electronics", "PH", ""),
+            ("Stamps", "STM", "stamps"),
+            ("Coins", "COIN", "coins"),
+            ("Phones & Electronics", "PH", "phones"),
             ("Gold", "GOLD", "gold"),
             ("Tools", "TOOL", ""),
             ("Collectibles", "COL", ""),
@@ -103,34 +103,78 @@ class Command(BaseCommand):
     ) -> tuple[dict[str, InventoryItem], int]:
         specs = [
             {
-                "title": "Mixed Australian stamp lot",
+                "title": "Seed/example stamp - Australia 1932 Sydney Harbour Bridge 2d",
+                "legacy_titles": ["Mixed Australian stamp lot"],
                 "category": categories["Stamps"],
                 "status": InventoryItem.Status.CAPTURED,
                 "condition": InventoryItem.Condition.UNGRADED,
                 "location": locations["bin_1"],
                 "estimated_value": Decimal("25.00"),
-                "notes": "Placeholder seed item.",
-                "attributes": {"lot_type": "mixed"},
+                "notes": "Seed/example stamp data; catalogue reference is illustrative, not authoritative.",
+                "attributes": {
+                    "country": "Australia",
+                    "year": 1932,
+                    "denomination": "2d",
+                    "face_value_currency": "AUD (pre-decimal d)",
+                    "catalogue_refs": [{"system": "SG", "number": "144"}],
+                    "mint_used": "used",
+                    "topic_theme": "bridges",
+                },
             },
             {
-                "title": "Pre-decimal coin needing research",
+                "title": "Seed/example coin - 1937 Australian Crown",
+                "legacy_titles": ["Pre-decimal coin needing research"],
                 "category": categories["Coins"],
                 "status": InventoryItem.Status.NEEDS_RESEARCH,
                 "condition": InventoryItem.Condition.GOOD,
                 "location": locations["shelf_a"],
                 "estimated_value": Decimal("60.00"),
-                "notes": "Check year and mint mark later.",
-                "attributes": {"country": "Australia"},
+                "notes": "Seed/example numismatic coin data.",
+                "attributes": {
+                    "country": "Australia",
+                    "year": 1937,
+                    "denomination": "Crown",
+                    "ruler_or_reign": "George VI",
+                    "grade": "VF",
+                    "catalogue_refs": [{"system": "KM", "number": "34"}],
+                    "mintage": 1008000,
+                },
             },
             {
-                "title": "Used smartphone ready to list",
+                "title": "Seed/example bullion coin - George V sovereign",
+                "category": categories["Coins"],
+                "status": InventoryItem.Status.NEEDS_RESEARCH,
+                "condition": InventoryItem.Condition.UNGRADED,
+                "location": locations["bin_2"],
+                "estimated_value": Decimal("850.00"),
+                "notes": "Seed/example bullion sovereign; commodity valuation uses manual fake inputs.",
+                "attributes": {
+                    "country": "United Kingdom",
+                    "denomination": "Sovereign",
+                    "ruler_or_reign": "George V",
+                    "composition": "22ct gold",
+                    "weight_g": "7.988",
+                    "fineness": "0.9167",
+                },
+            },
+            {
+                "title": "Seed/example phone - Samsung Galaxy S21",
+                "legacy_titles": ["Used smartphone ready to list"],
                 "category": categories["Phones & Electronics"],
                 "status": InventoryItem.Status.READY_TO_LIST,
                 "condition": InventoryItem.Condition.GOOD,
                 "location": locations["shelf_b"],
                 "estimated_value": Decimal("180.00"),
-                "notes": "Factory reset before listing.",
-                "attributes": {"tested": True},
+                "notes": "Factory reset before listing. Seed/example phone data.",
+                "attributes": {
+                    "brand": "Samsung",
+                    "model": "Galaxy S21",
+                    "storage_gb": 128,
+                    "ram_gb": 8,
+                    "network_status": "unlocked",
+                    "battery_health_pct": 87,
+                    "faults": "light scratch rear glass",
+                },
             },
             {
                 "title": "Small gold jewellery parcel",
@@ -139,7 +183,7 @@ class Command(BaseCommand):
                 "condition": InventoryItem.Condition.UNGRADED,
                 "location": locations["bin_2"],
                 "estimated_value": Decimal("350.00"),
-                "notes": "Seed gold item with fake Sprint 3 commodity fields.",
+                "notes": "Seed gold item with fake commodity fields.",
                 "attributes": {
                     "metal": "gold",
                     "weight_g": "8.5",
@@ -162,11 +206,24 @@ class Command(BaseCommand):
         created_count = 0
         items: dict[str, InventoryItem] = {}
         for spec in specs:
-            item, created = InventoryItem.objects.update_or_create(
-                title=spec["title"],
-                category=spec["category"],
-                defaults=spec,
+            legacy_titles = spec.pop("legacy_titles", [])
+            lookup_titles = [spec["title"], *legacy_titles]
+            item = (
+                InventoryItem.objects.filter(
+                    title__in=lookup_titles,
+                    category=spec["category"],
+                )
+                .order_by("created_at")
+                .first()
             )
+            created = item is None
+            if item is None:
+                item = InventoryItem(**spec)
+            else:
+                for field, value in spec.items():
+                    setattr(item, field, value)
+            item.full_clean()
+            item.save()
             items[spec["title"]] = item
             if created:
                 created_count += 1
@@ -196,7 +253,8 @@ class Command(BaseCommand):
         items: dict[str, InventoryItem],
         fee_schedule: FeeSchedule,
     ) -> None:
-        coin = items["Pre-decimal coin needing research"]
+        coin = items["Seed/example coin - 1937 Australian Crown"]
+        sovereign = items["Seed/example bullion coin - George V sovereign"]
         gold = items["Small gold jewellery parcel"]
 
         comp_specs = [
@@ -299,6 +357,44 @@ class Command(BaseCommand):
                 },
             )
         set_current(comp_report)
+
+        sovereign_inputs = {
+            "metal": "gold",
+            "weight_g": "7.988",
+            "fineness": "0.9167",
+            "spot_price_per_g": "105.00",
+            "buy_margin_pct": "8.0",
+        }
+        sovereign_result = get_strategy(
+            ValuationReport.Strategy.COMMODITY_MANUAL
+        ).estimate(
+            item=sovereign,
+            included_comps=[],
+            inputs=sovereign_inputs,
+        )
+        sovereign_report, _ = ValuationReport.objects.update_or_create(
+            item=sovereign,
+            strategy=ValuationReport.Strategy.COMMODITY_MANUAL,
+            notes="Seed commodity-manual valuation report for bullion sovereign",
+            defaults={
+                "fee_schedule": fee_schedule,
+                "estimate_low": sovereign_result.low,
+                "estimate_median": sovereign_result.median,
+                "estimate_high": sovereign_result.high,
+                "suggested_price": sovereign_result.suggested,
+                "fast_sale_price": sovereign_result.fast_sale,
+                "patient_price": sovereign_result.patient,
+                "min_acceptable_price": sovereign_result.fast_sale,
+                "currency": "AUD",
+                "confidence_score": 0.5,
+                "confidence_reason": "Seed manual commodity inputs for a coin-category bullion example.",
+                "is_overridden": False,
+                "override_reason": "",
+                "inputs": sovereign_inputs,
+                "is_current": False,
+            },
+        )
+        set_current(sovereign_report)
 
         gold_inputs = {
             "metal": "gold",

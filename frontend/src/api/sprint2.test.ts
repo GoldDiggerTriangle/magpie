@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { getCategorySchema } from "./categories";
 import { createComparable } from "./comparables";
 import { getResearchLinks } from "./research";
 import { createValuationReport, getReportProfit } from "./valuation";
@@ -45,6 +46,14 @@ describe("Sprint 2 API modules", () => {
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/items/item-1/research-links/", expect.any(Object));
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/valuation-reports/report-1/profit/?price=12.50", expect.any(Object));
+  });
+
+  test("getCategorySchema uses the category schema route", async () => {
+    const fetchMock = mockFetch({ profile_key: "coins", fields: [] });
+
+    await getCategorySchema("cat-1");
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/categories/cat-1/schema/", expect.any(Object));
   });
 
   test("createValuationReport posts through the item route", async () => {
