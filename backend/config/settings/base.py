@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     "apps.research",
     "apps.valuation",
     "apps.listing",
+    "apps.audit",
+    "apps.ebay",
     "apps.dashboard",
     "apps.api",
 ]
@@ -142,3 +144,10 @@ METALS_API_KEY = os.getenv("METALS_API_KEY", "").strip()
 METALS_BASE_CURRENCY = os.getenv("METALS_BASE_CURRENCY", "AUD").strip().upper()
 METALS_CACHE_TTL_SECONDS = int(os.getenv("METALS_CACHE_TTL_SECONDS", "3600"))
 METALS_HTTP_TIMEOUT_SECONDS = int(os.getenv("METALS_HTTP_TIMEOUT_SECONDS", "10"))
+
+EBAY_ENV = os.getenv("EBAY_ENV", "").strip().lower()
+EBAY_CLIENT_ID = os.getenv("EBAY_CLIENT_ID", "").strip()
+EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "").strip()
+EBAY_RU_NAME = os.getenv("EBAY_RU_NAME", "").strip()
+EBAY_HTTP_TIMEOUT_SECONDS = int(os.getenv("EBAY_HTTP_TIMEOUT_SECONDS", "20"))
+MAGPIE_TOKEN_ENCRYPTION_KEY = os.getenv("MAGPIE_TOKEN_ENCRYPTION_KEY", "").strip()

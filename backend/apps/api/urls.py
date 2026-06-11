@@ -1,9 +1,17 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from apps.audit.views import AuditLogViewSet
 from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
 from apps.dashboard.views import DashboardSummaryView
+from apps.ebay.views import (
+    EbayConnectCompleteView,
+    EbayConnectStartView,
+    EbayDisconnectView,
+    EbayRefreshPoliciesView,
+    EbayStatusView,
+)
 from apps.inventory.views import InventoryItemViewSet
 from apps.listing.views import (
     ItemListingDraftListCreateView,
@@ -39,6 +47,7 @@ router.register(
     ListingBoilerplateViewSet,
     basename="listing-boilerplate",
 )
+router.register("audit-log", AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
     path(
@@ -74,6 +83,19 @@ urlpatterns = [
         name="item-research-links",
     ),
     path("metals/spot/", MetalsSpotView.as_view(), name="metals-spot"),
+    path("ebay/connect/start/", EbayConnectStartView.as_view(), name="ebay-connect-start"),
+    path(
+        "ebay/connect/complete/",
+        EbayConnectCompleteView.as_view(),
+        name="ebay-connect-complete",
+    ),
+    path("ebay/disconnect/", EbayDisconnectView.as_view(), name="ebay-disconnect"),
+    path("ebay/status/", EbayStatusView.as_view(), name="ebay-status"),
+    path(
+        "ebay/refresh-policies/",
+        EbayRefreshPoliciesView.as_view(),
+        name="ebay-refresh-policies",
+    ),
     path(
         "items/export.csv",
         InventoryItemViewSet.as_view({"get": "export_csv"}),

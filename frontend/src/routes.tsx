@@ -5,6 +5,7 @@ import { AddItem } from "./features/capture/AddItem";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { InventoryGrid } from "./features/inventory/InventoryGrid";
 import { ItemDetail } from "./features/inventory/ItemDetail";
+import { EbaySettings } from "./features/settings/EbaySettings";
 
 export const router = createBrowserRouter([
   {
@@ -14,7 +15,8 @@ export const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: "inventory", element: <InventoryGrid /> },
       { path: "inventory/:id", element: <ItemDetail /> },
-      { path: "add", element: <AddItem /> }
+      { path: "add", element: <AddItem /> },
+      { path: "settings/ebay", element: <EbaySettings /> }
     ]
   }
 ]);

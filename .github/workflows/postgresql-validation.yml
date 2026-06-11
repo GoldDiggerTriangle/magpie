@@ -1,22 +1,22 @@
-name: Sprint 5 PostgreSQL Validation
+name: PostgreSQL Validation
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - ".github/workflows/sprint5-postgres.yml"
+      - ".github/workflows/postgresql-validation.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
   pull_request:
     paths:
-      - ".github/workflows/sprint5-postgres.yml"
+      - ".github/workflows/postgresql-validation.yml"
       - "backend/**"
       - "frontend/**"
       - "docker-compose.yml"
 
 jobs:
-  sprint5-postgres:
+  postgresql-validation:
     runs-on: ubuntu-24.04
 
     services:
@@ -36,18 +36,27 @@ jobs:
 
     env:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
-      SECRET_KEY: django-insecure-ci-sprint-5-only
+      SECRET_KEY: django-insecure-ci-postgresql-validation
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,testserver
       PGCONNECT_TIMEOUT: "10"
+      PGPASSWORD: gsp
       METALS_PROVIDER: fake
       METALS_BASE_CURRENCY: AUD
       METALS_CACHE_TTL_SECONDS: "3600"
-      PGPASSWORD: gsp
+      MAGPIE_TOKEN_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Assert old sprint workflows are removed
+        run: |
+          test -f .github/workflows/postgresql-validation.yml
+          if find .github/workflows -maxdepth 1 -type f -name "sprint*-postgres.yml" | grep .; then
+            echo "Per-sprint PostgreSQL workflows must be removed."
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -78,11 +87,11 @@ jobs:
         working-directory: backend
         run: python manage.py makemigrations --check --dry-run --noinput
 
-      - name: Seed Sprint 5 data
+      - name: Seed data
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert Sprint 5 listing seed data
+      - name: Assert Sprint 6 schema and fake eBay adapters
         working-directory: backend
         run: |
           python - <<'PY'
@@ -94,44 +103,76 @@ jobs:
 
           django.setup()
 
+          from django.conf import settings
           from django.db import connection
 
-          from apps.inventory.models import InventoryItem
-          from apps.listing.constants import ALLOWED_HTML_TAGS
+          from apps.audit.models import AuditLog
+          from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
           from apps.listing.models import ListingBoilerplate, ListingDraft
-          from apps.valuation.models import ValuationReport
+          from integrations.ebay import (
+              FakeEbayAccountAdapter,
+              FakeEbayAuthAdapter,
+              get_ebay_account_adapter,
+              get_ebay_auth_adapter,
+          )
 
           assert connection.vendor == "postgresql", connection.vendor
-          assert ListingBoilerplate.objects.filter(
-              channel="ebay_au",
-              name="eBay AU — PLACEHOLDER boilerplate",
-              is_active=True,
-          ).count() == 1
-          phone = InventoryItem.objects.get(title="Seed/example phone - Samsung Galaxy S21")
-          draft = ListingDraft.objects.get(item=phone)
-          assert draft.title
-          assert len(draft.title) <= 80
-          assert draft.description_html
-          assert draft.item_specifics
-          assert draft.generated_meta["price_source"]["price_point"] == "suggested"
-          assert ValuationReport.objects.filter(item=phone, is_current=True).exists()
-          assert set(["h2", "p"]) <= ALLOWED_HTML_TAGS
+          assert settings.EBAY_ENV == ""
+          assert isinstance(get_ebay_auth_adapter(), FakeEbayAuthAdapter)
+          assert isinstance(get_ebay_account_adapter(), FakeEbayAccountAdapter)
+          assert EbayCredential.objects.count() == 0
+          assert OAuthState.objects.count() == 0
+          assert EbayAccountSnapshot.objects.count() == 0
+          assert AuditLog.objects.count() == 0
+          assert ListingBoilerplate.objects.count() == 1
+          assert ListingDraft.objects.count() == 1
 
+          expected_tables = {
+              "audit_auditlog",
+              "ebay_ebaycredential",
+              "ebay_oauthstate",
+              "ebay_ebayaccountsnapshot",
+          }
           with connection.cursor() as cursor:
               cursor.execute(
                   """
                   select table_name
                   from information_schema.tables
                   where table_schema = 'public'
-                    and table_name in ('listing_listingdraft', 'listing_listingboilerplate')
-                  """
+                    and table_name = any(%s)
+                  """,
+                  [list(expected_tables)],
               )
-              assert {row[0] for row in cursor.fetchall()} == {
-                  "listing_listingdraft",
-                  "listing_listingboilerplate",
-              }
+              tables = {row[0] for row in cursor.fetchall()}
+          assert tables == expected_tables, tables
 
-          print("Sprint 5 listing seed and PostgreSQL table checks passed.")
+          print("Sprint 6 PostgreSQL schema and fake eBay adapter checks passed.")
+          PY
+
+      - name: Assert no eBay listing-write code
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          patterns = [
+              "create" + "Offer",
+              "publish" + "Offer",
+              "create" + "Or" + "Replace" + "Inventory" + "Item",
+              "relist",
+              "revise",
+          ]
+          hits = []
+          for root in [Path("backend"), Path("frontend")]:
+              for path in root.rglob("*"):
+                  if path.is_dir() or any(part in {"node_modules", "__pycache__"} for part in path.parts):
+                      continue
+                  text = path.read_text(encoding="utf-8", errors="ignore")
+                  for pattern in patterns:
+                      if pattern.lower() in text.lower():
+                          hits.append(f"{path}: {pattern}")
+          if hits:
+              print("\n".join(hits))
+              raise SystemExit("Listing-write code is out of scope for Sprint 6.")
           PY
 
       - name: Run backend tests
@@ -144,7 +185,7 @@ jobs:
 
       - name: Restore PostgreSQL backup into empty database
         run: |
-          mkdir -p /tmp/sprint5-restore
+          mkdir -p /tmp/postgresql-validation-restore
           python - <<'PY'
           import json
           import zipfile
@@ -159,16 +200,24 @@ jobs:
               assert "manifest.json" in names, names
               assert "media/" in names, names
               assert "db.dump" in names, names
+              assert "db.json" not in names, names
               manifest = json.loads(archive.read("manifest.json"))
-              archive.extract("db.dump", "/tmp/sprint5-restore")
+              archive.extract("db.dump", "/tmp/postgresql-validation-restore")
 
           assert manifest["database_artifact"] == "db.dump", manifest
-          assert manifest["row_counts"]["listing.listingboilerplate"] == 1, manifest
-          assert manifest["row_counts"]["listing.listingdraft"] == 1, manifest
+          for key in [
+              "audit.auditlog",
+              "ebay.ebaycredential",
+              "ebay.oauthstate",
+              "ebay.ebayaccountsnapshot",
+          ]:
+              assert key in manifest["row_counts"], key
+          assert manifest["row_counts"]["ebay.ebaycredential"] == 0
+          assert manifest["row_counts"]["listing.listingdraft"] == 1
           print(latest)
           PY
           createdb --host 127.0.0.1 --username gsp gsp_restore
-          pg_restore --host 127.0.0.1 --username gsp --dbname gsp_restore /tmp/sprint5-restore/db.dump
+          pg_restore --host 127.0.0.1 --username gsp --dbname gsp_restore /tmp/postgresql-validation-restore/db.dump
           cd backend
           DATABASE_URL=postgres://gsp:gsp@127.0.0.1:5432/gsp_restore python - <<'PY'
           import os
@@ -179,11 +228,17 @@ jobs:
 
           django.setup()
 
+          from apps.audit.models import AuditLog
+          from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
           from apps.listing.models import ListingBoilerplate, ListingDraft
 
+          assert AuditLog.objects.count() == 0
+          assert EbayCredential.objects.count() == 0
+          assert OAuthState.objects.count() == 0
+          assert EbayAccountSnapshot.objects.count() == 0
           assert ListingBoilerplate.objects.count() == 1
           assert ListingDraft.objects.count() == 1
-          print("Sprint 5 backup restore checks passed.")
+          print("PostgreSQL backup restore checks passed.")
           PY
 
       - name: Set up Node

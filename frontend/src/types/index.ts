@@ -360,3 +360,46 @@ export interface ListingDraftPayload {
   include_sku_footer?: boolean;
   boilerplate?: UUID | null;
 }
+
+export interface EbayPolicyCounts {
+  payment: number;
+  fulfillment: number;
+  return: number;
+}
+
+export interface EbaySnapshotStatus {
+  opted_in: boolean | null;
+  policy_counts: EbayPolicyCounts;
+  fetched_at: string | null;
+}
+
+export interface EbayStatus {
+  configured: boolean;
+  environment: "" | "sandbox" | "production";
+  connected: boolean;
+  ebay_username: string;
+  scopes: string[];
+  access_token_expires_at: string | null;
+  refresh_token_expires_at: string | null;
+  last_refresh_error: string;
+  snapshot: EbaySnapshotStatus;
+}
+
+export interface EbayConnectionSummary {
+  environment: "sandbox" | "production";
+  ebay_user_id: string;
+  ebay_username: string;
+  scopes: string[];
+  access_token_expires_at: string | null;
+  refresh_token_expires_at: string | null;
+}
+
+export interface AuditLogEntry {
+  id: UUID;
+  actor: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+}
