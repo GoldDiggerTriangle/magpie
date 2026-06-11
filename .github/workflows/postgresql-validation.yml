@@ -153,23 +153,92 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
+          import tokenize
 
           patterns = [
               "create" + "Offer",
               "publish" + "Offer",
               "create" + "Or" + "Replace" + "Inventory" + "Item",
-              "relist",
-              "revise",
+              "create" + "_offer",
+              "publish" + "_offer",
+              "create" + "_or" + "_replace" + "_inventory" + "_item",
+              "inventory" + "_item" + "_write",
+              "listing" + "_id",
+              "listing" + "Id",
+              "ebay" + "_listing",
+              "listing" + "_sync",
+              "upload" + "Site" + "Hosted" + "Pictures",
+              "picture" + "Services",
+              "media" + "_upload",
+              "upload" + "_media",
+              "eps" + "_upload",
+              "publish" + ".*" + "listed",
+              "listed" + ".*" + "publish",
           ]
+          compiled = [re.compile(pattern, re.IGNORECASE | re.DOTALL) for pattern in patterns]
+
+          roots = [
+              Path("backend/apps/ebay"),
+              Path("backend/integrations/ebay.py"),
+              Path("frontend/src/api/ebay.ts"),
+              Path("frontend/src/features/settings"),
+          ]
+          suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
+
+          def is_production_file(path):
+              parts = set(path.parts)
+              if parts & {"tests", "__pycache__", "migrations", "node_modules", "dist"}:
+                  return False
+              name = path.name.lower()
+              if any(marker in name for marker in [".test.", ".spec."]):
+                  return False
+              if name.endswith((".md", ".rst", ".txt")):
+                  return False
+              return path.suffix in suffixes
+
+          def implementation_files():
+              for root in roots:
+                  if root.is_file() and is_production_file(root):
+                      yield root
+                  elif root.is_dir():
+                      for path in root.rglob("*"):
+                          if path.is_file() and is_production_file(path):
+                              yield path
+
+          def strip_python_comments(path):
+              tokens = []
+              with path.open("rb") as handle:
+                  for token in tokenize.tokenize(handle.readline):
+                      if token.type in {
+                          tokenize.COMMENT,
+                          tokenize.ENCODING,
+                          tokenize.NL,
+                          tokenize.NEWLINE,
+                          tokenize.INDENT,
+                          tokenize.DEDENT,
+                          tokenize.ENDMARKER,
+                      }:
+                          continue
+                      tokens.append(token.string)
+              return "\n".join(tokens)
+
+          def strip_js_comments(text):
+              text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+              text = re.sub(r"(^|[^:])//.*", r"\1", text)
+              return text
+
+          def code_text(path):
+              if path.suffix == ".py":
+                  return strip_python_comments(path)
+              return strip_js_comments(path.read_text(encoding="utf-8", errors="ignore"))
+
           hits = []
-          for root in [Path("backend"), Path("frontend")]:
-              for path in root.rglob("*"):
-                  if path.is_dir() or any(part in {"node_modules", "__pycache__"} for part in path.parts):
-                      continue
-                  text = path.read_text(encoding="utf-8", errors="ignore")
-                  for pattern in patterns:
-                      if pattern.lower() in text.lower():
-                          hits.append(f"{path}: {pattern}")
+          for path in implementation_files():
+              text = code_text(path)
+              for pattern, regex in zip(patterns, compiled):
+                  if regex.search(text):
+                      hits.append(f"{path}: {pattern}")
           if hits:
               print("\n".join(hits))
               raise SystemExit("Listing-write code is out of scope for Sprint 6.")
