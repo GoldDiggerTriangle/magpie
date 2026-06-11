@@ -427,6 +427,11 @@ def test_admin_redacts_tokens():
     assert model_admin.redacted_access_token(object()) == "***"
 
 
+def test_local_dev_frontend_origin_is_csrf_trusted(settings):
+    assert "http://localhost:5174" in settings.CSRF_TRUSTED_ORIGINS
+    assert "http://127.0.0.1:5174" in settings.CSRF_TRUSTED_ORIGINS
+
+
 class SlowCountingAuthAdapter:
     def __init__(self):
         self.refresh_count = 0
