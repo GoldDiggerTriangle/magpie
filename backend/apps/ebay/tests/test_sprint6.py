@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from io import StringIO
 import inspect
 import json
 import threading
 import time
+from urllib.parse import parse_qs, urlparse
 import zipfile
 
 import pytest
@@ -115,6 +117,49 @@ def test_connect_start_missing_key_hard_fails(api_client, settings):
     assert response.status_code == 503
     assert "MAGPIE_TOKEN_ENCRYPTION_KEY" in response.data["detail"]
     assert OAuthState.objects.count() == 0
+
+
+def test_http_consent_url_uses_sandbox_and_percent_encoded_scope(settings):
+    settings.EBAY_ENV = "sandbox"
+    settings.EBAY_CLIENT_ID = "sandbox-client-id-123456"
+    settings.EBAY_CLIENT_SECRET = "sandbox-client-secret"
+    settings.EBAY_RU_NAME = "sandbox-runame"
+
+    url = ebay_integration.HttpEbayAuthAdapter().build_consent_url(state="state-value")
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    raw_scope = parsed.query.split("scope=", 1)[1].split("&", 1)[0]
+
+    assert f"{parsed.scheme}://{parsed.netloc}{parsed.path}" == "https://auth.sandbox.ebay.com/oauth2/authorize"
+    assert query["redirect_uri"] == ["sandbox-runame"]
+    assert query["response_type"] == ["code"]
+    assert query["scope"] == [" ".join(EBAY_SCOPES)]
+    assert "%20" in raw_scope
+    assert "+" not in raw_scope
+
+
+def test_inspect_ebay_oauth_command_prints_safe_fields(settings):
+    settings.EBAY_ENV = "sandbox"
+    settings.EBAY_CLIENT_ID = "sandbox-client-id-123456"
+    settings.EBAY_CLIENT_SECRET = "sandbox-client-secret"
+    settings.EBAY_RU_NAME = "sandbox-runame"
+    out = StringIO()
+
+    call_command("inspect_ebay_oauth", stdout=out)
+
+    text = out.getvalue()
+    assert "environment=sandbox" in text
+    assert "authorize_base=https://auth.sandbox.ebay.com/oauth2/authorize" in text
+    assert "token_endpoint=https://api.sandbox.ebay.com/identity/v1/oauth2/token" in text
+    assert "client_id_suffix=123456" in text
+    assert "redirect_uri=sandbox-runame" in text
+    assert "scope=https://api.ebay.com/oauth/api_scope/sell.inventory" in text
+    assert "scope=https://api.ebay.com/oauth/api_scope/sell.account.readonly" in text
+    assert "scope_separator_encoding=%20" in text
+    assert "state_length=26" in text
+    assert settings.EBAY_CLIENT_ID not in text
+    assert settings.EBAY_CLIENT_SECRET not in text
+    assert "debug-state-for-inspection" not in text
 
 
 @pytest.mark.django_db

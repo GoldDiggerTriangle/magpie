@@ -6,7 +6,7 @@ import base64
 import json
 from typing import Protocol
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from django.conf import settings
@@ -69,7 +69,8 @@ class HttpEbayAuthAdapter:
                 "response_type": "code",
                 "scope": " ".join(EBAY_SCOPES),
                 "state": state,
-            }
+            },
+            quote_via=quote,
         )
         return f"{_auth_base(self.environment)}/oauth2/authorize?{query}"
 
