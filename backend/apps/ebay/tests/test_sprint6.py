@@ -138,6 +138,24 @@ def test_http_consent_url_uses_sandbox_and_percent_encoded_scope(settings):
     assert "+" not in raw_scope
 
 
+def test_http_consent_url_uses_current_runame_setting(settings):
+    settings.EBAY_ENV = "sandbox"
+    settings.EBAY_CLIENT_ID = "sandbox-client-id-123456"
+    settings.EBAY_CLIENT_SECRET = "sandbox-client-secret"
+    adapter = ebay_integration.HttpEbayAuthAdapter()
+
+    settings.EBAY_RU_NAME = "first-runame"
+    first_url = adapter.build_consent_url(state="state-one")
+    first_query = parse_qs(urlparse(first_url).query)
+
+    settings.EBAY_RU_NAME = "second-runame"
+    second_url = adapter.build_consent_url(state="state-two")
+    second_query = parse_qs(urlparse(second_url).query)
+
+    assert first_query["redirect_uri"] == ["first-runame"]
+    assert second_query["redirect_uri"] == ["second-runame"]
+
+
 def test_inspect_ebay_oauth_command_prints_safe_fields(settings):
     settings.EBAY_ENV = "sandbox"
     settings.EBAY_CLIENT_ID = "sandbox-client-id-123456"
