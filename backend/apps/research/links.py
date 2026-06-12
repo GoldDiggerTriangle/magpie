@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from urllib.parse import quote, quote_plus, urlparse
+
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 
 
 URL_TEMPLATES = {
@@ -33,18 +34,23 @@ EXPECTED_HOSTS = {
 }
 
 
+def encode_query_value(value: str) -> str:
+    return urlencode({"q": value}).split("=", 1)[1]
+
+
 def verify_url_templates() -> bool:
     samples = {
-        "query": quote_plus("Australia 1937 crown"),
-        "cert_no": quote("12345678", safe=""),
+        "query": encode_query_value("Australia 1937 crown"),
+        "cert_no": encode_query_value("12345678"),
     }
     for key, template in URL_TEMPLATES.items():
         url = template.format(**samples)
-        parsed = urlparse(url)
-        if parsed.scheme != "https":
-            raise RuntimeError(f"{key} URL template must use https")
-        if parsed.netloc != EXPECTED_HOSTS[key]:
-            raise RuntimeError(f"{key} URL template host changed: {parsed.netloc}")
+        if not url_has_allowed_host_and_scheme(
+            url,
+            allowed_hosts={EXPECTED_HOSTS[key]},
+            require_https=True,
+        ):
+            raise RuntimeError(f"{key} URL template host or scheme changed")
         if "{" in url or "}" in url:
             raise RuntimeError(f"{key} URL template left placeholders unresolved")
     return True
@@ -99,8 +105,8 @@ def phone_variant_query(item, attrs: dict) -> str:
 
 def build_url(template_key: str, query: str = "", cert_no: str = "") -> str:
     return URL_TEMPLATES[template_key].format(
-        query=quote_plus(query),
-        cert_no=quote(str(cert_no).strip(), safe=""),
+        query=encode_query_value(query),
+        cert_no=encode_query_value(str(cert_no).strip()),
     )
 
 

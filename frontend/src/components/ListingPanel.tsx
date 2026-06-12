@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDown,
   ArrowUp,
-  CheckCircle2,
   Copy,
   Download,
   Eye,
@@ -24,7 +23,6 @@ import {
   listListingBoilerplates,
   updateListingDraft
 } from "../api/listing";
-import { updateItem } from "../api/items";
 import type {
   InventoryItemDetail,
   ListingBoilerplate,
@@ -36,6 +34,7 @@ import type {
 } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmptyState } from "./EmptyState";
+import { PublishPanel } from "./PublishPanel";
 
 const titleMax = 80;
 
@@ -153,7 +152,6 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   const [local, setLocal] = useState(draft);
   const [preview, setPreview] = useState(false);
   const [pendingGenerate, setPendingGenerate] = useState<"title" | "description" | null>(null);
-  const [markListedOpen, setMarkListedOpen] = useState(false);
 
   useEffect(() => setLocal(draft), [draft]);
 
@@ -162,7 +160,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   const descriptionDirty = local.description_html !== draft.description_html || draft.description_edited;
 
   const saveMutation = useMutation({
-    mutationFn: () => updateListingDraft(local.id, toPayload(local)),
+    mutationFn: persistLocal,
     onSuccess: (updated) => {
       setLocal(updated);
       onSaved();
@@ -176,13 +174,10 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       onSaved();
     }
   });
-  const markListedMutation = useMutation({
-    mutationFn: () => updateItem(item.id, { status: "listed" }),
-    onSuccess: () => {
-      setMarkListedOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["item", item.id] });
-    }
-  });
+
+  function persistLocal() {
+    return updateListingDraft(local.id, toPayload(local));
+  }
 
   function requestGenerate(field: "title" | "description" | "specifics" | "price") {
     if (field === "title" && titleDirty) {
@@ -306,11 +301,17 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       <PhotoPicker photos={item.photos} selected={local.photo_ids} onChange={(photo_ids) => setLocal({ ...local, photo_ids })} />
       <ReadinessChecklist draft={local} />
       <ExportButtons boilerplate={selectedBoilerplate} draft={local} onExported={onSaved} />
-
-      <button className="btn-primary w-fit gap-2" disabled={local.status !== "exported"} onClick={() => setMarkListedOpen(true)} type="button">
-        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-        Mark item listed
-      </button>
+      <PublishPanel
+        draft={local}
+        item={item}
+        onDraftChange={setLocal}
+        onDraftUpdated={(updated) => {
+          setLocal(updated);
+          onSaved();
+          queryClient.invalidateQueries({ queryKey: ["item", item.id] });
+        }}
+        persistDraft={persistLocal}
+      />
 
       <ConfirmDialog
         open={pendingGenerate !== null}
@@ -324,15 +325,6 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
             generateMutation.mutate({ field: pendingGenerate, confirm: true });
           }
         }}
-      />
-      <ConfirmDialog
-        open={markListedOpen}
-        title="Mark item listed?"
-        detail="This updates the item status through the existing item save path."
-        confirmLabel="Mark listed"
-        danger={false}
-        onCancel={() => setMarkListedOpen(false)}
-        onConfirm={() => markListedMutation.mutate()}
       />
     </div>
   );
@@ -511,7 +503,13 @@ function CopyButton({ label, text }: { label: string; text: string }) {
 }
 
 function StatusPill({ status }: { status: ListingDraft["status"] }) {
-  const classes = status === "ready" ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100" : status === "exported" ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100" : "border-slate-600 bg-slate-800 text-slate-200";
+  const classes = status === "ready" || status === "staged"
+    ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-100"
+    : status === "exported" || status === "published"
+      ? "border-emerald-300/40 bg-emerald-300/10 text-emerald-100"
+      : status === "publish_failed"
+        ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
+        : "border-slate-600 bg-slate-800 text-slate-200";
   return <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{status}</span>;
 }
 

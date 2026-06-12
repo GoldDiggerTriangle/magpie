@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -9,6 +10,10 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.inventory.models import InventoryItem
+from apps.ebay import aspects as ebay_aspects
+from apps.ebay import publishing as ebay_publishing
+from apps.ebay import staging as ebay_staging
+from integrations.ebay import EbayUnavailable
 from apps.listing.export import build_export_bundle
 from apps.listing.generators import generated_meta, generator_for
 from apps.listing.context import safe_context
@@ -130,6 +135,66 @@ class ListingDraftViewSet(ModelViewSet):
         )
         return response
 
+    @action(detail=True, methods=["post"], url_path="stage")
+    def stage(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            staged = ebay_staging.stage_draft(
+                draft,
+                override_missing_aspects=bool(request.data.get("override_missing_aspects")),
+                override_reason=str(request.data.get("override_reason") or ""),
+                actor=request.user,
+            )
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
+        except EbayUnavailable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(self.get_serializer(staged).data)
+
+    @action(detail=True, methods=["post"], url_path="withdraw")
+    def withdraw(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            withdrawn = ebay_staging.withdraw_staged(draft, actor=request.user)
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
+        except EbayUnavailable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(self.get_serializer(withdrawn).data)
+
+    @action(detail=True, methods=["get"], url_path="aspects-check")
+    def aspects_check(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            return Response(ebay_aspects.check_aspects(draft, actor=request.user))
+        except EbayUnavailable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @action(detail=True, methods=["get"], url_path="staged-review")
+    def staged_review(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            return Response(ebay_publishing.staged_review(draft, actor=request.user))
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
+        except EbayUnavailable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @action(detail=True, methods=["post"], url_path="publish")
+    def publish(self, request, pk=None):
+        draft = self.get_object()
+        try:
+            published = ebay_publishing.publish_draft(
+                draft,
+                confirm_sku=str(request.data.get("confirm_sku") or ""),
+                actor=request.user,
+            )
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
+        except EbayUnavailable as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(self.get_serializer(published).data)
+
 
 def create_generated_draft(item) -> ListingDraft:
     ctx = safe_context(item)
@@ -225,3 +290,9 @@ def regenerate_fields(draft, fields: set[str]) -> None:
 
 def current_valuation(item):
     return ValuationReport.objects.filter(item=item, is_current=True).first()
+
+
+def _validation_payload(exc: ValidationError) -> dict:
+    if hasattr(exc, "message_dict"):
+        return exc.message_dict
+    return {"detail": "; ".join(exc.messages)}

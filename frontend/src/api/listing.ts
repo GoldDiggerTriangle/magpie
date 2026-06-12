@@ -1,10 +1,12 @@
 import { ApiError, apiRequest } from "./client";
 import type {
   ListingBoilerplate,
+  EbayAspectCheck,
   ListingCheck,
   ListingDraft,
   ListingDraftPayload,
   PaginatedResponse,
+  StagedOfferReview,
   UUID
 } from "../types";
 
@@ -47,6 +49,35 @@ export function generateListingDraft(
 
 export function getListingReadiness(id: UUID) {
   return apiRequest<ListingCheck[]>(`/api/listing-drafts/${id}/readiness/`);
+}
+
+export function getListingAspectCheck(id: UUID) {
+  return apiRequest<EbayAspectCheck>(`/api/listing-drafts/${id}/aspects-check/`);
+}
+
+export function stageListingDraft(id: UUID, payload: { override_missing_aspects?: boolean; override_reason?: string } = {}) {
+  return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/stage/`, {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function withdrawListingDraft(id: UUID) {
+  return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/withdraw/`, {
+    method: "POST",
+    body: {}
+  });
+}
+
+export function getStagedOfferReview(id: UUID) {
+  return apiRequest<StagedOfferReview>(`/api/listing-drafts/${id}/staged-review/`);
+}
+
+export function publishListingDraft(id: UUID, confirmSku: string) {
+  return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/publish/`, {
+    method: "POST",
+    body: { confirm_sku: confirmSku }
+  });
 }
 
 export function listListingBoilerplates() {

@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
+from apps.ebay.models import (
+    EbayAccountSnapshot,
+    EbayAppToken,
+    EbayCredential,
+    MerchantLocation,
+    OAuthState,
+)
 
 
 @admin.register(EbayCredential)
@@ -77,3 +83,55 @@ class EbayAccountSnapshotAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(EbayAppToken)
+class EbayAppTokenAdmin(admin.ModelAdmin):
+    list_display = ["environment", "expires_at", "created_at"]
+    readonly_fields = [
+        "environment",
+        "redacted_access_token",
+        "expires_at",
+        "created_at",
+        "updated_at",
+    ]
+    fields = readonly_fields
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).defer("access_token")
+
+    @admin.display(description="access token")
+    def redacted_access_token(self, obj):
+        return "***" if obj and getattr(obj, "pk", True) else ""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(MerchantLocation)
+class MerchantLocationAdmin(admin.ModelAdmin):
+    list_display = [
+        "environment",
+        "merchant_location_key",
+        "name",
+        "country",
+        "postal_code",
+        "created_on_ebay",
+        "fetched_at",
+    ]
+    readonly_fields = [
+        "environment",
+        "merchant_location_key",
+        "name",
+        "country",
+        "postal_code",
+        "city",
+        "state",
+        "created_on_ebay",
+        "fetched_at",
+        "created_at",
+        "updated_at",
+    ]

@@ -91,7 +91,7 @@ jobs:
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert Sprint 6 schema and fake eBay adapters
+      - name: Assert Sprint 7 schema and fake eBay adapters
         working-directory: backend
         run: |
           python - <<'PY'
@@ -107,7 +107,13 @@ jobs:
           from django.db import connection
 
           from apps.audit.models import AuditLog
-          from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
+          from apps.ebay.models import (
+              EbayAccountSnapshot,
+              EbayAppToken,
+              EbayCredential,
+              MerchantLocation,
+              OAuthState,
+          )
           from apps.listing.models import ListingBoilerplate, ListingDraft
           from integrations.ebay import (
               FakeEbayAccountAdapter,
@@ -123,6 +129,8 @@ jobs:
           assert EbayCredential.objects.count() == 0
           assert OAuthState.objects.count() == 0
           assert EbayAccountSnapshot.objects.count() == 0
+          assert EbayAppToken.objects.count() == 0
+          assert MerchantLocation.objects.count() == 0
           assert AuditLog.objects.count() == 0
           assert ListingBoilerplate.objects.count() == 1
           assert ListingDraft.objects.count() == 1
@@ -132,6 +140,8 @@ jobs:
               "ebay_ebaycredential",
               "ebay_oauthstate",
               "ebay_ebayaccountsnapshot",
+              "ebay_ebayapptoken",
+              "ebay_merchantlocation",
           }
           with connection.cursor() as cursor:
               cursor.execute(
@@ -146,45 +156,31 @@ jobs:
               tables = {row[0] for row in cursor.fetchall()}
           assert tables == expected_tables, tables
 
-          print("Sprint 6 PostgreSQL schema and fake eBay adapter checks passed.")
+          print("Sprint 7 PostgreSQL schema and fake eBay adapter checks passed.")
           PY
 
-      - name: Assert no eBay listing-write code
+      - name: Assert eBay HTTP confinement
         run: |
           python - <<'PY'
+          import ast
           from pathlib import Path
-          import re
           import tokenize
 
-          patterns = [
-              "create" + "Offer",
-              "publish" + "Offer",
-              "create" + "Or" + "Replace" + "Inventory" + "Item",
-              "create" + "_offer",
-              "publish" + "_offer",
-              "create" + "_or" + "_replace" + "_inventory" + "_item",
-              "inventory" + "_item" + "_write",
-              "listing" + "_id",
-              "listing" + "Id",
-              "ebay" + "_listing",
-              "listing" + "_sync",
-              "upload" + "Site" + "Hosted" + "Pictures",
-              "picture" + "Services",
-              "media" + "_upload",
-              "upload" + "_media",
-              "eps" + "_upload",
-              "publish" + ".*" + "listed",
-              "listed" + ".*" + "publish",
-          ]
-          compiled = [re.compile(pattern, re.IGNORECASE | re.DOTALL) for pattern in patterns]
-
-          roots = [
-              Path("backend/apps/ebay"),
-              Path("backend/integrations/ebay.py"),
-              Path("frontend/src/api/ebay.ts"),
-              Path("frontend/src/features/settings"),
-          ]
+          app_root = Path("backend/apps")
+          integration_file = Path("backend/integrations/ebay.py")
+          frontend_root = Path("frontend/src")
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
+          network_imports = {"requests", "httpx", "aiohttp", "urllib"}
+          ebay_hosts = [
+              "api.ebay.com",
+              "api.sandbox.ebay.com",
+              "apim.ebay.com",
+              "apim.sandbox.ebay.com",
+              "apiz.ebay.com",
+              "apiz.sandbox.ebay.com",
+              "auth.ebay.com",
+              "auth.sandbox.ebay.com",
+          ]
 
           def is_production_file(path):
               parts = set(path.parts)
@@ -197,51 +193,62 @@ jobs:
                   return False
               return path.suffix in suffixes
 
-          def implementation_files():
-              for root in roots:
-                  if root.is_file() and is_production_file(root):
-                      yield root
-                  elif root.is_dir():
-                      for path in root.rglob("*"):
-                          if path.is_file() and is_production_file(path):
-                              yield path
+          def python_imports(path):
+              tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      for alias in node.names:
+                          yield alias.name.split(".")[0]
+                  elif isinstance(node, ast.ImportFrom) and node.module:
+                      yield node.module.split(".")[0]
 
-          def strip_python_comments(path):
-              tokens = []
-              with path.open("rb") as handle:
-                  for token in tokenize.tokenize(handle.readline):
-                      if token.type in {
-                          tokenize.COMMENT,
-                          tokenize.ENCODING,
-                          tokenize.NL,
-                          tokenize.NEWLINE,
-                          tokenize.INDENT,
-                          tokenize.DEDENT,
-                          tokenize.ENDMARKER,
-                      }:
-                          continue
-                      tokens.append(token.string)
-              return "\n".join(tokens)
-
-          def strip_js_comments(text):
-              text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
-              text = re.sub(r"(^|[^:])//.*", r"\1", text)
+          def text_without_comments(path):
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if path.suffix == ".py":
+                  lines = []
+                  with path.open("rb") as handle:
+                      for token in tokenize.tokenize(handle.readline):
+                          if token.type in {
+                              tokenize.COMMENT,
+                              tokenize.ENCODING,
+                              tokenize.NL,
+                              tokenize.NEWLINE,
+                              tokenize.INDENT,
+                              tokenize.DEDENT,
+                              tokenize.ENDMARKER,
+                          }:
+                              continue
+                          lines.append(token.string)
+                  return "\n".join(lines)
               return text
 
-          def code_text(path):
+          bad = []
+          for path in app_root.rglob("*"):
+              if not path.is_file() or not is_production_file(path):
+                  continue
               if path.suffix == ".py":
-                  return strip_python_comments(path)
-              return strip_js_comments(path.read_text(encoding="utf-8", errors="ignore"))
+                  for import_name in python_imports(path):
+                      if import_name in network_imports:
+                          bad.append(f"{path}: network import {import_name}")
+              text = text_without_comments(path)
+              for host in ebay_hosts:
+                  if host in text:
+                      bad.append(f"{path}: eBay hostname {host}")
 
-          hits = []
-          for path in implementation_files():
-              text = code_text(path)
-              for pattern, regex in zip(patterns, compiled):
-                  if regex.search(text):
-                      hits.append(f"{path}: {pattern}")
-          if hits:
-              print("\n".join(hits))
-              raise SystemExit("Listing-write code is out of scope for Sprint 6.")
+          for path in frontend_root.rglob("*"):
+              if not path.is_file() or not is_production_file(path):
+                  continue
+              text = text_without_comments(path)
+              for host in ebay_hosts:
+                  if host in text:
+                      bad.append(f"{path}: frontend eBay hostname {host}")
+
+          integration_text = integration_file.read_text(encoding="utf-8")
+          if "api.ebay.com" not in integration_text:
+              bad.append("backend/integrations/ebay.py: expected eBay HTTP hostnames")
+          if bad:
+              print("\n".join(bad))
+              raise SystemExit("eBay HTTP access must be confined to backend/integrations/ebay.py.")
           PY
 
       - name: Run backend tests
@@ -279,9 +286,13 @@ jobs:
               "ebay.ebaycredential",
               "ebay.oauthstate",
               "ebay.ebayaccountsnapshot",
+              "ebay.ebayapptoken",
+              "ebay.merchantlocation",
           ]:
               assert key in manifest["row_counts"], key
           assert manifest["row_counts"]["ebay.ebaycredential"] == 0
+          assert manifest["row_counts"]["ebay.ebayapptoken"] == 0
+          assert manifest["row_counts"]["ebay.merchantlocation"] == 0
           assert manifest["row_counts"]["listing.listingdraft"] == 1
           print(latest)
           PY
@@ -298,13 +309,21 @@ jobs:
           django.setup()
 
           from apps.audit.models import AuditLog
-          from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
+          from apps.ebay.models import (
+              EbayAccountSnapshot,
+              EbayAppToken,
+              EbayCredential,
+              MerchantLocation,
+              OAuthState,
+          )
           from apps.listing.models import ListingBoilerplate, ListingDraft
 
           assert AuditLog.objects.count() == 0
           assert EbayCredential.objects.count() == 0
           assert OAuthState.objects.count() == 0
           assert EbayAccountSnapshot.objects.count() == 0
+          assert EbayAppToken.objects.count() == 0
+          assert MerchantLocation.objects.count() == 0
           assert ListingBoilerplate.objects.count() == 1
           assert ListingDraft.objects.count() == 1
           print("PostgreSQL backup restore checks passed.")

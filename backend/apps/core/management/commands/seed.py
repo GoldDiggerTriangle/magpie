@@ -233,20 +233,23 @@ class Command(BaseCommand):
         return items, created_count
 
     def seed_fee_schedule(self) -> FeeSchedule:
-        # Placeholder rates are not verified eBay rates. Regan must edit this
-        # schedule in Django admin before relying on profit calculations.
+        # Temporary first-flight model for the deliberate low-value production test.
+        # Replace with Regan's exact eBay AU account fee model after Sprint 7.
         schedule, _ = FeeSchedule.objects.update_or_create(
-            name="eBay AU (placeholder)",
+            name="eBay AU first-flight conservative test",
             effective_from=date(2026, 1, 1),
             defaults={
                 "is_active": True,
-                "final_value_pct": Decimal("13.400"),
+                "final_value_pct": Decimal("15.000"),
                 "per_order_fee": Decimal("0.30"),
-                "promoted_pct": Decimal("2.000"),
+                "promoted_pct": Decimal("0.000"),
                 "gst_pct": Decimal("10.000"),
                 "default_packaging_cost": Decimal("1.50"),
                 "default_outbound_shipping": Decimal("12.00"),
-                "notes": "Placeholder seed schedule; verify and edit before use.",
+                "notes": (
+                    "temporary conservative first-flight model; replace with exact "
+                    "eBay AU account fee model later. Listing upgrade fee: 0."
+                ),
             },
         )
         return schedule

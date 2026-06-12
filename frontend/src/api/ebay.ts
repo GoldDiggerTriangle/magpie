@@ -1,5 +1,12 @@
 import { apiRequest } from "./client";
-import type { EbayConnectionSummary, EbayStatus } from "../types";
+import type {
+  EbayCategoryAspectsResponse,
+  EbayCategorySuggestionsResponse,
+  EbayConnectionSummary,
+  EbayStatus,
+  MerchantLocationPayload,
+  MerchantLocationStatus
+} from "../types";
 
 export function getEbayStatus() {
   return apiRequest<EbayStatus>("/api/ebay/status/");
@@ -28,4 +35,23 @@ export function refreshEbayPolicies() {
 
 export function disconnectEbay() {
   return apiRequest<void>("/api/ebay/disconnect/", { method: "POST", body: {} });
+}
+
+export function getEbayCategorySuggestions(q: string) {
+  return apiRequest<EbayCategorySuggestionsResponse>(`/api/ebay/category-suggestions/?q=${encodeURIComponent(q)}`);
+}
+
+export function getEbayCategoryAspects(categoryId: string) {
+  return apiRequest<EbayCategoryAspectsResponse>(`/api/ebay/category-aspects/?category_id=${encodeURIComponent(categoryId)}`);
+}
+
+export function getMerchantLocation() {
+  return apiRequest<MerchantLocationStatus>("/api/ebay/merchant-location/");
+}
+
+export function createMerchantLocation(payload: MerchantLocationPayload) {
+  return apiRequest<MerchantLocationStatus>("/api/ebay/merchant-location/", {
+    method: "POST",
+    body: payload
+  });
 }

@@ -4,7 +4,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from integrations.ebay import EbayUnavailable
-from apps.ebay.serializers import ConnectCompleteSerializer
+from apps.ebay.serializers import (
+    CategoryAspectsQuerySerializer,
+    CategorySuggestionsQuerySerializer,
+    ConnectCompleteSerializer,
+    MerchantLocationCreateSerializer,
+    MerchantLocationSerializer,
+)
+from apps.ebay import aspects
 from apps.ebay import services
 
 
@@ -63,3 +70,64 @@ class EbayRefreshPoliciesView(APIView):
         except (ImproperlyConfigured, EbayUnavailable) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(services.status_summary())
+
+
+class EbayCategorySuggestionsView(APIView):
+    def get(self, request):
+        serializer = CategorySuggestionsQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        try:
+            return Response(
+                aspects.suggest_categories(
+                    q=serializer.validated_data["q"],
+                    actor=request.user,
+                )
+            )
+        except (ImproperlyConfigured, EbayUnavailable) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class EbayCategoryAspectsView(APIView):
+    def get(self, request):
+        serializer = CategoryAspectsQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        try:
+            return Response(
+                aspects.get_category_aspects(
+                    category_id=serializer.validated_data["category_id"],
+                    actor=request.user,
+                )
+            )
+        except (ImproperlyConfigured, EbayUnavailable) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class EbayMerchantLocationView(APIView):
+    def get(self, request):
+        location = services.current_merchant_location()
+        if location is None:
+            return Response({"configured": False, "location": None})
+        return Response(
+            {
+                "configured": True,
+                "location": MerchantLocationSerializer(location).data,
+            }
+        )
+
+    def post(self, request):
+        serializer = MerchantLocationCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            location = services.create_merchant_location(
+                actor=request.user,
+                **serializer.validated_data,
+            )
+        except (ImproperlyConfigured, EbayUnavailable) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(
+            {
+                "configured": True,
+                "location": MerchantLocationSerializer(location).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )

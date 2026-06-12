@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.ebay.models import EbayAccountSnapshot
+from apps.ebay.models import EbayAccountSnapshot, MerchantLocation
 
 
 class ConnectCompleteSerializer(serializers.Serializer):
@@ -33,3 +33,37 @@ class EbayAccountSnapshotSerializer(serializers.ModelSerializer):
             "fulfillment": len(obj.fulfillment_policies or []),
             "return": len(obj.return_policies or []),
         }
+
+
+class MerchantLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MerchantLocation
+        fields = [
+            "environment",
+            "merchant_location_key",
+            "name",
+            "country",
+            "postal_code",
+            "city",
+            "state",
+            "created_on_ebay",
+            "fetched_at",
+        ]
+        read_only_fields = fields
+
+
+class MerchantLocationCreateSerializer(serializers.Serializer):
+    merchant_location_key = serializers.CharField(max_length=36)
+    name = serializers.CharField(max_length=1000)
+    country = serializers.CharField(max_length=2)
+    postal_code = serializers.CharField(max_length=16, required=False, allow_blank=True)
+    city = serializers.CharField(max_length=128, required=False, allow_blank=True)
+    state = serializers.CharField(max_length=128, required=False, allow_blank=True)
+
+
+class CategoryAspectsQuerySerializer(serializers.Serializer):
+    category_id = serializers.CharField(max_length=40)
+
+
+class CategorySuggestionsQuerySerializer(serializers.Serializer):
+    q = serializers.CharField(max_length=120)

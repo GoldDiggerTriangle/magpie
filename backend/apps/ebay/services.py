@@ -11,6 +11,8 @@ from django.utils import timezone
 import integrations.ebay as ebay_integration
 from apps.audit.services import record
 from apps.ebay.constants import (
+    AUDIT_LOCATION_CREATED,
+    AUDIT_LOCATION_REFRESH_FAILED,
     AUDIT_CONNECT_COMPLETED,
     AUDIT_CONNECT_FAILED,
     AUDIT_CONNECT_STARTED,
@@ -19,10 +21,17 @@ from apps.ebay.constants import (
     AUDIT_POLICY_REFRESH_FAILED,
     AUDIT_TOKEN_REFRESH_COMPLETED,
     AUDIT_TOKEN_REFRESH_FAILED,
+    EBAY_APP_SCOPE,
     EBAY_SCOPES,
 )
 from apps.ebay.fields import ensure_token_key_configured
-from apps.ebay.models import EbayAccountSnapshot, EbayCredential, OAuthState
+from apps.ebay.models import (
+    EbayAccountSnapshot,
+    EbayAppToken,
+    EbayCredential,
+    MerchantLocation,
+    OAuthState,
+)
 
 
 class EbayConnectValidationError(ValidationError):
@@ -221,6 +230,32 @@ def get_access_token(*, actor=None) -> str:
     return credential.access_token
 
 
+def get_app_access_token() -> str:
+    ensure_token_key_configured()
+    environment = ebay_integration.effective_environment()
+    now = timezone.now()
+    token = EbayAppToken.objects.filter(environment=environment).first()
+    if token and token.expires_at > now + timedelta(seconds=60):
+        return token.access_token
+
+    with transaction.atomic():
+        token = EbayAppToken.objects.select_for_update().filter(environment=environment).first()
+        now = timezone.now()
+        if token and token.expires_at > now + timedelta(seconds=60):
+            return token.access_token
+        token_set = ebay_integration.get_ebay_auth_adapter().client_credentials(
+            scope=EBAY_APP_SCOPE,
+        )
+        token, _created = EbayAppToken.objects.update_or_create(
+            environment=environment,
+            defaults={
+                "access_token": token_set.access_token,
+                "expires_at": token_set.access_expires_at,
+            },
+        )
+    return token.access_token
+
+
 def disconnect(*, actor=None) -> None:
     environment = ebay_integration.effective_environment()
     deleted, _ = EbayCredential.objects.filter(environment=environment).delete()
@@ -276,6 +311,86 @@ def refresh_account_snapshot(*, actor=None) -> EbayAccountSnapshot:
         },
     )
     return snapshot
+
+
+def merchant_location_payload(location: MerchantLocation) -> dict:
+    address = {"country": location.country}
+    if location.postal_code:
+        address["postalCode"] = location.postal_code
+    if location.city:
+        address["city"] = location.city
+    if location.state:
+        address["stateOrProvince"] = location.state
+    return {
+        "name": location.name,
+        "merchantLocationStatus": "ENABLED",
+        "locationTypes": ["WAREHOUSE"],
+        "location": {"address": address},
+    }
+
+
+def current_merchant_location() -> MerchantLocation | None:
+    environment = ebay_integration.effective_environment()
+    return MerchantLocation.objects.filter(environment=environment).first()
+
+
+def create_merchant_location(
+    *,
+    merchant_location_key: str,
+    name: str,
+    country: str,
+    postal_code: str = "",
+    city: str = "",
+    state: str = "",
+    actor=None,
+) -> MerchantLocation:
+    environment = ebay_integration.effective_environment()
+    location = MerchantLocation.objects.filter(environment=environment).first()
+    if location and location.created_on_ebay:
+        return location
+    location, _created = MerchantLocation.objects.update_or_create(
+        environment=environment,
+        defaults={
+            "merchant_location_key": merchant_location_key,
+            "name": name,
+            "country": country.upper(),
+            "postal_code": postal_code,
+            "city": city,
+            "state": state,
+            "created_on_ebay": False,
+        },
+    )
+    try:
+        access_token = get_access_token(actor=actor)
+        adapter = ebay_integration.get_ebay_inventory_adapter()
+        adapter.create_inventory_location(
+            access_token=access_token,
+            merchant_location_key=location.merchant_location_key,
+            payload=merchant_location_payload(location),
+        )
+    except Exception as exc:
+        record(
+            actor=actor,
+            action=AUDIT_LOCATION_REFRESH_FAILED,
+            target_type="ebay_merchant_location",
+            target_id=location.id,
+            payload={"environment": environment, "reason": _safe_error(exc)},
+        )
+        raise
+    location.created_on_ebay = True
+    location.fetched_at = timezone.now()
+    location.save(update_fields=["created_on_ebay", "fetched_at", "updated_at"])
+    record(
+        actor=actor,
+        action=AUDIT_LOCATION_CREATED,
+        target_type="ebay_merchant_location",
+        target_id=location.id,
+        payload={
+            "environment": environment,
+            "merchant_location_key": location.merchant_location_key,
+        },
+    )
+    return location
 
 
 def status_summary() -> dict:

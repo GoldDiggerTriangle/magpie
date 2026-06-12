@@ -6,9 +6,12 @@ from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
 from apps.dashboard.views import DashboardSummaryView
 from apps.ebay.views import (
+    EbayCategoryAspectsView,
+    EbayCategorySuggestionsView,
     EbayConnectCompleteView,
     EbayConnectStartView,
     EbayDisconnectView,
+    EbayMerchantLocationView,
     EbayRefreshPoliciesView,
     EbayStatusView,
 )
@@ -95,6 +98,21 @@ urlpatterns = [
         "ebay/refresh-policies/",
         EbayRefreshPoliciesView.as_view(),
         name="ebay-refresh-policies",
+    ),
+    path(
+        "ebay/category-suggestions/",
+        EbayCategorySuggestionsView.as_view(),
+        name="ebay-category-suggestions",
+    ),
+    path(
+        "ebay/category-aspects/",
+        EbayCategoryAspectsView.as_view(),
+        name="ebay-category-aspects",
+    ),
+    path(
+        "ebay/merchant-location/",
+        EbayMerchantLocationView.as_view(),
+        name="ebay-merchant-location",
     ),
     path(
         "items/export.csv",

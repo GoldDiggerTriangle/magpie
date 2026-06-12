@@ -53,6 +53,38 @@ class EbayCredential(TimeStampedUUIDModel):
         return f"{self.environment}: {username}"
 
 
+class EbayAppToken(TimeStampedUUIDModel):
+    environment = models.CharField(
+        max_length=12,
+        choices=EbayCredential.Environment.choices,
+        unique=True,
+    )
+    access_token = EncryptedTextField()
+    expires_at = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return f"{self.environment} app token"
+
+
+class MerchantLocation(TimeStampedUUIDModel):
+    environment = models.CharField(
+        max_length=12,
+        choices=EbayCredential.Environment.choices,
+        unique=True,
+    )
+    merchant_location_key = models.CharField(max_length=36)
+    name = models.CharField(max_length=1000)
+    country = models.CharField(max_length=2)
+    postal_code = models.CharField(max_length=16, blank=True, default="")
+    city = models.CharField(max_length=128, blank=True, default="")
+    state = models.CharField(max_length=128, blank=True, default="")
+    created_on_ebay = models.BooleanField(default=False)
+    fetched_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"{self.environment}: {self.merchant_location_key}"
+
+
 def generate_oauth_state() -> str:
     return secrets.token_urlsafe(32)
 

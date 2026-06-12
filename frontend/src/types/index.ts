@@ -319,7 +319,7 @@ export interface ListingBoilerplate {
 export interface ListingDraft {
   id: UUID;
   item: UUID;
-  status: "draft" | "ready" | "exported";
+  status: "draft" | "ready" | "exported" | "staged" | "published" | "publish_failed";
   channel: string;
   channel_data: Record<string, unknown>;
   title: string;
@@ -392,6 +392,88 @@ export interface EbayConnectionSummary {
   scopes: string[];
   access_token_expires_at: string | null;
   refresh_token_expires_at: string | null;
+}
+
+export interface EbayCategorySuggestion {
+  category_id: string;
+  category_tree_id: string;
+  name: string;
+}
+
+export interface EbayCategorySuggestionsResponse {
+  supported: boolean;
+  suggestions: EbayCategorySuggestion[];
+  detail?: string;
+}
+
+export interface EbayCategoryAspect {
+  name: string;
+  required: boolean;
+  type: string;
+  values?: string[];
+}
+
+export interface EbayCategoryAspectsResponse {
+  category_id: string;
+  fetched_at: string;
+  aspects: EbayCategoryAspect[];
+}
+
+export interface EbayAspectCheck {
+  satisfied_required: string[];
+  missing_required: string[];
+  optional_known: string[];
+  unmapped_specifics: string[];
+  aspects: EbayCategoryAspect[];
+  fetched_at: string | null;
+}
+
+export interface MerchantLocation {
+  id: UUID;
+  environment: "sandbox" | "production";
+  merchant_location_key: string;
+  name: string;
+  country: string;
+  postal_code: string;
+  city: string;
+  state: string;
+  created_on_ebay: boolean;
+  fetched_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MerchantLocationStatus {
+  configured: boolean;
+  location: MerchantLocation | null;
+}
+
+export interface MerchantLocationPayload {
+  merchant_location_key: string;
+  name: string;
+  country: string;
+  postal_code?: string;
+  city?: string;
+  state?: string;
+}
+
+export interface StagedOfferReview {
+  offer_id: string;
+  sku: string;
+  title: string;
+  category_id: string;
+  category_name: string;
+  condition: string;
+  price: string;
+  currency: string;
+  quantity: number;
+  format: string;
+  payment_policy_id: string;
+  fulfillment_policy_id: string;
+  return_policy_id: string;
+  merchant_location_key: string;
+  photo_count: number;
+  aspect_warnings: string[];
 }
 
 export interface AuditLogEntry {

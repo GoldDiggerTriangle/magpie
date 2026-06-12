@@ -23,6 +23,9 @@ class ListingDraft(TimeStampedUUIDModel):
         DRAFT = "draft", "Draft"
         READY = "ready", "Ready"
         EXPORTED = "exported", "Exported"
+        STAGED = "staged", "Staged"
+        PUBLISHED = "published", "Published"
+        PUBLISH_FAILED = "publish_failed", "Publish failed"
 
     class Format(models.TextChoices):
         FIXED = "fixed", "Fixed price"
@@ -34,7 +37,7 @@ class ListingDraft(TimeStampedUUIDModel):
         related_name="listing_drafts",
     )
     status = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=Status.choices,
         default=Status.DRAFT,
     )

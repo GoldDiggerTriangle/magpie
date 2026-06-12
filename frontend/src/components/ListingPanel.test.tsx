@@ -9,11 +9,18 @@ import type { InventoryItemDetail, ListingDraft } from "../types";
 const longTitle = "x".repeat(81);
 
 const mocks = vi.hoisted(() => ({
+  getEbayStatus: vi.fn(),
+  getListingAspectCheck: vi.fn(),
+  getMerchantLocation: vi.fn(),
+  getStagedOfferReview: vi.fn(),
   generateListingDraft: vi.fn(),
   getListingReadiness: vi.fn(),
   listItemListingDrafts: vi.fn(),
   listListingBoilerplates: vi.fn(),
+  publishListingDraft: vi.fn(),
+  stageListingDraft: vi.fn(),
   updateListingDraft: vi.fn(),
+  withdrawListingDraft: vi.fn(),
   draft: {
     id: "draft-1",
     item: "item-1",
@@ -47,14 +54,22 @@ vi.mock("../api/listing", () => ({
   deleteListingDraft: vi.fn(),
   downloadListingZip: vi.fn(),
   generateListingDraft: (...args: unknown[]) => mocks.generateListingDraft(...args),
+  getListingAspectCheck: (...args: unknown[]) => mocks.getListingAspectCheck(...args),
   getListingReadiness: (...args: unknown[]) => mocks.getListingReadiness(...args),
+  getStagedOfferReview: (...args: unknown[]) => mocks.getStagedOfferReview(...args),
   listItemListingDrafts: (...args: unknown[]) => mocks.listItemListingDrafts(...args),
   listListingBoilerplates: (...args: unknown[]) => mocks.listListingBoilerplates(...args),
+  publishListingDraft: (...args: unknown[]) => mocks.publishListingDraft(...args),
+  stageListingDraft: (...args: unknown[]) => mocks.stageListingDraft(...args),
+  withdrawListingDraft: (...args: unknown[]) => mocks.withdrawListingDraft(...args),
   updateListingDraft: (...args: unknown[]) => mocks.updateListingDraft(...args)
 }));
 
-vi.mock("../api/items", () => ({
-  updateItem: vi.fn()
+vi.mock("../api/ebay", () => ({
+  createMerchantLocation: vi.fn(),
+  getEbayCategorySuggestions: vi.fn(),
+  getEbayStatus: (...args: unknown[]) => mocks.getEbayStatus(...args),
+  getMerchantLocation: (...args: unknown[]) => mocks.getMerchantLocation(...args)
 }));
 
 const item = {
@@ -90,6 +105,48 @@ const item = {
 beforeEach(() => {
   mocks.generateListingDraft.mockReset();
   mocks.generateListingDraft.mockResolvedValue({ ...mocks.draft, title_edited: false, title: "Generated title" });
+  mocks.getEbayStatus.mockReset();
+  mocks.getEbayStatus.mockResolvedValue({
+    configured: true,
+    environment: "production",
+    connected: true,
+    ebay_username: "seller",
+    scopes: [],
+    access_token_expires_at: null,
+    refresh_token_expires_at: null,
+    last_refresh_error: "",
+    snapshot: { opted_in: true, policy_counts: { payment: 1, fulfillment: 1, return: 1 }, fetched_at: null }
+  });
+  mocks.getListingAspectCheck.mockReset();
+  mocks.getListingAspectCheck.mockResolvedValue({
+    satisfied_required: ["Brand"],
+    missing_required: [],
+    optional_known: [],
+    unmapped_specifics: [],
+    aspects: [],
+    fetched_at: null
+  });
+  mocks.getMerchantLocation.mockReset();
+  mocks.getMerchantLocation.mockResolvedValue({ configured: true, location: null });
+  mocks.getStagedOfferReview.mockReset();
+  mocks.getStagedOfferReview.mockResolvedValue({
+    offer_id: "offer-1",
+    sku: "PH-00001",
+    title: "x",
+    category_id: "260",
+    category_name: "Stamps",
+    condition: "USED_GOOD",
+    price: "99.00",
+    currency: "AUD",
+    quantity: 1,
+    format: "FIXED_PRICE",
+    payment_policy_id: "payment-1",
+    fulfillment_policy_id: "fulfillment-1",
+    return_policy_id: "return-1",
+    merchant_location_key: "loc-1",
+    photo_count: 1,
+    aspect_warnings: []
+  });
   mocks.getListingReadiness.mockReset();
   mocks.getListingReadiness.mockResolvedValue([
     { key: "title_missing", level: "fail", message: "Title is required." },
@@ -106,6 +163,12 @@ beforeEach(() => {
     results: [{ id: "bp-1", name: "Boilerplate", body_html: "<p>Terms</p>", channel: "ebay_au", is_active: true, notes: "", created_at: "", updated_at: "" }]
   });
   mocks.updateListingDraft.mockReset();
+  mocks.updateListingDraft.mockResolvedValue(mocks.draft);
+  mocks.stageListingDraft.mockReset();
+  mocks.stageListingDraft.mockResolvedValue({ ...mocks.draft, status: "staged", channel_data: { offer_id: "offer-1" } });
+  mocks.withdrawListingDraft.mockReset();
+  mocks.publishListingDraft.mockReset();
+  mocks.publishListingDraft.mockResolvedValue({ ...mocks.draft, status: "published", channel_data: { listing_id: "listing-1" } });
 });
 
 function renderPanel() {
@@ -148,4 +211,82 @@ test("ListingPanel groups readiness checks by level", async () => {
   expect(screen.getByText("Warnings (1)")).toBeInTheDocument();
   expect(screen.getByText("Passes (1)")).toBeInTheDocument();
   expect(screen.getByText("Title is required.")).toBeInTheDocument();
+});
+
+test("ListingPanel requires an override reason before staging with missing aspects", async () => {
+  const user = userEvent.setup();
+  mocks.listItemListingDrafts.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      ...mocks.draft,
+      channel_data: {
+        category_id: "260",
+        category_tree_id: "15",
+        category_name: "Stamps",
+        condition_id: "3000",
+        merchant_location_key: "loc-1",
+        payment_policy_id: "payment-1",
+        fulfillment_policy_id: "fulfillment-1",
+        return_policy_id: "return-1"
+      }
+    }]
+  });
+  mocks.getListingAspectCheck.mockResolvedValue({
+    satisfied_required: ["Brand"],
+    missing_required: ["Country/Region of Manufacture"],
+    optional_known: [],
+    unmapped_specifics: [],
+    aspects: [],
+    fetched_at: null
+  });
+  renderPanel();
+
+  const stageButton = await screen.findByRole("button", { name: "Stage offer" });
+  expect(stageButton).toBeDisabled();
+
+  await user.click(screen.getByLabelText("Override and stage anyway"));
+  expect(stageButton).toBeDisabled();
+
+  await user.type(screen.getByLabelText("Override reason"), "Known stamp provenance");
+  await user.click(stageButton);
+
+  await waitFor(() => expect(mocks.stageListingDraft).toHaveBeenCalledWith("draft-1", {
+    override_missing_aspects: true,
+    override_reason: "Known stamp provenance"
+  }));
+});
+
+test("ListingPanel enables publish only after exact SKU confirmation", async () => {
+  const user = userEvent.setup();
+  mocks.listItemListingDrafts.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      ...mocks.draft,
+      status: "staged",
+      channel_data: {
+        offer_id: "offer-1",
+        staged_at: "2026-06-13T00:00:00Z",
+        category_id: "260"
+      }
+    }]
+  });
+  renderPanel();
+
+  await user.click(await screen.findByRole("button", { name: "Review & publish" }));
+  await screen.findByText("This will create a live eBay listing");
+  await user.click(screen.getByRole("button", { name: "Publish" }));
+
+  const publishButtons = screen.getAllByRole("button", { name: "Publish" });
+  const confirmButton = publishButtons[publishButtons.length - 1];
+  expect(confirmButton).toBeDisabled();
+
+  await user.type(screen.getByLabelText("SKU confirmation"), "PH-00001");
+  expect(confirmButton).toBeEnabled();
+  await user.click(confirmButton);
+
+  await waitFor(() => expect(mocks.publishListingDraft).toHaveBeenCalledWith("draft-1", "PH-00001"));
 });
