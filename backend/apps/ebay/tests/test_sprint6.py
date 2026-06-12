@@ -156,6 +156,53 @@ def test_http_consent_url_uses_current_runame_setting(settings):
     assert second_query["redirect_uri"] == ["second-runame"]
 
 
+def test_http_identity_endpoint_uses_apiz_host(settings, monkeypatch):
+    settings.EBAY_ENV = "production"
+    settings.EBAY_CLIENT_ID = "production-client-id"
+    settings.EBAY_CLIENT_SECRET = "production-client-secret"
+    settings.EBAY_RU_NAME = "production-runame"
+    called_urls = []
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def read(self):
+            return b'{"userId": "user-1", "username": "seller"}'
+
+    def fake_urlopen(request, timeout):
+        called_urls.append(request.full_url)
+        return FakeResponse()
+
+    monkeypatch.setattr(ebay_integration, "urlopen", fake_urlopen)
+
+    identity = ebay_integration.HttpEbayAccountAdapter().get_identity(access_token="access-token")
+
+    assert identity == {"user_id": "user-1", "username": "seller"}
+    assert called_urls == ["https://apiz.ebay.com/commerce/identity/v1/user/"]
+
+
+def test_http_policy_optin_accepts_official_business_policy_program(settings, monkeypatch):
+    settings.EBAY_ENV = "production"
+    settings.EBAY_CLIENT_ID = "production-client-id"
+    settings.EBAY_CLIENT_SECRET = "production-client-secret"
+    settings.EBAY_RU_NAME = "production-runame"
+    adapter = ebay_integration.HttpEbayAccountAdapter()
+
+    monkeypatch.setattr(
+        adapter,
+        "_get",
+        lambda path, access_token: {
+            "programs": [{"programType": "SELLING_POLICY_MANAGEMENT"}]
+        },
+    )
+
+    assert adapter.get_policy_optin_status(access_token="access-token") is True
+
+
 def test_inspect_ebay_oauth_command_prints_safe_fields(settings):
     settings.EBAY_ENV = "sandbox"
     settings.EBAY_CLIENT_ID = "sandbox-client-id-123456"
@@ -195,7 +242,7 @@ def test_fake_connect_status_policy_refresh_disconnect_and_secret_free_audit(api
 
     assert complete.status_code == 200, complete.data
     assert complete.data["environment"] == "sandbox"
-    assert complete.data["ebay_username"] == "fake_sandbox_seller"
+    assert complete.data["ebay_username"] == ""
     assert "fake-access-token" not in json.dumps(complete.data, default=str)
     state.refresh_from_db()
     assert state.consumed_at is not None
@@ -228,6 +275,28 @@ def test_fake_connect_status_policy_refresh_disconnect_and_secret_free_audit(api
         AUDIT_DISCONNECT_COMPLETED,
     } <= actions
     assert_audit_payloads_secret_free()
+
+
+@pytest.mark.django_db
+def test_connect_persists_credential_without_identity_lookup(api_client, monkeypatch):
+    def fail_if_called():
+        raise AssertionError("Identity lookup must not gate Sprint 6 connect")
+
+    monkeypatch.setattr(ebay_integration, "get_ebay_account_adapter", fail_if_called)
+    start = api_client.post("/api/ebay/connect/start/", {}, format="json")
+    state = OAuthState.objects.get()
+
+    complete = api_client.post(
+        "/api/ebay/connect/complete/",
+        {"code": "auth-code-secret", "state": state.state},
+        format="json",
+    )
+
+    assert start.status_code == 200, start.data
+    assert complete.status_code == 200, complete.data
+    credential = EbayCredential.objects.get()
+    assert credential.ebay_username == ""
+    assert credential.ebay_user_id == ""
 
 
 @pytest.mark.django_db

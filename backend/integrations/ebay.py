@@ -125,7 +125,11 @@ class HttpEbayAccountAdapter:
         self.timeout_seconds = timeout_seconds or settings.EBAY_HTTP_TIMEOUT_SECONDS
 
     def get_identity(self, *, access_token: str) -> dict:
-        payload = self._get("/commerce/identity/v1/user/", access_token=access_token)
+        payload = self._get(
+            "/commerce/identity/v1/user/",
+            access_token=access_token,
+            base_url=_identity_base(self.environment),
+        )
         return {
             "user_id": str(payload.get("userId") or payload.get("user_id") or ""),
             "username": str(payload.get("username") or payload.get("userName") or ""),
@@ -140,7 +144,7 @@ class HttpEbayAccountAdapter:
         if not isinstance(programs, list):
             return False
         return any(
-            str(program.get("programType", "")).lower() == "seller_policies"
+            _is_business_policies_program(program)
             for program in programs
             if isinstance(program, dict)
         )
@@ -157,9 +161,9 @@ class HttpEbayAccountAdapter:
             raise EbayUnavailable("eBay policy response could not be parsed.")
         return policies
 
-    def _get(self, path: str, *, access_token: str) -> dict:
+    def _get(self, path: str, *, access_token: str, base_url: str | None = None) -> dict:
         request = Request(
-            f"{_api_base(self.environment)}{path}",
+            f"{base_url or _api_base(self.environment)}{path}",
             headers={
                 "Authorization": f"Bearer {access_token}",
                 "Accept": "application/json",
@@ -295,6 +299,14 @@ def _api_base(environment: str) -> str:
     raise EbayUnavailable("EBAY_ENV must be sandbox or production.")
 
 
+def _identity_base(environment: str) -> str:
+    if environment == EBAY_ENV_SANDBOX:
+        return "https://apiz.sandbox.ebay.com"
+    if environment == EBAY_ENV_PRODUCTION:
+        return "https://apiz.ebay.com"
+    raise EbayUnavailable("EBAY_ENV must be sandbox or production.")
+
+
 def _token_set_from_payload(data: dict) -> TokenSet:
     now = timezone.now()
     access_expires_in = int(data["expires_in"])
@@ -317,3 +329,8 @@ def _normalize_policy_kind(kind: str) -> str:
     if normalized not in {"payment", "fulfillment", "return"}:
         raise EbayUnavailable(f"Unsupported eBay policy kind: {kind}")
     return normalized
+
+
+def _is_business_policies_program(program: dict) -> bool:
+    program_type = str(program.get("programType", "")).strip().upper()
+    return program_type in {"SELLING_POLICY_MANAGEMENT", "SELLER_POLICIES"}

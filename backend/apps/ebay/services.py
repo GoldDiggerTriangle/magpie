@@ -84,7 +84,6 @@ def complete_connect(
         with transaction.atomic():
             oauth_state = _lock_valid_state(parsed_state)
             auth_adapter = ebay_integration.get_ebay_auth_adapter()
-            account_adapter = ebay_integration.get_ebay_account_adapter()
             oauth_state.consumed_at = timezone.now()
             oauth_state.save(update_fields=["consumed_at", "updated_at"])
             try:
@@ -93,18 +92,17 @@ def complete_connect(
                     raise ebay_integration.EbayUnavailable(
                         "eBay authorization did not return a refresh token."
                     )
-                identity = account_adapter.get_identity(
-                    access_token=token_set.access_token,
-                )
             except Exception as exc:
                 flow_error = exc
             else:
+                # Sprint 6 deliberately uses only sell scopes; Identity API needs
+                # commerce.identity.readonly, so it must not block connecting.
                 credential, _created = EbayCredential.objects.update_or_create(
                     environment=environment,
                     defaults={
                         "owner": actor if getattr(actor, "is_authenticated", False) else None,
-                        "ebay_user_id": identity.get("user_id", ""),
-                        "ebay_username": identity.get("username", ""),
+                        "ebay_user_id": "",
+                        "ebay_username": "",
                         "scopes": list(EBAY_SCOPES),
                         "refresh_token": token_set.refresh_token,
                         "refresh_token_expires_at": token_set.refresh_expires_at,
