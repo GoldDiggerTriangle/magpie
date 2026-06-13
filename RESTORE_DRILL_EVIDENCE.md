@@ -72,4 +72,7 @@ Per instruction, no cloud-upload test has been run. Before that test, the rclone
 ## CI
 
 - Workflow updated to keep PostgreSQL schema validation while running backup/restore coverage on SQLite.
-- Remote CI status: PENDING.
+- Remote CI status: PASS.
+- Workflow: PostgreSQL Validation.
+- Commit: `d7d290f`.
+- Run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/27462116873.
