@@ -38,12 +38,12 @@ AUDIT_LOCATION_REFRESH_FAILED = "ebay.location.refresh_failed"
 
 CONDITION_MAP = {
     "new": {"condition_id": "1000", "condition": "NEW"},
-    "like_new": {"condition_id": "3000", "condition": "USED_EXCELLENT"},
-    "very_good": {"condition_id": "3000", "condition": "USED_VERY_GOOD"},
-    "good": {"condition_id": "3000", "condition": "USED_GOOD"},
-    "acceptable": {"condition_id": "3000", "condition": "USED_ACCEPTABLE"},
+    "like_new": {"condition_id": "2750", "condition": "LIKE_NEW"},
+    "very_good": {"condition_id": "4000", "condition": "USED_VERY_GOOD"},
+    "good": {"condition_id": "5000", "condition": "USED_GOOD"},
+    "acceptable": {"condition_id": "6000", "condition": "USED_ACCEPTABLE"},
     "for_parts": {"condition_id": "7000", "condition": "FOR_PARTS_OR_NOT_WORKING"},
-    "ungraded": {"condition_id": "3000", "condition": "USED"},
+    "ungraded": {"condition_id": "3000", "condition": "USED_EXCELLENT"},
 }
 
 CHANNEL_DATA_KEYS = {

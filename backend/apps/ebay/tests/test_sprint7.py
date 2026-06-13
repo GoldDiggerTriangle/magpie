@@ -31,7 +31,7 @@ from apps.ebay.constants import (
 from apps.ebay.models import EbayAppToken, EbayCredential, MerchantLocation
 from apps.ebay.publishing import publish_draft, staged_review
 from apps.ebay.services import create_merchant_location, get_app_access_token
-from apps.ebay.staging import stage_draft, withdraw_staged
+from apps.ebay.staging import _inventory_item_payload, stage_draft, withdraw_staged
 from apps.inventory.models import InventoryItem
 from apps.catalog.models import ProductCategory
 from apps.listing.models import ListingDraft
@@ -184,6 +184,21 @@ def test_stage_restage_and_withdraw_against_fakes(item, credential, merchant_loc
         AUDIT_OFFER_UPDATED,
         AUDIT_OFFER_WITHDRAWN,
     } <= actions
+
+
+@pytest.mark.django_db
+def test_inventory_payload_serializes_condition_enum_from_condition_id(item):
+    add_photo(item)
+    item.condition = InventoryItem.Condition.UNGRADED
+    item.save(update_fields=["condition", "updated_at"])
+    draft = make_draft(item, channel_data={"condition_id": "3000"})
+
+    payload = _inventory_item_payload(draft, ["fake-eps://1.jpg"])
+
+    assert payload["condition"] == "USED_EXCELLENT"
+    assert isinstance(payload["condition"], str)
+    assert payload["condition"] != "USED"
+    assert "condition_id" not in payload
 
 
 @pytest.mark.django_db
