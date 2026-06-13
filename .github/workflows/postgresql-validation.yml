@@ -1,4 +1,4 @@
-name: PostgreSQL Validation
+name: Validation
 
 on:
   workflow_dispatch:
@@ -7,16 +7,295 @@ on:
       - ".github/workflows/postgresql-validation.yml"
       - "backend/**"
       - "frontend/**"
+      - "scripts/**"
       - "docker-compose.yml"
   pull_request:
     paths:
       - ".github/workflows/postgresql-validation.yml"
       - "backend/**"
       - "frontend/**"
+      - "scripts/**"
       - "docker-compose.yml"
 
 jobs:
-  postgresql-validation:
+  sqlite:
+    name: sqlite
+    runs-on: ubuntu-24.04
+
+    env:
+      DATABASE_URL: sqlite:///db.sqlite3
+      SECRET_KEY: django-insecure-ci-sqlite-validation
+      DEBUG: "1"
+      ALLOWED_HOSTS: localhost,127.0.0.1,192.168.1.86,testserver
+      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.86:8000
+      METALS_PROVIDER: fake
+      METALS_BASE_CURRENCY: AUD
+      METALS_CACHE_TTL_SECONDS: "3600"
+      MAGPIE_TOKEN_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Assert old sprint workflows are removed
+        run: |
+          test -f .github/workflows/postgresql-validation.yml
+          if find .github/workflows -maxdepth 1 -type f -name "sprint*-postgres.yml" | grep .; then
+            echo "Per-sprint PostgreSQL workflows must be removed."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt
+
+      - name: Run Django check
+        working-directory: backend
+        run: python manage.py check
+
+      - name: Apply SQLite migrations
+        working-directory: backend
+        run: |
+          rm -f db.sqlite3
+          python manage.py migrate --noinput
+
+      - name: Check migrations are committed
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run --noinput
+
+      - name: Seed data
+        working-directory: backend
+        run: python manage.py seed
+
+      - name: Assert eBay HTTP confinement
+        run: |
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          import tokenize
+
+          app_root = Path("backend/apps")
+          integration_file = Path("backend/integrations/ebay.py")
+          frontend_root = Path("frontend/src")
+          suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
+          network_imports = {"requests", "httpx", "aiohttp", "urllib"}
+          ebay_hosts = [
+              "api.ebay.com",
+              "api.sandbox.ebay.com",
+              "apim.ebay.com",
+              "apim.sandbox.ebay.com",
+              "apiz.ebay.com",
+              "apiz.sandbox.ebay.com",
+              "auth.ebay.com",
+              "auth.sandbox.ebay.com",
+          ]
+
+          def is_production_file(path):
+              parts = set(path.parts)
+              if parts & {"tests", "__pycache__", "migrations", "node_modules", "dist"}:
+                  return False
+              name = path.name.lower()
+              if any(marker in name for marker in [".test.", ".spec."]):
+                  return False
+              if name.endswith((".md", ".rst", ".txt")):
+                  return False
+              return path.suffix in suffixes
+
+          def python_imports(path):
+              tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      for alias in node.names:
+                          yield alias.name.split(".")[0]
+                  elif isinstance(node, ast.ImportFrom) and node.module:
+                      yield node.module.split(".")[0]
+
+          def text_without_comments(path):
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              if path.suffix == ".py":
+                  lines = []
+                  with path.open("rb") as handle:
+                      for token in tokenize.tokenize(handle.readline):
+                          if token.type in {
+                              tokenize.COMMENT,
+                              tokenize.ENCODING,
+                              tokenize.NL,
+                              tokenize.NEWLINE,
+                              tokenize.INDENT,
+                              tokenize.DEDENT,
+                              tokenize.ENDMARKER,
+                          }:
+                              continue
+                          lines.append(token.string)
+                  return "\n".join(lines)
+              return text
+
+          bad = []
+          for path in app_root.rglob("*"):
+              if not path.is_file() or not is_production_file(path):
+                  continue
+              if path.suffix == ".py":
+                  for import_name in python_imports(path):
+                      if import_name in network_imports:
+                          bad.append(f"{path}: network import {import_name}")
+              text = text_without_comments(path)
+              for host in ebay_hosts:
+                  if host in text:
+                      bad.append(f"{path}: eBay hostname {host}")
+
+          for path in frontend_root.rglob("*"):
+              if not path.is_file() or not is_production_file(path):
+                  continue
+              text = text_without_comments(path)
+              for host in ebay_hosts:
+                  if host in text:
+                      bad.append(f"{path}: frontend eBay hostname {host}")
+
+          integration_text = integration_file.read_text(encoding="utf-8")
+          if "api.ebay.com" not in integration_text:
+              bad.append("backend/integrations/ebay.py: expected eBay HTTP hostnames")
+          if bad:
+              print("\n".join(bad))
+              raise SystemExit("eBay HTTP access must be confined to backend/integrations/ebay.py.")
+          PY
+
+      - name: Run backend tests on SQLite
+        working-directory: backend
+        run: python -m pytest
+
+      - name: Generate CI backup passphrase
+        run: |
+          python - <<'PY' >> "$GITHUB_ENV"
+          import secrets
+
+          print(f"MAGPIE_BACKUP_PASSPHRASE={secrets.token_urlsafe(48)}")
+          PY
+
+      - name: Create encrypted SQLite backup
+        working-directory: backend
+        run: |
+          rm -f db.sqlite3
+          python manage.py migrate --noinput
+          python manage.py seed
+          python manage.py backup --output-dir backups --no-upload
+
+      - name: Restore encrypted SQLite backup into clean target
+        working-directory: backend
+        run: |
+          latest="$(python - <<'PY'
+          from pathlib import Path
+
+          print(sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))[-1])
+          PY
+          )"
+          python manage.py restore "$latest" --target /tmp/magpie-ci-restore
+          python - <<'PY'
+          import json
+          import os
+          import sqlite3
+          import tarfile
+          from pathlib import Path
+
+          from apps.core.backup_ops import (
+              DB_SNAPSHOT_NAME,
+              ENV_MANIFEST_NAME,
+              MAGIC,
+              RESTORE_RUNBOOK_NAME,
+              count_key_rows,
+              decrypt_file,
+              safe_extract_tar,
+          )
+
+          backups = sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))
+          assert backups, "No encrypted backup produced"
+          latest = backups[-1]
+          assert latest.read_bytes().startswith(MAGIC)
+
+          try:
+              tarfile.open(latest, "r:gz")
+          except tarfile.ReadError:
+              pass
+          else:
+              raise AssertionError("Encrypted archive opened as plaintext tar")
+
+          extracted = Path("/tmp/magpie-ci-extracted")
+          decrypted = Path("/tmp/magpie-ci-backup.tar.gz")
+          decrypt_file(latest, decrypted, os.environ["MAGPIE_BACKUP_PASSPHRASE"])
+          safe_extract_tar(decrypted, extracted)
+          assert (extracted / DB_SNAPSHOT_NAME).exists()
+          assert (extracted / "media_files").exists()
+          assert (extracted / RESTORE_RUNBOOK_NAME).exists()
+          env_manifest = json.loads((extracted / ENV_MANIFEST_NAME).read_text())
+          assert "MAGPIE_BACKUP_PASSPHRASE" in env_manifest["env_var_names"]
+
+          restored_db = Path("/tmp/magpie-ci-restore/db.sqlite3")
+          restored_media = Path("/tmp/magpie-ci-restore/media_files")
+          assert restored_db.exists()
+          assert restored_media.exists()
+          counts = count_key_rows(restored_db)
+          assert counts["items"] == 6
+          assert counts["drafts"] == 1
+          conn = sqlite3.connect(restored_db)
+          try:
+              assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
+          finally:
+              conn.close()
+          print("Encrypted SQLite backup restore checks passed.")
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Type-check frontend
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Collect production static files
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DEBUG: "0"
+        run: python manage.py collectstatic --noinput
+
+      - name: Run deploy check
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DEBUG: "0"
+        run: python manage.py check --deploy
+
+      - name: Smoke Waitress and WhiteNoise
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DEBUG: "0"
+          MAGPIE_SMOKE_PORT: "8765"
+        run: python scripts/production_smoke.py
+
+  postgres:
+    name: postgres
     runs-on: ubuntu-24.04
 
     services:
@@ -38,7 +317,8 @@ jobs:
       DATABASE_URL: postgres://gsp:gsp@127.0.0.1:5432/gsp
       SECRET_KEY: django-insecure-ci-postgresql-validation
       DEBUG: "1"
-      ALLOWED_HOSTS: localhost,127.0.0.1,testserver
+      ALLOWED_HOSTS: localhost,127.0.0.1,192.168.1.86,testserver
+      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.86:8000
       PGCONNECT_TIMEOUT: "10"
       PGPASSWORD: gsp
       METALS_PROVIDER: fake
@@ -49,14 +329,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Assert old sprint workflows are removed
-        run: |
-          test -f .github/workflows/postgresql-validation.yml
-          if find .github/workflows -maxdepth 1 -type f -name "sprint*-postgres.yml" | grep .; then
-            echo "Per-sprint PostgreSQL workflows must be removed."
-            exit 1
-          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -153,209 +425,6 @@ jobs:
           print("Sprint 7 PostgreSQL schema and fake eBay adapter checks passed.")
           PY
 
-      - name: Assert eBay HTTP confinement
-        run: |
-          python - <<'PY'
-          import ast
-          from pathlib import Path
-          import tokenize
-
-          app_root = Path("backend/apps")
-          integration_file = Path("backend/integrations/ebay.py")
-          frontend_root = Path("frontend/src")
-          suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
-          network_imports = {"requests", "httpx", "aiohttp", "urllib"}
-          ebay_hosts = [
-              "api.ebay.com",
-              "api.sandbox.ebay.com",
-              "apim.ebay.com",
-              "apim.sandbox.ebay.com",
-              "apiz.ebay.com",
-              "apiz.sandbox.ebay.com",
-              "auth.ebay.com",
-              "auth.sandbox.ebay.com",
-          ]
-
-          def is_production_file(path):
-              parts = set(path.parts)
-              if parts & {"tests", "__pycache__", "migrations", "node_modules", "dist"}:
-                  return False
-              name = path.name.lower()
-              if any(marker in name for marker in [".test.", ".spec."]):
-                  return False
-              if name.endswith((".md", ".rst", ".txt")):
-                  return False
-              return path.suffix in suffixes
-
-          def python_imports(path):
-              tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-              for node in ast.walk(tree):
-                  if isinstance(node, ast.Import):
-                      for alias in node.names:
-                          yield alias.name.split(".")[0]
-                  elif isinstance(node, ast.ImportFrom) and node.module:
-                      yield node.module.split(".")[0]
-
-          def text_without_comments(path):
-              text = path.read_text(encoding="utf-8", errors="ignore")
-              if path.suffix == ".py":
-                  lines = []
-                  with path.open("rb") as handle:
-                      for token in tokenize.tokenize(handle.readline):
-                          if token.type in {
-                              tokenize.COMMENT,
-                              tokenize.ENCODING,
-                              tokenize.NL,
-                              tokenize.NEWLINE,
-                              tokenize.INDENT,
-                              tokenize.DEDENT,
-                              tokenize.ENDMARKER,
-                          }:
-                              continue
-                          lines.append(token.string)
-                  return "\n".join(lines)
-              return text
-
-          bad = []
-          for path in app_root.rglob("*"):
-              if not path.is_file() or not is_production_file(path):
-                  continue
-              if path.suffix == ".py":
-                  for import_name in python_imports(path):
-                      if import_name in network_imports:
-                          bad.append(f"{path}: network import {import_name}")
-              text = text_without_comments(path)
-              for host in ebay_hosts:
-                  if host in text:
-                      bad.append(f"{path}: eBay hostname {host}")
-
-          for path in frontend_root.rglob("*"):
-              if not path.is_file() or not is_production_file(path):
-                  continue
-              text = text_without_comments(path)
-              for host in ebay_hosts:
-                  if host in text:
-                      bad.append(f"{path}: frontend eBay hostname {host}")
-
-          integration_text = integration_file.read_text(encoding="utf-8")
-          if "api.ebay.com" not in integration_text:
-              bad.append("backend/integrations/ebay.py: expected eBay HTTP hostnames")
-          if bad:
-              print("\n".join(bad))
-              raise SystemExit("eBay HTTP access must be confined to backend/integrations/ebay.py.")
-          PY
-
-      - name: Generate CI backup passphrase
-        run: |
-          python - <<'PY' >> "$GITHUB_ENV"
-          import secrets
-
-          print(f"MAGPIE_BACKUP_PASSPHRASE={secrets.token_urlsafe(48)}")
-          PY
-
-      - name: Run backend tests on SQLite
+      - name: Run backend tests on PostgreSQL
         working-directory: backend
-        env:
-          DATABASE_URL: sqlite:///db.sqlite3
-        run: |
-          rm -f db.sqlite3
-          python -m pytest
-
-      - name: Create encrypted SQLite backup
-        working-directory: backend
-        env:
-          DATABASE_URL: sqlite:///db.sqlite3
-        run: |
-          rm -f db.sqlite3
-          python manage.py migrate --noinput
-          python manage.py seed
-          python manage.py backup --output-dir backups --no-upload
-
-      - name: Restore encrypted SQLite backup into clean target
-        working-directory: backend
-        env:
-          DATABASE_URL: sqlite:///db.sqlite3
-        run: |
-          latest="$(python - <<'PY'
-          from pathlib import Path
-
-          print(sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))[-1])
-          PY
-          )"
-          python manage.py restore "$latest" --target /tmp/magpie-ci-restore
-          python - <<'PY'
-          import json
-          import os
-          import sqlite3
-          import tarfile
-          from pathlib import Path
-
-          from apps.core.backup_ops import (
-              DB_SNAPSHOT_NAME,
-              ENV_MANIFEST_NAME,
-              MAGIC,
-              RESTORE_RUNBOOK_NAME,
-              count_key_rows,
-              decrypt_file,
-              safe_extract_tar,
-          )
-
-          backups = sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))
-          assert backups, "No encrypted backup produced"
-          latest = backups[-1]
-          assert latest.read_bytes().startswith(MAGIC)
-
-          try:
-              tarfile.open(latest, "r:gz")
-          except tarfile.ReadError:
-              pass
-          else:
-              raise AssertionError("Encrypted archive opened as plaintext tar")
-
-          extracted = Path("/tmp/magpie-ci-extracted")
-          decrypted = Path("/tmp/magpie-ci-backup.tar.gz")
-          decrypt_file(latest, decrypted, os.environ["MAGPIE_BACKUP_PASSPHRASE"])
-          safe_extract_tar(decrypted, extracted)
-          assert (extracted / DB_SNAPSHOT_NAME).exists()
-          assert (extracted / "media_files").exists()
-          assert (extracted / RESTORE_RUNBOOK_NAME).exists()
-          env_manifest = json.loads((extracted / ENV_MANIFEST_NAME).read_text())
-          assert "MAGPIE_BACKUP_PASSPHRASE" in env_manifest["env_var_names"]
-
-          restored_db = Path("/tmp/magpie-ci-restore/db.sqlite3")
-          restored_media = Path("/tmp/magpie-ci-restore/media_files")
-          assert restored_db.exists()
-          assert restored_media.exists()
-          counts = count_key_rows(restored_db)
-          assert counts["items"] == 6
-          assert counts["drafts"] == 1
-          conn = sqlite3.connect(restored_db)
-          try:
-              assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
-          finally:
-              conn.close()
-          print("Encrypted SQLite backup restore checks passed.")
-          PY
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Run frontend tests
-        working-directory: frontend
-        run: npm run test
-
-      - name: Type-check frontend
-        working-directory: frontend
-        run: npm run typecheck
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+        run: python -m pytest

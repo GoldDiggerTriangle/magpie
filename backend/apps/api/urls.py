@@ -1,6 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
+from apps.api.views import HealthCheckView
 from apps.audit.views import AuditLogViewSet
 from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
@@ -53,6 +54,7 @@ router.register(
 router.register("audit-log", AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
+    path("health/", HealthCheckView.as_view(), name="health"),
     path(
         "items/<uuid:item_id>/valuation-reports/",
         ItemValuationReportListCreateView.as_view(),
