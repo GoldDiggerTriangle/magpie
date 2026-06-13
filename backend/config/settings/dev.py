@@ -6,3 +6,6 @@ CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
     "CSRF_TRUSTED_ORIGINS",
     f"{LAN_ORIGINS},{DEV_ORIGINS}",  # noqa: F405
 )
+for origin in env_list("DEV_CSRF_TRUSTED_ORIGINS", DEV_ORIGINS):  # noqa: F405
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)

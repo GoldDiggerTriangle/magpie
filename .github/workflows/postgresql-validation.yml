@@ -27,7 +27,6 @@ jobs:
       SECRET_KEY: django-insecure-ci-sqlite-validation
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,192.168.1.86,testserver
-      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.86:8000
       METALS_PROVIDER: fake
       METALS_BASE_CURRENCY: AUD
       METALS_CACHE_TTL_SECONDS: "3600"
@@ -318,7 +317,6 @@ jobs:
       SECRET_KEY: django-insecure-ci-postgresql-validation
       DEBUG: "1"
       ALLOWED_HOSTS: localhost,127.0.0.1,192.168.1.86,testserver
-      CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000,http://192.168.1.86:8000
       PGCONNECT_TIMEOUT: "10"
       PGPASSWORD: gsp
       METALS_PROVIDER: fake
