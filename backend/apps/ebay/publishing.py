@@ -59,65 +59,75 @@ def staged_review(draft: ListingDraft, *, actor=None) -> dict:
 
 
 def publish_draft(draft: ListingDraft, *, confirm_sku: str, actor=None) -> ListingDraft:
-    draft = ListingDraft.objects.select_related("item").get(pk=draft.pk)
-    if draft.status != ListingDraft.Status.STAGED:
-        raise ValidationError("Only staged drafts can be published.")
-    if confirm_sku != draft.item.sku:
-        raise ValidationError("Type the exact SKU to publish this draft.")
-    offer_id = (draft.channel_data or {}).get("offer_id")
-    if not offer_id:
-        raise ValidationError("Draft has no staged eBay offer.")
-
-    record(
-        actor=actor,
-        action=AUDIT_PUBLISH_ATTEMPTED,
-        target_type="listing_draft",
-        target_id=draft.id,
-        payload={"offer_id": offer_id, "sku": draft.item.sku},
-    )
-    access_token = get_access_token(actor=actor)
-    try:
-        listing_id = ebay_integration.get_ebay_inventory_adapter().publish_offer(
-            access_token=access_token,
-            offer_id=offer_id,
+    failure = None
+    with transaction.atomic():
+        draft = (
+            ListingDraft.objects.select_for_update()
+            .select_related("item")
+            .get(pk=draft.pk)
         )
-    except Exception as exc:
         channel_data = dict(draft.channel_data or {})
-        channel_data["last_ebay_error"] = _safe_error_payload(exc)
-        draft.channel_data = channel_data
-        draft.status = ListingDraft.Status.PUBLISH_FAILED
-        draft.save(update_fields=["channel_data", "status", "updated_at"])
+        if channel_data.get("listing_id"):
+            raise ValidationError("Draft already has a published eBay listing.")
+        if draft.status == ListingDraft.Status.PUBLISHED:
+            raise ValidationError("Published drafts cannot be published again.")
+        if draft.status != ListingDraft.Status.STAGED:
+            raise ValidationError("Only staged drafts can be published.")
+        if confirm_sku != draft.item.sku:
+            raise ValidationError("Type the exact SKU to publish this draft.")
+        offer_id = channel_data.get("offer_id")
+        if not offer_id:
+            raise ValidationError("Draft has no staged eBay offer.")
+
         record(
             actor=actor,
-            action=AUDIT_PUBLISH_FAILED,
+            action=AUDIT_PUBLISH_ATTEMPTED,
             target_type="listing_draft",
             target_id=draft.id,
-            payload={"offer_id": offer_id, "reason": str(exc)[:1000]},
+            payload={"offer_id": offer_id, "sku": draft.item.sku},
         )
-        raise
-
-    channel_data = dict(draft.channel_data or {})
-    now = timezone.now().isoformat()
-    channel_data.update(
-        {
-            "listing_id": listing_id,
-            "published_at": now,
-            "last_ebay_error": "",
-        }
-    )
-    draft.channel_data = channel_data
-    draft.status = ListingDraft.Status.PUBLISHED
-    draft.item.status = InventoryItem.Status.LISTED
-    with transaction.atomic():
-        draft.item.save(update_fields=["status", "updated_at"])
-        draft.save(update_fields=["channel_data", "status", "updated_at"])
-    record(
-        actor=actor,
-        action=AUDIT_PUBLISH_SUCCEEDED,
-        target_type="listing_draft",
-        target_id=draft.id,
-        payload={"offer_id": offer_id, "listing_id": listing_id, "sku": draft.item.sku},
-    )
+        access_token = get_access_token(actor=actor)
+        try:
+            listing_id = ebay_integration.get_ebay_inventory_adapter().publish_offer(
+                access_token=access_token,
+                offer_id=offer_id,
+            )
+        except Exception as exc:
+            channel_data["last_ebay_error"] = _safe_error_payload(exc)
+            draft.channel_data = channel_data
+            draft.status = ListingDraft.Status.PUBLISH_FAILED
+            draft.save(update_fields=["channel_data", "status", "updated_at"])
+            record(
+                actor=actor,
+                action=AUDIT_PUBLISH_FAILED,
+                target_type="listing_draft",
+                target_id=draft.id,
+                payload={"offer_id": offer_id, "reason": str(exc)[:1000]},
+            )
+            failure = exc
+        else:
+            now = timezone.now().isoformat()
+            channel_data.update(
+                {
+                    "listing_id": listing_id,
+                    "published_at": now,
+                    "last_ebay_error": "",
+                }
+            )
+            draft.channel_data = channel_data
+            draft.status = ListingDraft.Status.PUBLISHED
+            draft.item.status = InventoryItem.Status.LISTED
+            draft.item.save(update_fields=["status", "updated_at"])
+            draft.save(update_fields=["channel_data", "status", "updated_at"])
+            record(
+                actor=actor,
+                action=AUDIT_PUBLISH_SUCCEEDED,
+                target_type="listing_draft",
+                target_id=draft.id,
+                payload={"offer_id": offer_id, "listing_id": listing_id, "sku": draft.item.sku},
+            )
+    if failure:
+        raise failure
     return draft
 
 

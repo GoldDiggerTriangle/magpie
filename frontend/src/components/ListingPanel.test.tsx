@@ -396,3 +396,28 @@ test("ListingPanel enables publish only after exact SKU confirmation", async () 
 
   await waitFor(() => expect(mocks.publishListingDraft).toHaveBeenCalledWith("draft-1", "PH-00001"));
 });
+
+test("ListingPanel keeps published listing read-only and hides publish gate", async () => {
+  mocks.listItemListingDrafts.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      ...mocks.draft,
+      status: "published",
+      channel_data: {
+        offer_id: "offer-1",
+        listing_id: "listing-1",
+        staged_at: "2026-06-13T00:00:00Z",
+        category_id: "260"
+      }
+    }]
+  });
+  renderPanel();
+
+  expect(await screen.findByText("Published listing listing-1")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Review & publish" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Unpublished offer offer-1")).not.toBeInTheDocument();
+  expect(screen.queryByText("Publish live eBay listing")).not.toBeInTheDocument();
+  expect(mocks.publishListingDraft).not.toHaveBeenCalled();
+});

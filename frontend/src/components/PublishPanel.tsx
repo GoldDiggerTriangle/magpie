@@ -170,6 +170,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
   const connected = status.data?.connected ?? false;
   const offerId = channelValue(draft, "offer_id");
   const listingId = channelValue(draft, "listing_id");
+  const isPublished = draft.status === "published" || Boolean(listingId);
 
   return (
     <section className="space-y-4 rounded border border-slate-800 bg-slate-950/40 p-4">
@@ -181,7 +182,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
         <EnvironmentBadge environment={status.data?.environment ?? ""} />
       </div>
 
-      {draft.status === "published" && listingId ? (
+      {isPublished && listingId ? (
         <div className="rounded border border-emerald-300/30 bg-emerald-400/10 p-3 text-sm text-emerald-50">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span>Published listing {listingId}</span>
@@ -256,29 +257,31 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
             </div>
           ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="btn-primary gap-2"
-              disabled={!connected || aspectCheckBlocked || missingBlocked || stageMutation.isPending || draft.status === "published"}
-              onClick={() => stageMutation.mutate()}
-              type="button"
-            >
-              <UploadCloud className="h-4 w-4" aria-hidden="true" />
-              {offerId ? "Re-stage offer" : "Stage offer"}
-            </button>
-            <button
-              className="btn-secondary gap-2"
-              disabled={draft.status !== "staged" || !offerId}
-              onClick={() => {
-                setShowReview(true);
-                stagedReview.refetch();
-              }}
-              type="button"
-            >
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Review & publish
-            </button>
-          </div>
+          {!isPublished ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn-primary gap-2"
+                disabled={!connected || aspectCheckBlocked || missingBlocked || stageMutation.isPending}
+                onClick={() => stageMutation.mutate()}
+                type="button"
+              >
+                <UploadCloud className="h-4 w-4" aria-hidden="true" />
+                {offerId ? "Re-stage offer" : "Stage offer"}
+              </button>
+              <button
+                className="btn-secondary gap-2"
+                disabled={draft.status !== "staged" || !offerId}
+                onClick={() => {
+                  setShowReview(true);
+                  stagedReview.refetch();
+                }}
+                type="button"
+              >
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Review & publish
+              </button>
+            </div>
+          ) : null}
           {!connected ? <p className="text-sm text-amber-200">Connect eBay before staging.</p> : null}
           {aspectCheckBlocked ? <p className="text-sm text-rose-200">Resolve the category/aspects pre-flight error before staging.</p> : null}
           {errorText(stageMutation.error) ? <p className="text-sm text-rose-200">{errorText(stageMutation.error)}</p> : null}
@@ -286,6 +289,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
 
           <StagedStateCard
             draft={draft}
+            listingId={listingId}
             onWithdraw={() => withdrawMutation.mutate()}
             pending={withdrawMutation.isPending}
             withdrawError={errorText(withdrawMutation.error)}
@@ -293,7 +297,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
         </div>
       </div>
 
-      {showReview ? (
+      {showReview && !isPublished ? (
         <StagedReviewScreen
           error={errorText(stagedReview.error)}
           loading={stagedReview.isLoading}
@@ -309,7 +313,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
         onCancel={() => setPublishOpen(false)}
         onChange={setConfirmSku}
         onPublish={() => publishMutation.mutate()}
-        open={publishOpen}
+        open={publishOpen && !isPublished}
         pending={publishMutation.isPending}
       />
     </section>
@@ -552,17 +556,19 @@ function AspectRow({ icon, label, values }: { icon: "good" | "bad" | "neutral"; 
 
 function StagedStateCard({
   draft,
+  listingId,
   onWithdraw,
   pending,
   withdrawError
 }: {
   draft: ListingDraft;
+  listingId: string;
   onWithdraw: () => void;
   pending: boolean;
   withdrawError: string;
 }) {
   const offerId = channelValue(draft, "offer_id");
-  if (!offerId) {
+  if (!offerId || draft.status === "published" || listingId) {
     return null;
   }
   return (
@@ -572,7 +578,7 @@ function StagedStateCard({
           <p className="text-sm font-semibold text-cyan-50">Unpublished offer {offerId}</p>
           <p className="mt-1 text-xs text-cyan-100/80">Staged {formatDate(channelValue(draft, "staged_at"))}</p>
         </div>
-        <button className="btn-secondary" disabled={pending || draft.status === "published"} onClick={onWithdraw} type="button">
+        <button className="btn-secondary" disabled={pending} onClick={onWithdraw} type="button">
           Withdraw
         </button>
       </div>

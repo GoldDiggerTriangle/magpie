@@ -361,6 +361,46 @@ def test_publish_gate_success_failure_and_restage(item, credential, merchant_loc
 
 
 @pytest.mark.django_db
+def test_publish_refuses_second_publish_without_calling_ebay(item, credential, merchant_location):
+    add_photo(item)
+    draft = stage_draft(make_draft(item))
+    published = publish_draft(draft, confirm_sku=item.sku)
+    assert published.status == ListingDraft.Status.PUBLISHED
+    assert published.channel_data["listing_id"]
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 1
+
+    with pytest.raises(Exception, match="published eBay listing"):
+        publish_draft(published, confirm_sku=item.sku)
+
+    published.refresh_from_db()
+    published.item.refresh_from_db()
+    assert published.status == ListingDraft.Status.PUBLISHED
+    assert published.item.status == InventoryItem.Status.LISTED
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 1
+    assert AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).count() == 1
+    assert AuditLog.objects.filter(action=AUDIT_PUBLISH_SUCCEEDED).count() == 1
+
+
+@pytest.mark.django_db
+def test_publish_refuses_stale_staged_draft_with_listing_id(item, credential, merchant_location):
+    add_photo(item)
+    draft = stage_draft(make_draft(item))
+    channel_data = dict(draft.channel_data)
+    channel_data["listing_id"] = "already-live"
+    draft.channel_data = channel_data
+    draft.save(update_fields=["channel_data", "updated_at"])
+
+    with pytest.raises(Exception, match="published eBay listing"):
+        publish_draft(draft, confirm_sku=item.sku)
+
+    draft.refresh_from_db()
+    assert draft.status == ListingDraft.Status.STAGED
+    assert draft.channel_data["listing_id"] == "already-live"
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
+    assert not AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).exists()
+
+
+@pytest.mark.django_db
 def test_app_token_independent_from_seller_credential(credential):
     access_token = get_app_access_token()
     assert access_token.startswith("fake-app-token")
