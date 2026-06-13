@@ -169,5 +169,8 @@ Status: PASS
 - eBay offer status: `PUBLISHED`
 - eBay listing status: `ACTIVE`
 - Seller Hub visual row check: confirmed by Regan
-- Listing disposition: left live as of this evidence update; no manual Seller Hub end-listing step has been reported.
-- This is a real eBay Australia live listing for the first-flight postage stamp.
+- Listing disposition: manually ended/cancelled by Regan in Seller Hub after first-flight verification.
+- End/cancel method: Seller Hub manual action, not Magpie automation.
+- Magpie did not run revise, reprice, relist, order sync, end-listing automation, or any other post-publish automation.
+- Manual ending is outside Sprint 7 automation and is the expected first-flight exit path.
+- This was a real eBay Australia live listing for the first-flight postage stamp.
