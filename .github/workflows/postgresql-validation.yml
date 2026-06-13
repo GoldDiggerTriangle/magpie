@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - ".github/workflows/postgresql-validation.yml"
+      - "DEPLOYMENT.md"
+      - "ROBUSTNESS_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"
@@ -12,6 +14,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/postgresql-validation.yml"
+      - "DEPLOYMENT.md"
+      - "ROBUSTNESS_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"

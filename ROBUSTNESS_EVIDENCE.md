@@ -20,11 +20,16 @@ Repo path: `C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-app
 | Frontend typecheck | Passed | `npm run typecheck` exited 0. |
 | Frontend build | Passed | `npm run build` exited 0 and generated hashed assets. |
 | Sprint 8 backup | Passed | `manage.py backup --output-dir ..\.tmp\sprint9-backups --no-upload` produced `magpie-backup-20260613-120743.tar.gz.enc`. |
+| Sprint 8 backup with production `.env` | Passed | `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py backup --output-dir ..\.tmp\sprint9-service-backups --no-upload` produced `magpie-backup-20260613-124135.tar.gz.enc`. |
 | Sprint 8 restore spot check | Passed | `manage.py restore ... --target ..\.tmp\sprint9-restore` restored counts: items=6, photos=0, valuations=5, drafts=1, credential=0. |
 | Migrations | Passed | `manage.py makemigrations --check --dry-run --noinput` reported `No changes detected`. |
 | `restart servers.txt` removed | Passed | `Test-Path "restart servers.txt"` returned `False`; no file existed in this checkout. |
+| Production `.env` loaded by app mechanism | Passed locally | A prior Magpie `backend\.env` was copied into this checkout without printing contents, then missing Sprint 9 names were completed. `backend\.env` is ignored by Git. |
+| Waitress on service port 8000 | Passed manually | After stopping the old listener, `scripts\production_smoke.py` passed on port 8000 using `backend\.env` for secret settings. |
 
-A direct local smoke on `127.0.0.1:8000` was attempted after the isolated-port smoke. It was blocked by an existing listener on PID 18632 that returned an older DEBUG=True Django 404 for `/api/health/`. That process was not stopped because it was outside this sprint change.
+An initial direct local smoke on `127.0.0.1:8000` was blocked by an existing listener on PID 18632 that returned an older DEBUG=True Django 404 for `/api/health/` and DRF 403 for `/api/dashboard/summary/`. PID 18632 was stopped with `Stop-Process -Id 18632 -Force`; port 8000 then had no active listener.
+
+NSSM portable binaries were extracted under `.tmp\tools\nssm-bin\...\win64\nssm.exe`. Chocolatey installation failed because the shell was not Administrator and Chocolatey could not write under `C:\ProgramData\chocolatey`. A direct `nssm install Magpie ...` attempt also failed with `Administrator access is needed to install a service.` A UAC elevation attempt via `Start-Process -Verb RunAs` was canceled by the host. No `Magpie` service was installed.
 
 ## CI Coverage
 
@@ -33,15 +38,20 @@ Configured in `.github\workflows\postgresql-validation.yml` as workflow name `Va
 - `sqlite` job: SQLite runtime lane, backend tests, Sprint 8 encrypted backup/restore, frontend tests/typecheck/build, production `collectstatic`, `check --deploy`, and Waitress/WhiteNoise smoke.
 - `postgres` job: Postgres service lane, migrations, seed, Sprint 7 schema/fake eBay adapter assertions, and backend tests against Postgres.
 
-Remote GitHub Actions status was not verified in this local run because no commit/push was performed.
+Remote GitHub Actions:
+
+- Commit `ce44fa0` triggered `Validation` run `27466714726`, which failed in both jobs at `Run backend tests`.
+- The failure was reproduced locally as `test_local_dev_frontend_origin_is_csrf_trusted` when CI set production-only `CSRF_TRUSTED_ORIGINS` globally.
+- Commit `4c587e7` removed the global CI CSRF override and made dev settings always include Vite dev CSRF origins even when `.env` is production-shaped.
+- Commit `4c587e7` triggered `Validation` run `27467046136`, which completed successfully.
 
 ## Operational Gates Still Requiring The Windows Host
 
-These checks require NSSM installed on the host, elevated service control, reboot access, and/or a second LAN device. They were not executed in this sandbox.
+These checks require an Administrator token for Windows service control, reboot access, and/or a second LAN device. They are not complete.
 
 | Check | Status | Reason |
 | --- | --- | --- |
-| NSSM service named `Magpie` installed | Not run | `Get-Command nssm` found no NSSM executable on PATH in this sandbox. |
+| NSSM service named `Magpie` installed | Blocked | Portable NSSM exists, but service installation requires Administrator access; the UAC elevation attempt was canceled. |
 | Service auto-start on boot | Not run | Requires installing the Windows service and rebooting the host. |
 | Crash-restart by killing Waitress/python | Not run | Requires NSSM managing the process; the sandbox smoke used a direct temporary Waitress process. |
 | `http://192.168.1.86:8000` from another LAN device | Not run | Requires the host service bound to port 8000 and a second LAN client. |
