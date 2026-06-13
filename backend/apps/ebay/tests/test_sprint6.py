@@ -7,7 +7,6 @@ import json
 import threading
 import time
 from urllib.parse import parse_qs, urlparse
-import zipfile
 
 import pytest
 from cryptography.fernet import Fernet
@@ -21,6 +20,12 @@ from rest_framework.test import APIClient
 import integrations.ebay as ebay_integration
 from apps.audit.models import AuditLog
 from apps.audit.services import record
+from apps.core.backup_ops import DB_SNAPSHOT_NAME
+from apps.core.tests.backup_helpers import (
+    load_backup_manifest,
+    run_encrypted_backup,
+    sqlite_column_values,
+)
 from apps.ebay.constants import (
     AUDIT_CONNECT_COMPLETED,
     AUDIT_CONNECT_FAILED,
@@ -502,35 +507,31 @@ def test_backup_json_restore_includes_audit_and_ebay_tables_with_ciphertext(tmp_
         fetched_at=timezone.now(),
     )
 
-    import apps.core.management.commands.backup as backup_module
-
-    monkeypatch.setattr(backup_module.shutil, "which", lambda name: None)
-    call_command("backup", output_dir=str(tmp_path))
-    backup_path = sorted(tmp_path.glob("backup-*.zip"))[-1]
-
-    extract_dir = tmp_path / "restore"
-    with zipfile.ZipFile(backup_path) as archive:
-        db_json = archive.read("db.json").decode("utf-8")
-        archive.extract("db.json", extract_dir)
-        manifest = json.loads(archive.read("manifest.json"))
+    _, extract_dir = run_encrypted_backup(tmp_path, monkeypatch)
+    manifest = load_backup_manifest(extract_dir)
 
     assert manifest["row_counts"]["audit.auditlog"] == 1
     assert manifest["row_counts"]["ebay.ebaycredential"] == 1
     assert manifest["row_counts"]["ebay.ebayaccountsnapshot"] == 1
-    assert "plain-refresh-token" not in db_json
-    assert "plain-access-token" not in db_json
     raw_refresh, raw_access = raw_token_columns(credential.id)
-    assert raw_refresh in db_json
-    assert raw_access in db_json
-
-    call_command("flush", interactive=False, verbosity=0)
-    call_command("loaddata", str(extract_dir / "db.json"), verbosity=0)
-
-    restored = EbayCredential.objects.get()
-    assert restored.refresh_token == "plain-refresh-token"
-    assert restored.access_token == "plain-access-token"
-    assert AuditLog.objects.count() == 1
-    assert EbayAccountSnapshot.objects.count() == 1
+    [(snapshot_refresh, snapshot_access)] = sqlite_column_values(
+        extract_dir / DB_SNAPSHOT_NAME,
+        "ebay_ebaycredential",
+        "refresh_token",
+        "access_token",
+    )
+    assert snapshot_refresh == raw_refresh
+    assert snapshot_access == raw_access
+    assert snapshot_refresh != "plain-refresh-token"
+    assert snapshot_access != "plain-access-token"
+    assert (
+        Fernet(TEST_FERNET_KEY.encode()).decrypt(snapshot_refresh.encode()).decode()
+        == "plain-refresh-token"
+    )
+    assert (
+        Fernet(TEST_FERNET_KEY.encode()).decrypt(snapshot_access.encode()).decode()
+        == "plain-access-token"
+    )
 
 
 def test_ebay_http_is_confined_to_integrations():

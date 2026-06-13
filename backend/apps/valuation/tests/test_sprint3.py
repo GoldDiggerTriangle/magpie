@@ -1,6 +1,5 @@
 from decimal import Decimal
 import json
-import zipfile
 
 import pytest
 from django.core.management import call_command
@@ -10,6 +9,12 @@ from rest_framework.test import APIClient
 import integrations.metals as metals_module
 from integrations.metals import HttpMetalsPriceAdapter
 from apps.catalog.models import ProductCategory
+from apps.core.backup_ops import DB_SNAPSHOT_NAME
+from apps.core.tests.backup_helpers import (
+    load_backup_manifest,
+    run_encrypted_backup,
+    sqlite_count,
+)
 from apps.inventory.models import InventoryItem
 from apps.valuation.models import MetalSpotCache, ValuationReport
 from apps.valuation.services import get_spot
@@ -358,21 +363,10 @@ def test_backup_json_restore_includes_metal_spot_cache(tmp_path, monkeypatch, go
         },
     )
 
-    import apps.core.management.commands.backup as backup_module
-
-    monkeypatch.setattr(backup_module.shutil, "which", lambda name: None)
-    call_command("backup", output_dir=str(tmp_path))
-    backup_path = sorted(tmp_path.glob("backup-*.zip"))[-1]
-
-    extract_dir = tmp_path / "restore"
-    with zipfile.ZipFile(backup_path) as archive:
-        archive.extract("db.json", extract_dir)
-        manifest = json.loads(archive.read("manifest.json"))
+    _, extract_dir = run_encrypted_backup(tmp_path, monkeypatch)
+    manifest = load_backup_manifest(extract_dir)
 
     assert manifest["row_counts"]["valuation.metalspotcache"] == 1
-
-    call_command("flush", interactive=False, verbosity=0)
-    call_command("loaddata", str(extract_dir / "db.json"), verbosity=0)
-
-    assert MetalSpotCache.objects.count() == 1
-    assert ValuationReport.objects.filter(strategy="commodity_live").count() == 1
+    restored_db = extract_dir / DB_SNAPSHOT_NAME
+    assert sqlite_count(restored_db, "valuation_metalspotcache") == 1
+    assert sqlite_count(restored_db, "valuation_valuationreport") == 1

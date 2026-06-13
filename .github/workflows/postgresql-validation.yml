@@ -65,12 +65,6 @@ jobs:
           cache: "pip"
           cache-dependency-path: backend/requirements.txt
 
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-16
-          pg_dump --version
-
       - name: Install backend dependencies
         working-directory: backend
         run: python -m pip install -r requirements.txt
@@ -251,82 +245,96 @@ jobs:
               raise SystemExit("eBay HTTP access must be confined to backend/integrations/ebay.py.")
           PY
 
-      - name: Run backend tests
-        working-directory: backend
-        run: python -m pytest
-
-      - name: Create PostgreSQL backup
-        working-directory: backend
-        run: python manage.py backup
-
-      - name: Restore PostgreSQL backup into empty database
+      - name: Generate CI backup passphrase
         run: |
-          mkdir -p /tmp/postgresql-validation-restore
-          python - <<'PY'
-          import json
-          import zipfile
+          python - <<'PY' >> "$GITHUB_ENV"
+          import secrets
+
+          print(f"MAGPIE_BACKUP_PASSPHRASE={secrets.token_urlsafe(48)}")
+          PY
+
+      - name: Run backend tests on SQLite
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite:///db.sqlite3
+        run: |
+          rm -f db.sqlite3
+          python -m pytest
+
+      - name: Create encrypted SQLite backup
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite:///db.sqlite3
+        run: |
+          rm -f db.sqlite3
+          python manage.py migrate --noinput
+          python manage.py seed
+          python manage.py backup --output-dir backups --no-upload
+
+      - name: Restore encrypted SQLite backup into clean target
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite:///db.sqlite3
+        run: |
+          latest="$(python - <<'PY'
           from pathlib import Path
 
-          backups = sorted(Path("backups").glob("backup-*.zip"))
-          assert backups, "No backup zip produced"
-          latest = backups[-1]
-
-          with zipfile.ZipFile(latest) as archive:
-              names = set(archive.namelist())
-              assert "manifest.json" in names, names
-              assert "media/" in names, names
-              assert "db.dump" in names, names
-              assert "db.json" not in names, names
-              manifest = json.loads(archive.read("manifest.json"))
-              archive.extract("db.dump", "/tmp/postgresql-validation-restore")
-
-          assert manifest["database_artifact"] == "db.dump", manifest
-          for key in [
-              "audit.auditlog",
-              "ebay.ebaycredential",
-              "ebay.oauthstate",
-              "ebay.ebayaccountsnapshot",
-              "ebay.ebayapptoken",
-              "ebay.merchantlocation",
-          ]:
-              assert key in manifest["row_counts"], key
-          assert manifest["row_counts"]["ebay.ebaycredential"] == 0
-          assert manifest["row_counts"]["ebay.ebayapptoken"] == 0
-          assert manifest["row_counts"]["ebay.merchantlocation"] == 0
-          assert manifest["row_counts"]["listing.listingdraft"] == 1
-          print(latest)
+          print(sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))[-1])
           PY
-          createdb --host 127.0.0.1 --username gsp gsp_restore
-          pg_restore --host 127.0.0.1 --username gsp --dbname gsp_restore /tmp/postgresql-validation-restore/db.dump
-          cd backend
-          DATABASE_URL=postgres://gsp:gsp@127.0.0.1:5432/gsp_restore python - <<'PY'
+          )"
+          python manage.py restore "$latest" --target /tmp/magpie-ci-restore
+          python - <<'PY'
+          import json
           import os
+          import sqlite3
+          import tarfile
+          from pathlib import Path
 
-          os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
-
-          import django
-
-          django.setup()
-
-          from apps.audit.models import AuditLog
-          from apps.ebay.models import (
-              EbayAccountSnapshot,
-              EbayAppToken,
-              EbayCredential,
-              MerchantLocation,
-              OAuthState,
+          from apps.core.backup_ops import (
+              DB_SNAPSHOT_NAME,
+              ENV_MANIFEST_NAME,
+              MAGIC,
+              RESTORE_RUNBOOK_NAME,
+              count_key_rows,
+              decrypt_file,
+              safe_extract_tar,
           )
-          from apps.listing.models import ListingBoilerplate, ListingDraft
 
-          assert AuditLog.objects.count() == 0
-          assert EbayCredential.objects.count() == 0
-          assert OAuthState.objects.count() == 0
-          assert EbayAccountSnapshot.objects.count() == 0
-          assert EbayAppToken.objects.count() == 0
-          assert MerchantLocation.objects.count() == 0
-          assert ListingBoilerplate.objects.count() == 1
-          assert ListingDraft.objects.count() == 1
-          print("PostgreSQL backup restore checks passed.")
+          backups = sorted(Path("backups").glob("magpie-backup-*.tar.gz.enc"))
+          assert backups, "No encrypted backup produced"
+          latest = backups[-1]
+          assert latest.read_bytes().startswith(MAGIC)
+
+          try:
+              tarfile.open(latest, "r:gz")
+          except tarfile.ReadError:
+              pass
+          else:
+              raise AssertionError("Encrypted archive opened as plaintext tar")
+
+          extracted = Path("/tmp/magpie-ci-extracted")
+          decrypted = Path("/tmp/magpie-ci-backup.tar.gz")
+          decrypt_file(latest, decrypted, os.environ["MAGPIE_BACKUP_PASSPHRASE"])
+          safe_extract_tar(decrypted, extracted)
+          assert (extracted / DB_SNAPSHOT_NAME).exists()
+          assert (extracted / "media_files").exists()
+          assert (extracted / RESTORE_RUNBOOK_NAME).exists()
+          env_manifest = json.loads((extracted / ENV_MANIFEST_NAME).read_text())
+          assert "MAGPIE_BACKUP_PASSPHRASE" in env_manifest["env_var_names"]
+
+          restored_db = Path("/tmp/magpie-ci-restore/db.sqlite3")
+          restored_media = Path("/tmp/magpie-ci-restore/media_files")
+          assert restored_db.exists()
+          assert restored_media.exists()
+          counts = count_key_rows(restored_db)
+          assert counts["items"] == 6
+          assert counts["drafts"] == 1
+          conn = sqlite3.connect(restored_db)
+          try:
+              assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
+          finally:
+              conn.close()
+          print("Encrypted SQLite backup restore checks passed.")
           PY
 
       - name: Set up Node

@@ -1,6 +1,9 @@
 .venv/
 backend/.venv/
 backend/media_files/
+backend/backups/
+backend/logs/
+.tmp/
 *.sqlite3
 .env
 backend/.env

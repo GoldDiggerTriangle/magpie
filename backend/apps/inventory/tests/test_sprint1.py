@@ -1,8 +1,6 @@
 from decimal import Decimal
 from io import BytesIO
 import csv
-import json
-import zipfile
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -13,7 +11,13 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.catalog.models import ProductCategory
+from apps.core.backup_ops import DB_SNAPSHOT_NAME, MEDIA_DIR_NAME
 from apps.core.models import SkuSequence
+from apps.core.tests.backup_helpers import (
+    load_backup_manifest,
+    run_encrypted_backup,
+    sqlite_count,
+)
 from apps.inventory.models import InventoryItem
 from apps.locations.models import StorageLocation
 from apps.photos.models import PhotoAsset
@@ -279,7 +283,7 @@ def test_unauthenticated_api_rejected(category):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_backup_and_export_commands_work(tmp_path, category):
+def test_backup_and_export_commands_work(tmp_path, monkeypatch, category):
     InventoryItem.objects.create(title="Exported", category=category)
 
     export_path = tmp_path / "items.csv"
@@ -289,13 +293,8 @@ def test_backup_and_export_commands_work(tmp_path, category):
     assert rows
     assert rows[0]["sku"].startswith("STM-")
 
-    call_command("backup", output_dir=str(tmp_path))
-    backups = sorted(tmp_path.glob("backup-*.zip"))
-    assert backups
-    with zipfile.ZipFile(backups[-1]) as archive:
-        names = set(archive.namelist())
-        assert "manifest.json" in names
-        assert "media/" in names
-        assert {"db.dump", "db.json"} & names
-        manifest = json.loads(archive.read("manifest.json"))
+    _, extract_dir = run_encrypted_backup(tmp_path, monkeypatch)
+    manifest = load_backup_manifest(extract_dir)
     assert "inventory.inventoryitem" in manifest["row_counts"]
+    assert (extract_dir / MEDIA_DIR_NAME).is_dir()
+    assert sqlite_count(extract_dir / DB_SNAPSHOT_NAME, "inventory_inventoryitem") == 1

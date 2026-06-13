@@ -10,6 +10,12 @@ from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from apps.catalog.models import ProductCategory
+from apps.core.backup_ops import DB_SNAPSHOT_NAME
+from apps.core.tests.backup_helpers import (
+    load_backup_manifest,
+    run_encrypted_backup,
+    sqlite_count,
+)
 from apps.inventory.models import InventoryItem
 from apps.listing.constants import ALLOWED_HTML_TAGS, BLOCKED_FIELDS, EBAY_TITLE_MAX
 from apps.listing.context import safe_context
@@ -531,25 +537,14 @@ def test_backup_json_restore_includes_listing_tables(tmp_path, monkeypatch, cate
         boilerplate=boilerplate,
     )
 
-    import apps.core.management.commands.backup as backup_module
-
-    monkeypatch.setattr(backup_module.shutil, "which", lambda name: None)
-    call_command("backup", output_dir=str(tmp_path))
-    backup_path = sorted(tmp_path.glob("backup-*.zip"))[-1]
-
-    extract_dir = tmp_path / "restore"
-    with zipfile.ZipFile(backup_path) as archive:
-        archive.extract("db.json", extract_dir)
-        manifest = json.loads(archive.read("manifest.json"))
+    _, extract_dir = run_encrypted_backup(tmp_path, monkeypatch)
+    manifest = load_backup_manifest(extract_dir)
 
     assert manifest["row_counts"]["listing.listingboilerplate"] == 1
     assert manifest["row_counts"]["listing.listingdraft"] == 1
-
-    call_command("flush", interactive=False, verbosity=0)
-    call_command("loaddata", str(extract_dir / "db.json"), verbosity=0)
-
-    assert ListingBoilerplate.objects.count() == 1
-    assert ListingDraft.objects.count() == 1
+    restored_db = extract_dir / DB_SNAPSHOT_NAME
+    assert sqlite_count(restored_db, "listing_listingboilerplate") == 1
+    assert sqlite_count(restored_db, "listing_listingdraft") == 1
 
 
 def test_listing_app_has_no_network_client_imports():

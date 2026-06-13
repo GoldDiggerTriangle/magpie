@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import zipfile
 from datetime import timedelta
 from pathlib import Path
 
@@ -14,6 +13,13 @@ from rest_framework.test import APIClient
 
 import integrations.ebay as ebay_integration
 from apps.audit.models import AuditLog
+from apps.core.backup_ops import DB_SNAPSHOT_NAME
+from apps.core.tests.backup_helpers import (
+    load_backup_manifest,
+    run_encrypted_backup,
+    sqlite_column_values,
+    sqlite_count,
+)
 from apps.ebay.aspects import check_aspects, suggest_categories
 from apps.ebay.constants import (
     AUDIT_INVENTORY_ITEM_UPSERTED,
@@ -493,20 +499,19 @@ def test_backup_includes_sprint7_ebay_tables(tmp_path, monkeypatch, credential):
         country="AU",
         postal_code="2000",
     )
-    import apps.core.management.commands.backup as backup_module
-
-    monkeypatch.setattr(backup_module.shutil, "which", lambda name: None)
-    call_command("backup", output_dir=str(tmp_path))
-    backup_path = sorted(tmp_path.glob("backup-*.zip"))[-1]
-
-    with zipfile.ZipFile(backup_path) as archive:
-        db_json = archive.read("db.json").decode("utf-8")
-        manifest = json.loads(archive.read("manifest.json"))
+    _, extract_dir = run_encrypted_backup(tmp_path, monkeypatch)
+    manifest = load_backup_manifest(extract_dir)
 
     assert manifest["row_counts"]["ebay.ebayapptoken"] == 1
     assert manifest["row_counts"]["ebay.merchantlocation"] == 1
-    assert "app-token" not in db_json
-    assert "access-token" not in db_json
+    restored_db = extract_dir / DB_SNAPSHOT_NAME
+    [(snapshot_app_token,)] = sqlite_column_values(
+        restored_db,
+        "ebay_ebayapptoken",
+        "access_token",
+    )
+    assert snapshot_app_token != "app-token"
+    assert sqlite_count(restored_db, "ebay_merchantlocation") == 1
 
 
 @pytest.mark.django_db
