@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import json
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -83,7 +84,12 @@ def stage_draft(
             payload={"sku": draft.item.sku, "photo_count": len(eps_urls)},
         )
         offer_payload = _offer_payload(draft)
-        offer_id = channel_data.get("offer_id")
+        offer_id = channel_data.get("offer_id") or _recover_unpublished_offer_id(
+            inventory=inventory,
+            access_token=access_token,
+            draft=draft,
+            offer_payload=offer_payload,
+        )
         if offer_id:
             inventory.update_offer(
                 access_token=access_token,
@@ -92,11 +98,13 @@ def stage_draft(
             )
             audit_action = AUDIT_OFFER_UPDATED
         else:
-            offer_id = inventory.create_offer(
+            offer_id, recovered_existing = _create_or_recover_offer(
+                inventory=inventory,
                 access_token=access_token,
-                payload=offer_payload,
+                draft=draft,
+                offer_payload=offer_payload,
             )
-            audit_action = AUDIT_OFFER_CREATED
+            audit_action = AUDIT_OFFER_UPDATED if recovered_existing else AUDIT_OFFER_CREATED
         now = timezone.now().isoformat()
         channel_data.update(
             {
@@ -288,6 +296,95 @@ def _offer_payload(draft: ListingDraft) -> dict:
         },
         "includeCatalogProductDetails": False,
     }
+
+
+def _recover_unpublished_offer_id(
+    *,
+    inventory,
+    access_token: str,
+    draft: ListingDraft,
+    offer_payload: dict,
+) -> str:
+    offers = inventory.get_offers(
+        access_token=access_token,
+        sku=draft.item.sku,
+        marketplace_id=offer_payload["marketplaceId"],
+        format=offer_payload["format"],
+    )
+    candidates = [offer for offer in offers if _is_unpublished_offer(offer)]
+    if len(candidates) > 1:
+        raise ValidationError("Multiple unpublished eBay offers were found for this SKU and format.")
+    if not candidates:
+        return ""
+    offer_id = candidates[0].get("offerId") or candidates[0].get("offer_id")
+    if not offer_id:
+        raise ValidationError("An unpublished eBay offer was found but had no offer ID.")
+    return str(offer_id)
+
+
+def _create_or_recover_offer(
+    *,
+    inventory,
+    access_token: str,
+    draft: ListingDraft,
+    offer_payload: dict,
+) -> tuple[str, bool]:
+    try:
+        return inventory.create_offer(access_token=access_token, payload=offer_payload), False
+    except ebay_integration.EbayUnavailable as exc:
+        recovered = _offer_id_from_duplicate_error(exc)
+        if not recovered:
+            raise
+        existing = inventory.get_offer(access_token=access_token, offer_id=recovered)
+        if not _is_unpublished_offer(existing):
+            raise ValidationError(
+                "Existing eBay offer is published and cannot be recovered for staging."
+            ) from exc
+        inventory.update_offer(
+            access_token=access_token,
+            offer_id=recovered,
+            payload=offer_payload,
+        )
+        return recovered, True
+
+
+def _is_unpublished_offer(offer: dict) -> bool:
+    status = str(offer.get("status") or "").strip().upper()
+    if status and status != "UNPUBLISHED":
+        return False
+    listing = offer.get("listing")
+    if isinstance(listing, dict) and listing.get("listingId"):
+        return False
+    return bool(offer.get("offerId") or offer.get("offer_id"))
+
+
+def _offer_id_from_duplicate_error(exc: Exception) -> str:
+    message = str(exc)
+    if "Offer entity already exists" not in message:
+        return ""
+    try:
+        start = message.index("{")
+    except ValueError:
+        return ""
+    try:
+        payload = json.loads(message[start:])
+    except json.JSONDecodeError:
+        return ""
+    errors = payload.get("errors") if isinstance(payload, dict) else None
+    if not isinstance(errors, list):
+        return ""
+    for error in errors:
+        if not isinstance(error, dict):
+            continue
+        parameters = error.get("parameters") or []
+        if not isinstance(parameters, list):
+            continue
+        for parameter in parameters:
+            if not isinstance(parameter, dict):
+                continue
+            if str(parameter.get("name")) == "offerId" and parameter.get("value"):
+                return str(parameter["value"])
+    return ""
 
 
 def _condition_for_draft(draft: ListingDraft) -> dict:

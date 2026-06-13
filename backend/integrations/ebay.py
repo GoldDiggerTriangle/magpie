@@ -75,6 +75,9 @@ class EbayInventoryAdapter(Protocol):
     def update_offer(self, *, access_token, offer_id, payload) -> None:
         ...
 
+    def get_offers(self, *, access_token, sku, marketplace_id, format) -> list[dict]:
+        ...
+
     def withdraw_offer(self, *, access_token, offer_id) -> None:
         ...
 
@@ -313,6 +316,28 @@ class HttpEbayInventoryAdapter:
             service_name="eBay inventory endpoint",
             allow_empty=True,
         )
+
+    def get_offers(self, *, access_token, sku, marketplace_id, format) -> list[dict]:
+        query = urlencode(
+            {
+                "sku": str(sku),
+                "marketplace_id": str(marketplace_id),
+                "format": str(format),
+            },
+            quote_via=quote,
+        )
+        response = _request_json(
+            f"{_api_base(self.environment)}/sell/inventory/v1/offer?{query}",
+            access_token=access_token,
+            method="GET",
+            headers={"Accept": "application/json"},
+            timeout_seconds=self.timeout_seconds,
+            service_name="eBay inventory endpoint",
+        )
+        offers = response.get("offers") or []
+        if not isinstance(offers, list):
+            raise EbayUnavailable("eBay offers response could not be parsed.")
+        return [offer for offer in offers if isinstance(offer, dict)]
 
     def withdraw_offer(self, *, access_token, offer_id) -> None:
         _request_json(
@@ -554,6 +579,10 @@ class FakeEbayInventoryAdapter:
     locations: dict[str, dict] = {}
     publish_should_fail = False
     offer_counter = 0
+    create_count = 0
+    update_count = 0
+    withdraw_count = 0
+    publish_count = 0
 
     def upsert_inventory_item(self, *, access_token, sku, payload) -> None:
         if not access_token:
@@ -563,6 +592,26 @@ class FakeEbayInventoryAdapter:
     def create_offer(self, *, access_token, payload) -> str:
         if not access_token:
             raise EbayUnavailable("Missing eBay access token.")
+        for offer_id, offer in self.offers.items():
+            if (
+                str(offer.get("sku")) == str(payload.get("sku"))
+                and str(offer.get("marketplaceId")) == str(payload.get("marketplaceId"))
+                and str(offer.get("format")) == str(payload.get("format"))
+            ):
+                raise EbayUnavailable(
+                    json.dumps(
+                        {
+                            "errors": [
+                                {
+                                    "errorId": 25002,
+                                    "message": "A user error has occurred. Offer entity already exists.",
+                                    "parameters": [{"name": "offerId", "value": offer_id}],
+                                }
+                            ]
+                        }
+                    )
+                )
+        type(self).create_count += 1
         type(self).offer_counter += 1
         offer_id = f"fake-offer-{type(self).offer_counter}"
         self.offers[offer_id] = {"offerId": offer_id, **payload, "status": "UNPUBLISHED"}
@@ -571,15 +620,31 @@ class FakeEbayInventoryAdapter:
     def update_offer(self, *, access_token, offer_id, payload) -> None:
         if offer_id not in self.offers:
             raise EbayUnavailable("Fake offer could not be found.")
+        type(self).update_count += 1
         self.offers[offer_id].update(payload)
         self.offers[offer_id]["offerId"] = offer_id
+        self.offers[offer_id]["status"] = "UNPUBLISHED"
+
+    def get_offers(self, *, access_token, sku, marketplace_id, format) -> list[dict]:
+        if not access_token:
+            raise EbayUnavailable("Missing eBay access token.")
+        return [
+            dict(offer)
+            for offer in self.offers.values()
+            if str(offer.get("sku")) == str(sku)
+            and str(offer.get("marketplaceId")) == str(marketplace_id)
+            and str(offer.get("format")) == str(format)
+        ]
 
     def withdraw_offer(self, *, access_token, offer_id) -> None:
         if offer_id not in self.offers:
             raise EbayUnavailable("Fake offer could not be found.")
-        self.offers[offer_id]["status"] = "WITHDRAWN"
+        type(self).withdraw_count += 1
+        self.offers[offer_id]["status"] = "UNPUBLISHED"
+        self.offers[offer_id].pop("listing", None)
 
     def publish_offer(self, *, access_token, offer_id) -> str:
+        type(self).publish_count += 1
         if self.publish_should_fail:
             raise EbayUnavailable(
                 json.dumps(

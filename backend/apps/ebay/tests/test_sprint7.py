@@ -54,6 +54,10 @@ def ebay_settings(settings, tmp_path):
     ebay_integration.FakeEbayInventoryAdapter.inventory_items = {}
     ebay_integration.FakeEbayInventoryAdapter.locations = {}
     ebay_integration.FakeEbayInventoryAdapter.offer_counter = 0
+    ebay_integration.FakeEbayInventoryAdapter.create_count = 0
+    ebay_integration.FakeEbayInventoryAdapter.update_count = 0
+    ebay_integration.FakeEbayInventoryAdapter.withdraw_count = 0
+    ebay_integration.FakeEbayInventoryAdapter.publish_count = 0
     ebay_integration.FakeEbayInventoryAdapter.publish_should_fail = False
 
 
@@ -176,6 +180,11 @@ def test_stage_restage_and_withdraw_against_fakes(item, credential, merchant_loc
     assert "offer_id" not in withdrawn.channel_data
     assert "staged_at" not in withdrawn.channel_data
 
+    staged_after_withdraw = stage_draft(withdrawn)
+    assert staged_after_withdraw.status == ListingDraft.Status.STAGED
+    assert staged_after_withdraw.channel_data["offer_id"] == "fake-offer-1"
+    assert staged_after_withdraw.channel_data["eps_image_urls"] == ["fake-eps://3.jpg"]
+
     actions = set(AuditLog.objects.values_list("action", flat=True))
     assert {
         AUDIT_MEDIA_UPLOADED,
@@ -184,6 +193,59 @@ def test_stage_restage_and_withdraw_against_fakes(item, credential, merchant_loc
         AUDIT_OFFER_UPDATED,
         AUDIT_OFFER_WITHDRAWN,
     } <= actions
+
+
+@pytest.mark.django_db
+def test_withdraw_then_restage_recovers_existing_unpublished_offer_without_publish(
+    item,
+    credential,
+    merchant_location,
+):
+    add_photo(item)
+    draft = make_draft(item)
+
+    staged = stage_draft(draft)
+    original_offer_id = staged.channel_data["offer_id"]
+    withdrawn = withdraw_staged(staged)
+    assert "offer_id" not in withdrawn.channel_data
+    assert ebay_integration.FakeEbayInventoryAdapter.offers[original_offer_id]["status"] == "UNPUBLISHED"
+
+    restaged = stage_draft(withdrawn)
+
+    assert restaged.status == ListingDraft.Status.STAGED
+    assert restaged.item.status == InventoryItem.Status.READY_TO_LIST
+    assert restaged.channel_data["offer_id"] == original_offer_id
+    assert "listing_id" not in restaged.channel_data
+    assert ebay_integration.FakeEbayInventoryAdapter.create_count == 1
+    assert ebay_integration.FakeEbayInventoryAdapter.update_count == 1
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
+    assert AuditLog.objects.filter(action=AUDIT_OFFER_UPDATED).count() == 1
+    assert not AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).exists()
+
+
+@pytest.mark.django_db
+def test_stage_refuses_to_recover_published_offer(item, credential, merchant_location):
+    add_photo(item)
+    draft = make_draft(item)
+    ebay_integration.FakeEbayInventoryAdapter.offers["fake-live-offer"] = {
+        "offerId": "fake-live-offer",
+        "sku": item.sku,
+        "marketplaceId": "EBAY_AU",
+        "format": "FIXED_PRICE",
+        "status": "PUBLISHED",
+        "listing": {"listingId": "fake-live-listing", "listingStatus": "ACTIVE"},
+    }
+
+    with pytest.raises(Exception, match="published"):
+        stage_draft(draft)
+
+    draft.refresh_from_db()
+    assert draft.status == ListingDraft.Status.READY
+    assert "offer_id" not in draft.channel_data
+    assert "listing_id" not in draft.channel_data
+    assert ebay_integration.FakeEbayInventoryAdapter.update_count == 0
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
+    assert not AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).exists()
 
 
 @pytest.mark.django_db
