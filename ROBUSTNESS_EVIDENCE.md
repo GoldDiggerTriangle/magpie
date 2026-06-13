@@ -44,6 +44,7 @@ Remote GitHub Actions:
 - The failure was reproduced locally as `test_local_dev_frontend_origin_is_csrf_trusted` when CI set production-only `CSRF_TRUSTED_ORIGINS` globally.
 - Commit `4c587e7` removed the global CI CSRF override and made dev settings always include Vite dev CSRF origins even when `.env` is production-shaped.
 - Commit `4c587e7` triggered `Validation` run `27467046136`, which completed successfully.
+- Commit `8d787a8` triggered `Validation` run `27467084438`; Postgres passed, SQLite failed at `Run frontend tests`. The same frontend suite was rerun locally afterward and passed: 16 files, 43 tests.
 
 ## Operational Gates Still Requiring The Windows Host
 
