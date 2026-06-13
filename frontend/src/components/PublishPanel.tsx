@@ -23,6 +23,7 @@ import {
   getStagedOfferReview,
   publishListingDraft,
   stageListingDraft,
+  updateListingDraft,
   withdrawListingDraft
 } from "../api/listing";
 import type {
@@ -86,6 +87,41 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
   const categoryMutation = useMutation({
     mutationFn: () => getEbayCategorySuggestions(categorySearch),
     onSuccess: setCategoryResult
+  });
+  const categorySelectMutation = useMutation({
+    mutationFn: async (category: EbayCategorySuggestion) => {
+      if (category.is_leaf !== true) {
+        throw new Error("Select a leaf category before updating the draft.");
+      }
+      const nextChannelData = {
+        ...draft.channel_data,
+        category_id: category.category_id,
+        category_tree_id: category.category_tree_id,
+        category_name: categoryLabel(category),
+        last_ebay_error: ""
+      };
+      const nextDraft = {
+        ...draft,
+        channel_data: nextChannelData
+      };
+      onDraftChange(nextDraft);
+      setCategorySearch(categoryLabel(category));
+      setCategoryResult(null);
+      setOverrideMissing(false);
+      setOverrideReason("");
+      queryClient.removeQueries({ queryKey: ["listing-aspects", draft.id] });
+      const saved = await updateListingDraft(draft.id, { channel_data: nextChannelData });
+      return { saved, nextDraft };
+    },
+    onSuccess: ({ saved, nextDraft }) => {
+      onDraftChange({
+        ...nextDraft,
+        updated_at: saved.updated_at,
+        readiness_summary: saved.readiness_summary
+      });
+      queryClient.invalidateQueries({ queryKey: ["listing-aspects", saved.id] });
+      queryClient.invalidateQueries({ queryKey: ["listing-readiness", saved.id] });
+    }
   });
   const locationMutation = useMutation({
     mutationFn: () => createMerchantLocation(locationForm),
@@ -165,14 +201,13 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
             error={errorText(categoryMutation.error)}
             onCategorySearch={setCategorySearch}
             onSearch={() => categoryMutation.mutate()}
-            onSelect={(category) => updateChannel({
-              category_id: category.category_id,
-              category_tree_id: category.category_tree_id,
-              category_name: categoryLabel(category)
-            })}
+            onSelect={(category) => categorySelectMutation.mutate(category)}
             onUpdateChannel={updateChannel}
             pending={categoryMutation.isPending}
             search={categorySearch}
+            selectedCategoryId={channelValue(draft, "category_id")}
+            selectError={errorText(categorySelectMutation.error)}
+            selecting={categorySelectMutation.isPending}
           />
 
           <PolicyFields draft={draft} onUpdateChannel={updateChannel} />
@@ -290,7 +325,10 @@ function CategoryPicker({
   onSelect,
   onUpdateChannel,
   pending,
-  search
+  search,
+  selectedCategoryId,
+  selectError,
+  selecting
 }: {
   categoryResult: EbayCategorySuggestionsResponse | null;
   draft: ListingDraft;
@@ -301,9 +339,20 @@ function CategoryPicker({
   onUpdateChannel: (patch: Record<string, unknown>) => void;
   pending: boolean;
   search: string;
+  selectedCategoryId: string;
+  selectError: string;
+  selecting: boolean;
 }) {
   return (
     <div className="space-y-3">
+      {selectedCategoryId ? (
+        <div className="rounded border border-cyan-300/30 bg-cyan-300/10 p-3 text-sm text-cyan-50">
+          <p className="font-semibold">Selected category</p>
+          <p className="mt-1 text-cyan-100/80">
+            {channelValue(draft, "category_name") || "-"} · ID {selectedCategoryId} · Tree {channelValue(draft, "category_tree_id") || "-"}
+          </p>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-end gap-2">
         <label className="label min-w-56 flex-1">
           <span>Category search</span>
@@ -319,8 +368,9 @@ function CategoryPicker({
         <div className="space-y-2">
           {categoryResult.suggestions.map((category) => (
             <button
-              className="row-link w-full items-start"
-              disabled={category.is_leaf !== true}
+              aria-pressed={selectedCategoryId === category.category_id}
+              className={`row-link w-full items-start ${selectedCategoryId === category.category_id ? "border-cyan-300/60 bg-cyan-300/10" : ""}`}
+              disabled={category.is_leaf !== true || selecting}
               key={category.category_id}
               onClick={() => onSelect(category)}
               type="button"
@@ -339,6 +389,8 @@ function CategoryPicker({
           ))}
         </div>
       ) : null}
+      {selecting ? <p className="text-sm text-cyan-100">Updating draft category...</p> : null}
+      {selectError ? <p className="text-sm text-rose-200">{selectError}</p> : null}
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
       <div className="grid gap-3 md:grid-cols-4">
         <label className="label">

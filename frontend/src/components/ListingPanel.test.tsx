@@ -326,6 +326,15 @@ test("ListingPanel renders category labels, paths, and leaf safety", async () =>
   expect(screen.getByLabelText("Manual category ID")).toHaveValue("105848");
   expect(screen.getByLabelText("Tree ID")).toHaveValue("15");
   expect(screen.getByLabelText("Category name")).toHaveValue("Australian Stamps");
+  expect(await screen.findByText("Selected category")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /ID 105848/i })).not.toBeInTheDocument();
+  await waitFor(() => expect(mocks.updateListingDraft).toHaveBeenCalledWith("draft-1", {
+    channel_data: expect.objectContaining({
+      category_id: "105848",
+      category_tree_id: "15",
+      category_name: "Australian Stamps"
+    })
+  }));
 });
 
 test("ListingPanel disables staging when category pre-flight has a hard error", async () => {
