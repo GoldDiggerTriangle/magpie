@@ -141,9 +141,9 @@ def make_draft(item, *, specifics=None, channel_data=None, status=ListingDraft.S
         if item.photos.exists()
         else [],
         channel_data={
-            "category_id": "260",
+            "category_id": "105848",
             "category_tree_id": "15",
-            "category_name": "Stamps",
+            "category_name": "Australian Stamps",
             "condition_id": "3000",
             "merchant_location_key": "first-flight-location",
             "payment_policy_id": "payment-1",
@@ -229,6 +229,27 @@ def test_aspects_block_and_override_path(item, credential, merchant_location):
     override = AuditLog.objects.filter(action=AUDIT_TAXONOMY_ASPECTS_OVERRIDE).latest("created_at")
     assert override.payload["missing_required"] == ["Country/Region of Manufacture"]
     assert override.payload["reason"] == "first-flight check"
+
+
+@pytest.mark.django_db
+def test_stage_blocks_non_leaf_category(item, credential, merchant_location):
+    add_photo(item)
+    draft = make_draft(
+        item,
+        channel_data={
+            "category_id": "260",
+            "category_tree_id": "15",
+            "category_name": "Stamps",
+        },
+    )
+
+    with pytest.raises(ebay_integration.EbayUnavailable, match="leaf category"):
+        stage_draft(draft)
+
+    draft.refresh_from_db()
+    assert draft.status == ListingDraft.Status.READY
+    assert "offer_id" not in draft.channel_data
+    assert "listing_id" not in draft.channel_data
 
 
 @pytest.mark.django_db
@@ -330,7 +351,15 @@ def test_taxonomy_suggestions_unsupported_in_sandbox_and_available_in_production
     )
     result = suggest_categories(q="stamp")
     assert result["supported"] is True
-    assert result["suggestions"][0]["category_id"] == "260"
+    non_leaf, leaf = result["suggestions"]
+    assert non_leaf["category_id"] == "260"
+    assert non_leaf["category_name"] == "Stamps"
+    assert non_leaf["category_path"] == ["Stamps"]
+    assert non_leaf["is_leaf"] is False
+    assert leaf["category_id"] == "105848"
+    assert leaf["category_name"] == "Australian Stamps"
+    assert leaf["category_path"] == ["Stamps", "Australia", "Australian Stamps"]
+    assert leaf["is_leaf"] is True
 
 
 @pytest.mark.django_db(transaction=True)

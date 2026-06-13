@@ -95,6 +95,9 @@ class EbayTaxonomyAdapter(Protocol):
     def suggest_categories(self, *, q: str) -> list[dict]:
         ...
 
+    def category_details(self, *, category_id: str) -> dict:
+        ...
+
     def item_aspects(self, *, category_id: str) -> list[dict]:
         ...
 
@@ -402,18 +405,50 @@ class HttpEbayTaxonomyAdapter:
             raise EbayUnavailable("eBay taxonomy suggestions response could not be parsed.")
         normalized = []
         for entry in suggestions:
-            category = entry.get("category") if isinstance(entry, dict) else {}
-            if not isinstance(category, dict):
+            if not isinstance(entry, dict):
                 continue
-            normalized.append(
-                {
-                    "category_id": str(category.get("categoryId") or ""),
-                    "category_name": str(category.get("categoryName") or ""),
-                    "category_tree_id": tree_id,
-                    "source": "ebay",
-                }
-            )
+            suggestion = _normalize_category_suggestion(entry, tree_id=tree_id)
+            if not suggestion["category_id"]:
+                continue
+            if suggestion["is_leaf"] is None:
+                try:
+                    details = self._category_details(
+                        category_id=suggestion["category_id"],
+                        tree_id=tree_id,
+                    )
+                except EbayUnavailable as exc:
+                    suggestion["validation_error"] = str(exc)
+                else:
+                    suggestion["is_leaf"] = details["is_leaf"]
+                    suggestion["child_count"] = details["child_count"]
+                    if not suggestion["category_name"]:
+                        suggestion["category_name"] = details["category_name"]
+                        suggestion["name"] = details["category_name"]
+                    if len(suggestion["category_path"]) <= 1 and details["category_path"]:
+                        suggestion["category_path"] = details["category_path"]
+            normalized.append(suggestion)
         return normalized
+
+    def category_details(self, *, category_id: str) -> dict:
+        tree_id = self.default_tree_id(marketplace="EBAY_AU")
+        return self._category_details(category_id=category_id, tree_id=tree_id)
+
+    def _category_details(self, *, category_id: str, tree_id: str) -> dict:
+        response = _request_json(
+            f"{_api_base(self.environment)}/commerce/taxonomy/v1/category_tree/{quote(tree_id, safe='')}/get_category_subtree?category_id={quote(category_id, safe='')}",
+            access_token=self.access_token,
+            method="GET",
+            headers={"Accept": "application/json"},
+            timeout_seconds=self.timeout_seconds,
+            service_name="eBay taxonomy endpoint",
+        )
+        node = response.get("categorySubtreeNode") or response.get("category_subtree_node")
+        if not isinstance(node, dict):
+            raise EbayUnavailable("eBay taxonomy category response could not be parsed.")
+        details = _normalize_category_node(node, tree_id=tree_id)
+        if not details["category_id"]:
+            raise EbayUnavailable("eBay taxonomy category response could not be parsed.")
+        return details
 
     def item_aspects(self, *, category_id: str) -> list[dict]:
         tree_id = self.default_tree_id(marketplace="EBAY_AU")
@@ -592,12 +627,51 @@ class FakeEbayTaxonomyAdapter:
             {
                 "category_id": "260",
                 "category_tree_id": "15",
-                "category_name": f"Stamps > {q.title()}",
+                "category_name": "Stamps",
+                "name": "Stamps",
+                "category_path": ["Stamps"],
+                "is_leaf": False,
+                "child_count": 3,
+                "source": "fake",
+            },
+            {
+                "category_id": "105848",
+                "category_tree_id": "15",
+                "category_name": "Australian Stamps",
+                "name": "Australian Stamps",
+                "category_path": ["Stamps", "Australia", "Australian Stamps"],
+                "is_leaf": True,
+                "child_count": 0,
                 "source": "fake",
             }
         ]
 
+    def category_details(self, *, category_id: str) -> dict:
+        if str(category_id) == "260":
+            return {
+                "category_id": "260",
+                "category_tree_id": "15",
+                "category_name": "Stamps",
+                "name": "Stamps",
+                "category_path": ["Stamps"],
+                "is_leaf": False,
+                "child_count": 3,
+                "source": "fake",
+            }
+        return {
+            "category_id": str(category_id),
+            "category_tree_id": "15",
+            "category_name": "Australian Stamps",
+            "name": "Australian Stamps",
+            "category_path": ["Stamps", "Australia", "Australian Stamps"],
+            "is_leaf": True,
+            "child_count": 0,
+            "source": "fake",
+        }
+
     def item_aspects(self, *, category_id: str) -> list[dict]:
+        if str(category_id) == "260":
+            raise EbayUnavailable("The specified category ID must be a leaf category.")
         return [
             {
                 "name": "Brand",
@@ -796,3 +870,84 @@ def _normalize_aspect(aspect: dict) -> dict:
             if isinstance(value, dict)
         ],
     }
+
+
+def _normalize_category_suggestion(entry: dict, *, tree_id: str) -> dict:
+    category = entry.get("category") if isinstance(entry.get("category"), dict) else {}
+    category_id = str(category.get("categoryId") or category.get("category_id") or "")
+    category_name = str(category.get("categoryName") or category.get("category_name") or "")
+    category_path = _category_path_from_suggestion(entry, category_name)
+    is_leaf = _leaf_value(entry)
+    return {
+        "category_id": category_id,
+        "category_tree_id": tree_id,
+        "category_name": category_name,
+        "name": category_name,
+        "category_path": category_path,
+        "is_leaf": is_leaf,
+        "child_count": None,
+        "source": "ebay",
+    }
+
+
+def _normalize_category_node(node: dict, *, tree_id: str) -> dict:
+    category = node.get("category") if isinstance(node.get("category"), dict) else {}
+    children = node.get("childCategoryTreeNodes") or node.get("child_category_tree_nodes") or []
+    if not isinstance(children, list):
+        children = []
+    category_id = str(category.get("categoryId") or category.get("category_id") or "")
+    category_name = str(category.get("categoryName") or category.get("category_name") or "")
+    is_leaf = _leaf_value(node)
+    if is_leaf is None:
+        is_leaf = False if children else True
+    return {
+        "category_id": category_id,
+        "category_tree_id": tree_id,
+        "category_name": category_name,
+        "name": category_name,
+        "category_path": [category_name] if category_name else [],
+        "is_leaf": is_leaf,
+        "child_count": len(children),
+        "source": "ebay",
+    }
+
+
+def _category_path_from_suggestion(entry: dict, category_name: str) -> list[str]:
+    ancestors = entry.get("categoryTreeNodeAncestors") or entry.get("category_tree_node_ancestors") or []
+    names: list[str] = []
+    if isinstance(ancestors, list):
+        sorted_ancestors = sorted(ancestors, key=_category_node_level)
+        for ancestor in sorted_ancestors:
+            if not isinstance(ancestor, dict):
+                continue
+            category = ancestor.get("category") if isinstance(ancestor.get("category"), dict) else {}
+            name = str(category.get("categoryName") or category.get("category_name") or "").strip()
+            if name and name not in names:
+                names.append(name)
+    if category_name and category_name not in names:
+        names.append(category_name)
+    return names
+
+
+def _category_node_level(node: dict) -> int:
+    try:
+        return int(node.get("categoryTreeNodeLevel") or node.get("category_tree_node_level") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _leaf_value(entry: dict) -> bool | None:
+    raw = entry.get("leafCategoryTreeNode")
+    if raw is None and isinstance(entry.get("categoryTreeNode"), dict):
+        raw = entry["categoryTreeNode"].get("leafCategoryTreeNode")
+    if raw is None:
+        raw = entry.get("leaf_category_tree_node")
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, str):
+        normalized = raw.strip().lower()
+        if normalized == "true":
+            return True
+        if normalized == "false":
+            return False
+    return None

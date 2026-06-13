@@ -10,6 +10,7 @@ const longTitle = "x".repeat(81);
 
 const mocks = vi.hoisted(() => ({
   getEbayStatus: vi.fn(),
+  getEbayCategorySuggestions: vi.fn(),
   getListingAspectCheck: vi.fn(),
   getMerchantLocation: vi.fn(),
   getStagedOfferReview: vi.fn(),
@@ -67,7 +68,7 @@ vi.mock("../api/listing", () => ({
 
 vi.mock("../api/ebay", () => ({
   createMerchantLocation: vi.fn(),
-  getEbayCategorySuggestions: vi.fn(),
+  getEbayCategorySuggestions: (...args: unknown[]) => mocks.getEbayCategorySuggestions(...args),
   getEbayStatus: (...args: unknown[]) => mocks.getEbayStatus(...args),
   getMerchantLocation: (...args: unknown[]) => mocks.getMerchantLocation(...args)
 }));
@@ -128,6 +129,11 @@ beforeEach(() => {
   });
   mocks.getMerchantLocation.mockReset();
   mocks.getMerchantLocation.mockResolvedValue({ configured: true, location: null });
+  mocks.getEbayCategorySuggestions.mockReset();
+  mocks.getEbayCategorySuggestions.mockResolvedValue({
+    supported: true,
+    suggestions: []
+  });
   mocks.getStagedOfferReview.mockReset();
   mocks.getStagedOfferReview.mockResolvedValue({
     offer_id: "offer-1",
@@ -256,6 +262,97 @@ test("ListingPanel requires an override reason before staging with missing aspec
     override_missing_aspects: true,
     override_reason: "Known stamp provenance"
   }));
+});
+
+test("ListingPanel renders category labels, paths, and leaf safety", async () => {
+  const user = userEvent.setup();
+  mocks.listItemListingDrafts.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      ...mocks.draft,
+      channel_data: {
+        category_id: "260",
+        category_tree_id: "15",
+        category_name: "Stamps",
+        condition_id: "3000",
+        merchant_location_key: "loc-1",
+        payment_policy_id: "payment-1",
+        fulfillment_policy_id: "fulfillment-1",
+        return_policy_id: "return-1"
+      }
+    }]
+  });
+  mocks.getEbayCategorySuggestions.mockResolvedValue({
+    supported: true,
+    suggestions: [
+      {
+        category_id: "260",
+        category_tree_id: "15",
+        category_name: "Stamps",
+        name: "Stamps",
+        category_path: ["Stamps"],
+        is_leaf: false,
+        child_count: 3,
+        source: "fake"
+      },
+      {
+        category_id: "105848",
+        category_tree_id: "15",
+        category_name: "Australian Stamps",
+        name: "Australian Stamps",
+        category_path: ["Stamps", "Australia", "Australian Stamps"],
+        is_leaf: true,
+        child_count: 0,
+        source: "fake"
+      }
+    ]
+  });
+  renderPanel();
+
+  await user.type(await screen.findByLabelText("Category search"), "postage stamps");
+  await user.click(screen.getByRole("button", { name: "Search" }));
+
+  expect(await screen.findByText("Australian Stamps")).toBeInTheDocument();
+  expect(screen.getByText("Stamps > Australia > Australian Stamps")).toBeInTheDocument();
+  expect(screen.getByText("ID 105848")).toBeInTheDocument();
+  expect(screen.getByText("Leaf category")).toBeInTheDocument();
+  expect(screen.getByText("Not a leaf")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /ID 260/i })).toBeDisabled();
+
+  await user.click(screen.getByRole("button", { name: /Australian Stamps/i }));
+
+  expect(screen.getByLabelText("Manual category ID")).toHaveValue("105848");
+  expect(screen.getByLabelText("Tree ID")).toHaveValue("15");
+  expect(screen.getByLabelText("Category name")).toHaveValue("Australian Stamps");
+});
+
+test("ListingPanel disables staging when category pre-flight has a hard error", async () => {
+  mocks.listItemListingDrafts.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      ...mocks.draft,
+      channel_data: {
+        category_id: "260",
+        category_tree_id: "15",
+        category_name: "Stamps",
+        condition_id: "3000",
+        merchant_location_key: "loc-1",
+        payment_policy_id: "payment-1",
+        fulfillment_policy_id: "fulfillment-1",
+        return_policy_id: "return-1"
+      }
+    }]
+  });
+  mocks.getListingAspectCheck.mockRejectedValue(new Error("The specified category ID must be a leaf category."));
+  renderPanel();
+
+  expect(await screen.findByText("The specified category ID must be a leaf category.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Stage offer" })).toBeDisabled();
+  expect(screen.getByText("Resolve the category/aspects pre-flight error before staging.")).toBeInTheDocument();
 });
 
 test("ListingPanel enables publish only after exact SKU confirmation", async () => {

@@ -397,7 +397,12 @@ export interface EbayConnectionSummary {
 export interface EbayCategorySuggestion {
   category_id: string;
   category_tree_id: string;
+  category_name: string;
   name: string;
+  category_path?: string[];
+  is_leaf: boolean | null;
+  child_count?: number | null;
+  validation_error?: string;
 }
 
 export interface EbayCategorySuggestionsResponse {

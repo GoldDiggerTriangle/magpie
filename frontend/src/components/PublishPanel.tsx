@@ -26,6 +26,7 @@ import {
   withdrawListingDraft
 } from "../api/listing";
 import type {
+  EbayCategorySuggestion,
   EbayCategorySuggestionsResponse,
   InventoryItemDetail,
   ListingDraft,
@@ -128,6 +129,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
   });
 
   const missingRequired = aspectCheck.data?.missing_required ?? [];
+  const aspectCheckBlocked = Boolean(aspectCheck.error);
   const missingBlocked = missingRequired.length > 0 && !shouldOverride(aspectCheck.data, overrideMissing, overrideReason);
   const connected = status.data?.connected ?? false;
   const offerId = channelValue(draft, "offer_id");
@@ -166,7 +168,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
             onSelect={(category) => updateChannel({
               category_id: category.category_id,
               category_tree_id: category.category_tree_id,
-              category_name: category.name
+              category_name: categoryLabel(category)
             })}
             onUpdateChannel={updateChannel}
             pending={categoryMutation.isPending}
@@ -222,7 +224,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
           <div className="flex flex-wrap gap-2">
             <button
               className="btn-primary gap-2"
-              disabled={!connected || missingBlocked || stageMutation.isPending || draft.status === "published"}
+              disabled={!connected || aspectCheckBlocked || missingBlocked || stageMutation.isPending || draft.status === "published"}
               onClick={() => stageMutation.mutate()}
               type="button"
             >
@@ -243,6 +245,7 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
             </button>
           </div>
           {!connected ? <p className="text-sm text-amber-200">Connect eBay before staging.</p> : null}
+          {aspectCheckBlocked ? <p className="text-sm text-rose-200">Resolve the category/aspects pre-flight error before staging.</p> : null}
           {errorText(stageMutation.error) ? <p className="text-sm text-rose-200">{errorText(stageMutation.error)}</p> : null}
           {draft.channel_data.last_ebay_error ? <p className="break-words text-sm text-rose-200">{stringValue(draft.channel_data.last_ebay_error)}</p> : null}
 
@@ -294,7 +297,7 @@ function CategoryPicker({
   error: string;
   onCategorySearch: (value: string) => void;
   onSearch: () => void;
-  onSelect: (category: { category_id: string; category_tree_id: string; name: string }) => void;
+  onSelect: (category: EbayCategorySuggestion) => void;
   onUpdateChannel: (patch: Record<string, unknown>) => void;
   pending: boolean;
   search: string;
@@ -316,13 +319,22 @@ function CategoryPicker({
         <div className="space-y-2">
           {categoryResult.suggestions.map((category) => (
             <button
-              className="row-link w-full"
+              className="row-link w-full items-start"
+              disabled={category.is_leaf !== true}
               key={category.category_id}
               onClick={() => onSelect(category)}
               type="button"
             >
-              <span>{category.name}</span>
-              <span className="text-slate-500">{category.category_id}</span>
+              <span className="min-w-0">
+                <span className="block font-medium text-slate-100">{categoryLabel(category)}</span>
+                <span className="mt-1 block text-xs text-slate-500">{categoryPath(category)}</span>
+              </span>
+              <span className="flex shrink-0 flex-col items-end gap-1 text-xs">
+                <span className="text-slate-400">ID {category.category_id}</span>
+                <span className={category.is_leaf === true ? "text-emerald-200" : category.is_leaf === false ? "text-rose-200" : "text-amber-200"}>
+                  {leafLabel(category)}
+                </span>
+              </span>
             </button>
           ))}
         </div>
@@ -623,6 +635,28 @@ function EnvironmentBadge({ environment }: { environment: string }) {
 
 function shouldOverride(result: { missing_required: string[] } | undefined, checked: boolean, reason: string) {
   return Boolean(result?.missing_required.length && checked && reason.trim());
+}
+
+function categoryLabel(category: EbayCategorySuggestion) {
+  return category.category_name || category.name || "-";
+}
+
+function categoryPath(category: EbayCategorySuggestion) {
+  const path = category.category_path?.filter(Boolean) ?? [];
+  return path.length ? path.join(" > ") : categoryLabel(category);
+}
+
+function leafLabel(category: EbayCategorySuggestion) {
+  if (category.validation_error) {
+    return "Validation unavailable";
+  }
+  if (category.is_leaf === true) {
+    return "Leaf category";
+  }
+  if (category.is_leaf === false) {
+    return "Not a leaf";
+  }
+  return "Leaf unknown";
 }
 
 function channelValue(draft: ListingDraft, key: string) {
