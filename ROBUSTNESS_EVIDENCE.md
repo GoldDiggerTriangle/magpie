@@ -1,7 +1,9 @@
 # Sprint 9 Robustness Evidence
 
-Date: 2026-06-13
+Date: 2026-06-13 to 2026-06-14
 Repo path: `C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-approve-sprint-2`
+
+Current closure status: Sprint 9 is not closed yet. The real NSSM service is installed and serving the production app on port 8000, but reboot survival, crash-restart by killing the service-owned Waitress/python process, and second-device LAN proof still need genuine host evidence.
 
 ## Local Validation Summary
 
@@ -21,15 +23,23 @@ Repo path: `C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-app
 | Frontend build | Passed | `npm run build` exited 0 and generated hashed assets. |
 | Sprint 8 backup | Passed | `manage.py backup --output-dir ..\.tmp\sprint9-backups --no-upload` produced `magpie-backup-20260613-120743.tar.gz.enc`. |
 | Sprint 8 backup with production `.env` | Passed | `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py backup --output-dir ..\.tmp\sprint9-service-backups --no-upload` produced `magpie-backup-20260613-124135.tar.gz.enc`. |
+| Sprint 8 backup after NSSM service install | Passed | `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py backup --output-dir ..\.tmp\sprint9-service-backups --no-upload` produced `magpie-backup-20260613-204913.tar.gz.enc`. |
 | Sprint 8 restore spot check | Passed | `manage.py restore ... --target ..\.tmp\sprint9-restore` restored counts: items=6, photos=0, valuations=5, drafts=1, credential=0. |
 | Migrations | Passed | `manage.py makemigrations --check --dry-run --noinput` reported `No changes detected`. |
 | `restart servers.txt` removed | Passed | `Test-Path "restart servers.txt"` returned `False`; no file existed in this checkout. |
 | Production `.env` loaded by app mechanism | Passed locally | A prior Magpie `backend\.env` was copied into this checkout without printing contents, then missing Sprint 9 names were completed. `backend\.env` is ignored by Git. |
 | Waitress on service port 8000 | Passed manually | After stopping the old listener, `scripts\production_smoke.py` passed on port 8000 using `backend\.env` for secret settings. |
+| Real NSSM service installed and running | Passed | Administrator PowerShell observed `Get-Service Magpie` as `Running`, `nssm status Magpie` as `SERVICE_RUNNING`, `netstat -ano` showing `0.0.0.0:8000 LISTENING 24148`, and localhost `/` returning the built SPA. This non-elevated shell also observed `Get-Service Magpie` as `Running` with `StartType Automatic`. |
+| Real NSSM service configuration | Passed | `nssm get Magpie Application` returned `backend\.venv\Scripts\python.exe`; `AppDirectory` returned `backend`; `AppParameters` returned `backend\serve.py`; `Start` returned `SERVICE_AUTO_START`; `AppExit Default` returned `Restart`; `AppThrottle` returned `5000`; stdout/stderr logs point to `backend\logs\service-stdout.log` and `backend\logs\service-stderr.log`. |
+| PID `24148` service listener | Passed with admin-only command-line caveat | `netstat -ano` showed `0.0.0.0:8000 LISTENING 24148`. `Get-CimInstance Win32_Process -Filter "ProcessId = 24148"` showed `Name=python.exe` and `ParentProcessId=23032`; this non-elevated shell could not read the executable path or command line, but NSSM service settings show the running service launches the repo venv Python with `backend\serve.py`. |
+| Real service serves SPA + `/api` + `/admin` + static assets | Passed | On port 8000, `/` returned the built SPA index for `Gold, Stamps & Phonetech`; `/api/health/` returned 200 with `{"status":"ok"}`; `/admin/login/` returned 200; `/inventory/sprint9-service-deep-link` returned the SPA index; `/assets/index-zZJy-lIB.js` returned 200 with `text/javascript`. |
+| Real service LAN IP from host | Passed from host only | `http://192.168.1.86:8000/` returned 200 with the built SPA when requested on the Windows host itself. This does not replace second-device LAN proof. |
+| Real service `DEBUG=False` behavior | Passed | `http://localhost:8000/api/definitely-not-a-real-sprint9-route/` returned 404 with a plain Not Found page and no debug markers (`Using the URLconf`, `Request Method:`, `Traceback`, `DEBUG = True`). |
+| Real service Host allow-list rejection | Passed | Requesting `http://127.0.0.1:8000/api/health/` with `Host: not-allowed.example` returned HTTP 400 with a plain Bad Request page and no debug markers. |
 
 An initial direct local smoke on `127.0.0.1:8000` was blocked by an existing listener on PID 18632 that returned an older DEBUG=True Django 404 for `/api/health/` and DRF 403 for `/api/dashboard/summary/`. PID 18632 was stopped with `Stop-Process -Id 18632 -Force`; port 8000 then had no active listener.
 
-NSSM portable binaries were extracted under `.tmp\tools\nssm-bin\...\win64\nssm.exe`. Chocolatey installation failed because the shell was not Administrator and Chocolatey could not write under `C:\ProgramData\chocolatey`. A direct `nssm install Magpie ...` attempt also failed with `Administrator access is needed to install a service.` A UAC elevation attempt via `Start-Process -Verb RunAs` was canceled by the host. No `Magpie` service was installed.
+Earlier attempts to install NSSM from this non-Administrator shell failed because service installation requires Administrator access. Regan subsequently installed and started the `Magpie` NSSM service from Administrator PowerShell. The service is now observable as running and automatic, with NSSM configured to launch the repo venv Python and `backend\serve.py`.
 
 ## CI Coverage
 
@@ -45,16 +55,17 @@ Remote GitHub Actions:
 - Commit `4c587e7` removed the global CI CSRF override and made dev settings always include Vite dev CSRF origins even when `.env` is production-shaped.
 - Commit `4c587e7` triggered `Validation` run `27467046136`, which completed successfully.
 - Commit `8d787a8` triggered `Validation` run `27467084438`; Postgres passed, SQLite failed at `Run frontend tests`. The same frontend suite was rerun locally afterward and passed: 16 files, 43 tests.
+- Commit `97ee71d` triggered `Validation` run `27467137542`, which completed successfully on GitHub Actions.
 
-## Operational Gates Still Requiring The Windows Host
+## Remaining Operational Gates
 
-These checks require an Administrator token for Windows service control, reboot access, and/or a second LAN device. They are not complete.
+These checks require Administrator service control, reboot access, and/or a second LAN device. They are not complete.
 
 | Check | Status | Reason |
 | --- | --- | --- |
-| NSSM service named `Magpie` installed | Blocked | Portable NSSM exists, but service installation requires Administrator access; the UAC elevation attempt was canceled. |
-| Service auto-start on boot | Not run | Requires installing the Windows service and rebooting the host. |
-| Crash-restart by killing Waitress/python | Not run | Requires NSSM managing the process; the sandbox smoke used a direct temporary Waitress process. |
-| `http://192.168.1.86:8000` from another LAN device | Not run | Requires the host service bound to port 8000 and a second LAN client. |
+| NSSM service named `Magpie` installed | Passed | Administrator PowerShell and this non-elevated shell both observed the service running; NSSM status is `SERVICE_RUNNING`. |
+| Service auto-start on boot | Not run | Requires rebooting the host and confirming Magpie comes back without manual startup. |
+| Crash-restart by killing Waitress/python | Blocked from this shell | This shell identified PID `24148` as the port-8000 Python listener, but both normal and sandbox-escalated `Stop-Process -Id 24148 -Force` attempts failed with `Access is denied.` A real Administrator kill of the service-owned process is still required. |
+| `http://192.168.1.86:8000` from another LAN device | Not run | The host can reach `http://192.168.1.86:8000/`, but second-device LAN proof still requires a separate LAN client. |
 
 The exact NSSM install, boot-proof, and crash-restart commands are in `DEPLOYMENT.md`.
