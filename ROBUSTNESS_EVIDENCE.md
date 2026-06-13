@@ -3,7 +3,7 @@
 Date: 2026-06-13 to 2026-06-14
 Repo path: `C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-approve-sprint-2`
 
-Current closure status: Sprint 9 is formally closable. The real NSSM service is installed, starts automatically after reboot, serves the production app on port 8000, accepts LAN access from a second device, and restarts after the Waitress/python listener is killed.
+Current closure status: Sprint 9 is formally closed and the post-closure data checkout risk is reconciled. The real NSSM service is installed, starts automatically after reboot, serves the production app on port 8000, accepts LAN access from a second device, restarts after the Waitress/python listener is killed, and now uses the live Sprint 8 business data in the Sprint 9 runtime checkout.
 
 ## Local Validation Summary
 
@@ -61,6 +61,56 @@ Remote GitHub Actions:
 - Commit `97ee71d` triggered `Validation` run `27467137542`, which completed successfully on GitHub Actions.
 - Commit `8fb35d4` triggered `Validation` run `27478741258`, which completed successfully on GitHub Actions.
 - Commit `399ba62` triggered `Validation` run `27478903082`, which completed successfully on GitHub Actions.
+- Commit `b175e84` triggered `Validation` run `27480316801`, which completed successfully on GitHub Actions.
+
+## Data Checkout Reconciliation
+
+The proven Sprint 9 service implementation remains the runtime codebase:
+
+`C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-approve-sprint-2\backend`
+
+The live Sprint 8 business data was promoted from:
+
+`C:\Users\Regan\Documents\Codex\2026-06-11\you-are-starting-a-fresh-codex\backend`
+
+Pre-promotion counts confirmed the mismatch:
+
+| Backend | Items | Photos | Valuations | Drafts | Credential | Media files |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sprint 9 runtime before promotion | 6 | 0 | 5 | 1 | 0 | 0 |
+| Sprint 8 live source | 8 | 2 | 5 | 2 | 1 | 6 |
+
+Promotion steps:
+
+- Stopped the `Magpie` service through an elevated PowerShell script before replacing data.
+- Created safety copies of both databases and media trees under `.tmp\data-checkout-reconcile-20260614-091659`.
+- Copied the live Sprint 8 `db.sqlite3` and `media_files` into the Sprint 9 runtime backend.
+- Restarted the `Magpie` service. The script proof recorded `data_promoted=true`; it hit a late PowerShell variable-name error after promotion, then its recovery path started the service. This shell then verified `Magpie` as `Running`/`Automatic`, port `0.0.0.0:8000` listening on PID `1396`, and `/api/health/` returning 200 with `{"status":"ok"}`.
+
+Post-promotion runtime counts:
+
+| Backend | Items | Photos | Valuations | Drafts | Credential | Media files |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Sprint 9 runtime after promotion | 8 | 2 | 5 | 2 | 1 | 6 |
+
+Post-promotion service checks:
+
+- `http://localhost:8000/api/health/` returned 200 with `{"status":"ok"}`.
+- `http://localhost:8000/` returned the built SPA index.
+- `http://192.168.1.86:8000/` returned 200 with the built SPA from the Windows host.
+- Media render proof: `/media/processed/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/5c4593f7761d4511b3575002b1c27196.jpg` returned 200 `image/jpeg`; the matching `/media/thumbs/...` URL also returned 200 `image/jpeg`.
+
+Post-promotion encrypted backup proof:
+
+- From the Sprint 9 runtime backend, `DJANGO_SETTINGS_MODULE=config.settings.prod python manage.py backup --output-dir ..\.tmp\data-reconcile-backups --no-upload` produced `magpie-backup-20260613-232008.tar.gz.enc`.
+- Restoring that archive into `.tmp\data-reconcile-restore-20260614-092019` produced counts `items=8`, `photos=2`, `valuations=5`, `drafts=2`, `credential=1`, plus 6 restored media files.
+
+Scheduled backup task:
+
+- Before reconciliation, `Magpie Backup` still pointed at the old `2026-06-11` checkout.
+- The scheduled task action and working directory were updated through an elevated PowerShell script.
+- The captured post-update task XML shows `scripts\backup.ps1` and `Start In` both pointing at the Sprint 9 runtime checkout, and no longer mentions the old checkout.
+- The task remains enabled, daily at 02:00, with last recorded result `0` from its prior run.
 
 ## Operational Gate Status
 
