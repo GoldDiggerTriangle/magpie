@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { ApiError, apiRequest } from "./client";
 
 beforeEach(() => {
   Object.defineProperty(document, "cookie", {
@@ -59,4 +59,17 @@ test("apiRequest builds multipart requests without forcing content type", async 
       body: form
     })
   );
+});
+
+test("ApiError does not dump raw HTML error pages", () => {
+  const error = new ApiError(404, "<!DOCTYPE html><html><body>Django 404 route dump</body></html>");
+
+  expect(error.message).toBe("API request failed with status 404. The server returned an HTML error page.");
+  expect(error.message).not.toContain("<html>");
+});
+
+test("ApiError uses JSON detail when available", () => {
+  const error = new ApiError(503, { detail: "eBay taxonomy endpoint unavailable." });
+
+  expect(error.message).toBe("eBay taxonomy endpoint unavailable.");
 });

@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { ApiError } from "../api/client";
 import {
   createMerchantLocation,
   getEbayCategorySuggestions,
@@ -653,14 +652,6 @@ function formatDate(value?: string | null) {
 function errorText(error: unknown) {
   if (!error) {
     return "";
-  }
-  if (error instanceof ApiError) {
-    if (typeof error.data === "string") {
-      return error.data;
-    }
-    if (error.data && typeof error.data === "object") {
-      return JSON.stringify(error.data);
-    }
   }
   if (error instanceof Error) {
     return error.message;

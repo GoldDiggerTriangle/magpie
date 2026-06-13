@@ -3,10 +3,31 @@ export class ApiError extends Error {
   data: unknown;
 
   constructor(status: number, data: unknown) {
-    super(`API request failed with status ${status}`);
+    super(formatApiErrorMessage(status, data));
     this.status = status;
     this.data = data;
   }
+}
+
+export function formatApiErrorMessage(status: number, data: unknown): string {
+  if (typeof data === "string") {
+    const trimmed = data.trim();
+    if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html")) {
+      return `API request failed with status ${status}. The server returned an HTML error page.`;
+    }
+    if (trimmed) {
+      return trimmed.length > 300 ? `${trimmed.slice(0, 300)}...` : trimmed;
+    }
+  }
+
+  if (data && typeof data === "object") {
+    const detail = (data as { detail?: unknown }).detail;
+    if (typeof detail === "string" && detail.trim()) {
+      return detail.trim();
+    }
+  }
+
+  return `API request failed with status ${status}`;
 }
 
 export function getCookie(name: string): string | null {

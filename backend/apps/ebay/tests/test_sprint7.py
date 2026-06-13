@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from django.conf import settings
 from django.core.management import call_command
+from django.urls import resolve
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -396,3 +397,13 @@ def test_listing_draft_sprint7_api_paths(api_client, item, credential, merchant_
     assert location.status_code == 201, location.data
     assert location.data["configured"] is True
     assert location.data["location"]["merchant_location_key"] == "api-loc-1"
+
+
+def test_sprint7_url_wiring():
+    draft_id = "54220841-1842-4dc4-b1a0-aa4dc8f521ce"
+
+    assert resolve("/api/ebay/category-suggestions/").url_name == "ebay-category-suggestions"
+    assert (
+        resolve(f"/api/listing-drafts/{draft_id}/aspects-check/").url_name
+        == "listing-draft-aspects-check"
+    )
