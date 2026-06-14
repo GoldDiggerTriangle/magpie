@@ -15,6 +15,9 @@ export function ItemCard({ item }: { item: InventoryItemList }) {
             {item.title || "Untitled item"}
           </p>
           <p className="mt-1 text-xs text-slate-500">{item.sku}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {item.quantity_remaining}/{item.quantity_total} remaining
+          </p>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <StatusBadge status={item.status} />

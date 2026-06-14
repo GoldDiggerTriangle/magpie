@@ -12,6 +12,8 @@ from integrations.storage import LocalFileStorageAdapter
 class InventoryItemListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     main_thumb_url = serializers.SerializerMethodField()
+    quantity_sold = serializers.IntegerField(read_only=True)
+    quantity_remaining = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = InventoryItem
@@ -23,12 +25,23 @@ class InventoryItemListSerializer(serializers.ModelSerializer):
             "condition",
             "category",
             "category_name",
+            "quantity_total",
+            "quantity_sold",
+            "quantity_remaining",
             "estimated_value",
             "currency",
             "main_thumb_url",
             "created_at",
         ]
-        read_only_fields = ["id", "sku", "category_name", "main_thumb_url", "created_at"]
+        read_only_fields = [
+            "id",
+            "sku",
+            "category_name",
+            "quantity_sold",
+            "quantity_remaining",
+            "main_thumb_url",
+            "created_at",
+        ]
 
     def get_main_thumb_url(self, obj):
         main_photo = obj.main_photo
@@ -42,6 +55,8 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
     photos = PhotoAssetSerializer(many=True, read_only=True)
     comps_count = serializers.SerializerMethodField()
     current_valuation = serializers.SerializerMethodField()
+    quantity_sold = serializers.IntegerField(read_only=True)
+    quantity_remaining = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = InventoryItem
@@ -92,6 +107,7 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
                 "category",
                 "status",
                 "condition",
+                "quantity_total",
                 "location",
                 "acquisition",
                 "acquisition_cost",
@@ -119,6 +135,19 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
             item.clean()
         except DjangoValidationError as exc:
             raise serializers.ValidationError(exc.message_dict) from exc
+
+        quantity_total = data.get(
+            "quantity_total",
+            self.instance.quantity_total if self.instance else 1,
+        )
+        if self.instance and quantity_total < self.instance.quantity_sold:
+            raise serializers.ValidationError(
+                {
+                    "quantity_total": (
+                        "Quantity total cannot be lower than active sold quantity."
+                    )
+                }
+            )
 
         data["attributes"] = item.attributes
         return data

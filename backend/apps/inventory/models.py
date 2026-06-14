@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Sum
 
 from apps.catalog.profiles import get_schema
 from apps.core.models import TimeStampedUUIDModel
@@ -16,6 +18,7 @@ class InventoryItem(TimeStampedUUIDModel):
         NEEDS_RESEARCH = "needs_research", "Needs research"
         READY_TO_LIST = "ready_to_list", "Ready to list"
         LISTED = "listed", "Listed"
+        PARTIALLY_SOLD = "partially_sold", "Partially sold"
         SOLD = "sold", "Sold"
         STORED = "stored", "Stored"
         ARCHIVED = "archived", "Archived"
@@ -49,6 +52,7 @@ class InventoryItem(TimeStampedUUIDModel):
         choices=Condition.choices,
         default=Condition.UNGRADED,
     )
+    quantity_total = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     location = models.ForeignKey(
         "locations.StorageLocation",
         null=True,
@@ -156,6 +160,26 @@ class InventoryItem(TimeStampedUUIDModel):
         return self.photos.filter(is_main=True).first() or self.photos.order_by(
             "order_index"
         ).first()
+
+    @property
+    def quantity_sold(self) -> int:
+        sales = getattr(self, "sales", None)
+        if sales is None:
+            return 0
+        sale_model = sales.model
+        superseded_ids = sale_model.objects.filter(
+            item=self,
+            corrected_from__isnull=False,
+        ).values("corrected_from_id")
+        total = (
+            sales.exclude(pk__in=superseded_ids).aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+        return int(total)
+
+    @property
+    def quantity_remaining(self) -> int:
+        return max(int(self.quantity_total) - self.quantity_sold, 0)
 
     def __str__(self) -> str:
         return f"{self.sku} - {self.title or 'Untitled'}"

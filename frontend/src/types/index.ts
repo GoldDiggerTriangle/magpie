@@ -81,6 +81,9 @@ export interface InventoryItemList {
   condition: string;
   category: UUID | null;
   category_name: string | null;
+  quantity_total: number;
+  quantity_sold: number;
+  quantity_remaining: number;
   estimated_value: string | null;
   currency: string;
   main_thumb_url: string | null;
@@ -131,6 +134,7 @@ export interface ItemFormPayload {
   category: UUID | null;
   condition: string;
   status?: string;
+  quantity_total?: number;
   location: UUID | null;
   acquisition_cost: string | null;
   refurb_cost?: string | null;
@@ -479,6 +483,47 @@ export interface StagedOfferReview {
   merchant_location_key: string;
   photo_count: number;
   aspect_warnings: string[];
+}
+
+export interface SaleRecord {
+  id: UUID;
+  item: UUID;
+  item_sku: string;
+  item_title: string;
+  sale_date: string;
+  quantity: number;
+  sale_price: string;
+  channel: "ebay_au" | "manual" | "other";
+  actual_fees_total: string;
+  actual_fee_breakdown: Record<string, unknown>;
+  actual_shipping_cost: string;
+  net_proceeds: string;
+  allocated_cost_basis: string;
+  realised_profit: string;
+  cost_basis_override: string | null;
+  listing_draft: UUID | null;
+  valuation_snapshot: Record<string, unknown>;
+  estimated_fee_snapshot: Record<string, unknown>;
+  provenance: "manual" | "ebay_sync";
+  corrected_from: UUID | null;
+  is_superseded: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaleRecordPayload {
+  item?: UUID;
+  sale_date: string;
+  quantity: number;
+  sale_price: string;
+  channel: SaleRecord["channel"];
+  actual_fees_total?: string | null;
+  actual_fee_breakdown?: Record<string, unknown>;
+  actual_shipping_cost?: string | null;
+  cost_basis_override?: string | null;
+  listing_draft?: UUID | null;
+  notes?: string;
 }
 
 export interface AuditLogEntry {

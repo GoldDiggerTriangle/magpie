@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.research",
     "apps.valuation",
     "apps.listing",
+    "apps.sales",
     "apps.audit",
     "apps.ebay",
     "apps.dashboard",

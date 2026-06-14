@@ -29,6 +29,7 @@ from apps.research.views import (
     ResearchLinksView,
     ResearchRecordViewSet,
 )
+from apps.sales.views import ItemSaleRecordListCreateView, SaleRecordViewSet
 from apps.valuation.views import (
     FeeScheduleViewSet,
     ItemValuationReportListCreateView,
@@ -51,6 +52,7 @@ router.register(
     ListingBoilerplateViewSet,
     basename="listing-boilerplate",
 )
+router.register("sales", SaleRecordViewSet, basename="sale")
 router.register("audit-log", AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
@@ -64,6 +66,11 @@ urlpatterns = [
         "items/<uuid:item_id>/listing-drafts/",
         ItemListingDraftListCreateView.as_view(),
         name="item-listing-drafts",
+    ),
+    path(
+        "items/<uuid:item_id>/sales/",
+        ItemSaleRecordListCreateView.as_view(),
+        name="item-sales",
     ),
     path(
         "valuation-reports/<uuid:pk>/",

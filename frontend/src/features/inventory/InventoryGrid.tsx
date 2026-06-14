@@ -15,6 +15,7 @@ const statusOptions = [
   ["needs_research", "Needs research"],
   ["ready_to_list", "Ready"],
   ["listed", "Listed"],
+  ["partially_sold", "Partially sold"],
   ["sold", "Sold"],
   ["stored", "Stored"]
 ];

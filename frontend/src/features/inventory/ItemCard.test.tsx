@@ -12,6 +12,9 @@ const item: InventoryItemList = {
   condition: "good",
   category: "cat-1",
   category_name: "Stamps",
+  quantity_total: 4,
+  quantity_sold: 1,
+  quantity_remaining: 3,
   estimated_value: "25.00",
   currency: "AUD",
   main_thumb_url: null,
@@ -28,4 +31,5 @@ test("ItemCard renders title, SKU, and status badge", () => {
   expect(screen.getByText("Blue stamp")).toBeInTheDocument();
   expect(screen.getByText("STM-00001")).toBeInTheDocument();
   expect(screen.getByText("Needs research")).toBeInTheDocument();
+  expect(screen.getByText("3/4 remaining")).toBeInTheDocument();
 });

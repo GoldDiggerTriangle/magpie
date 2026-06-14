@@ -49,6 +49,7 @@ LOCAL_APP_LABELS = {
     "research",
     "valuation",
     "listing",
+    "sales",
     "audit",
     "ebay",
 }
@@ -76,6 +77,7 @@ KEY_ROW_TABLES = {
     "photos": "photos_photoasset",
     "valuations": "valuation_valuationreport",
     "drafts": "listing_listingdraft",
+    "sales": "sales_salerecord",
     "credential": "ebay_ebaycredential",
 }
 

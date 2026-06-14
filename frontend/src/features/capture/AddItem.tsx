@@ -30,6 +30,7 @@ export function AddItem() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<UUID | null>(null);
   const [condition, setCondition] = useState("ungraded");
+  const [quantityTotal, setQuantityTotal] = useState(1);
   const [location, setLocation] = useState<UUID | null>(null);
   const [acquisitionCost, setAcquisitionCost] = useState("");
   const [estimatedValue, setEstimatedValue] = useState("");
@@ -44,6 +45,7 @@ export function AddItem() {
         title: title.trim(),
         category,
         condition,
+        quantity_total: quantityTotal,
         location,
         acquisition_cost: acquisitionCost || null,
         estimated_value: estimatedValue || null,
@@ -103,6 +105,16 @@ export function AddItem() {
             <select className="field" value={condition} onChange={(event) => setCondition(event.target.value)}>
               {conditionOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
+          </label>
+          <label className="label">
+            <span>Total quantity</span>
+            <input
+              className="field"
+              min={1}
+              type="number"
+              value={quantityTotal}
+              onChange={(event) => setQuantityTotal(Math.max(1, Number(event.target.value) || 1))}
+            />
           </label>
           <label className="label">
             <span>Location</span>

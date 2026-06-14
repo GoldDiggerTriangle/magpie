@@ -7,6 +7,7 @@ on:
       - ".github/workflows/postgresql-validation.yml"
       - "DEPLOYMENT.md"
       - "ROBUSTNESS_EVIDENCE.md"
+      - "SPRINT10_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"
@@ -16,6 +17,7 @@ on:
       - ".github/workflows/postgresql-validation.yml"
       - "DEPLOYMENT.md"
       - "ROBUSTNESS_EVIDENCE.md"
+      - "SPRINT10_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"
@@ -245,8 +247,10 @@ jobs:
           counts = count_key_rows(restored_db)
           assert counts["items"] == 6
           assert counts["drafts"] == 1
+          assert counts["sales"] == 0
           conn = sqlite3.connect(restored_db)
           try:
+              assert conn.execute("select count(*) from sales_salerecord").fetchone()[0] == 0
               assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
           finally:
               conn.close()

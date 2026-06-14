@@ -1,9 +1,10 @@
-import { LayoutDashboard, PackageSearch, PlusCircle, Settings } from "lucide-react";
+import { LayoutDashboard, PackageSearch, PlusCircle, ReceiptText, Settings } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/inventory", label: "Inventory", icon: PackageSearch },
+  { to: "/sales", label: "Sales", icon: ReceiptText },
   { to: "/add", label: "Add", icon: PlusCircle },
   { to: "/settings/ebay", label: "Settings", icon: Settings }
 ];
@@ -28,7 +29,7 @@ export function AppShell() {
       <main className="min-h-screen pb-24 md:ml-64 md:pb-0">
         <Outlet />
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-slate-800 bg-slate-950 md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-slate-800 bg-slate-950 md:hidden">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link-active" : ""}`} end={to === "/"}>
             <Icon className="h-5 w-5" aria-hidden="true" />

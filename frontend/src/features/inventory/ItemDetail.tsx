@@ -19,6 +19,7 @@ import { ComparableList } from "../../components/ComparableList";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
 import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
+import { SalesPanel } from "../../components/SalesPanel";
 import { sanitizeSchemaAttributes, SchemaFieldsForm } from "../../components/SchemaFieldsForm";
 import { StatusBadge } from "../../components/StatusBadge";
 import { ValuationPanel } from "../../components/ValuationPanel";
@@ -31,6 +32,7 @@ const statusOptions = [
   ["needs_research", "Needs research"],
   ["ready_to_list", "Ready"],
   ["listed", "Listed"],
+  ["partially_sold", "Partially sold"],
   ["sold", "Sold"],
   ["stored", "Stored"],
   ["archived", "Archived"],
@@ -63,6 +65,7 @@ export function ItemDetail() {
     category: null,
     status: "captured",
     condition: "ungraded",
+    quantity_total: 1,
     location: null,
     acquisition_cost: null,
     refurb_cost: null,
@@ -83,6 +86,7 @@ export function ItemDetail() {
       category: item.data.category,
       status: item.data.status,
       condition: item.data.condition,
+      quantity_total: item.data.quantity_total,
       location: item.data.location,
       acquisition_cost: item.data.acquisition_cost,
       refurb_cost: item.data.refurb_cost,
@@ -204,6 +208,19 @@ export function ItemDetail() {
             </select>
           </label>
           <label className="label">
+            <span>Total quantity</span>
+            <input
+              className="field"
+              min={Math.max(1, item.data.quantity_sold)}
+              type="number"
+              value={form.quantity_total ?? 1}
+              onChange={(event) => setForm({ ...form, quantity_total: Math.max(1, Number(event.target.value) || 1) })}
+            />
+            <span className="text-xs font-normal text-slate-500">
+              {item.data.quantity_sold} sold / {item.data.quantity_remaining} remaining
+            </span>
+          </label>
+          <label className="label">
             <span>Category</span>
             <CategorySelect
               categories={categories.data?.results ?? []}
@@ -268,6 +285,7 @@ export function ItemDetail() {
         <ValuationPanel item={item.data} />
         <ProfitBreakdown item={item.data} reportId={item.data.current_valuation?.id ?? null} />
         <ListingPanel item={item.data} />
+        <SalesPanel item={item.data} />
       </div>
 
       <ConfirmDialog

@@ -18,6 +18,7 @@ from apps.inventory.serializers import (
 from apps.photos.models import PhotoAsset
 from apps.photos.serializers import PhotoAssetSerializer
 from apps.photos.services import MediaService
+from apps.sales.services import recompute_item_sale_status
 
 
 class InventoryItemViewSet(ModelViewSet):
@@ -35,6 +36,10 @@ class InventoryItemViewSet(ModelViewSet):
         if self.action == "list":
             return InventoryItemListSerializer
         return InventoryItemDetailSerializer
+
+    def perform_update(self, serializer):
+        item = serializer.save()
+        recompute_item_sale_status(item)
 
     @action(detail=True, methods=["post"], url_path="photos")
     def upload_photo(self, request, pk=None):
