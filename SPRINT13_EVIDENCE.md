@@ -167,4 +167,9 @@ Live evidence did not perform any approve/edit/reject action and left all staged
 
 ## Remote Validation
 
-Pending final commit and push.
+- Commit: `e961bd0`
+- Run: `27514942706`
+- URL: `https://github.com/GoldDiggerTriangle/magpie/actions/runs/27514942706`
+- Result: success.
+- SQLite lane: success.
+- Postgres lane: success.
