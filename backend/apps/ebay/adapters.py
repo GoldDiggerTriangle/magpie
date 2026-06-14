@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 import base64
 import json
 import uuid
@@ -19,6 +19,7 @@ from apps.ebay.constants import (
     EBAY_ENV_PRODUCTION,
     EBAY_ENV_SANDBOX,
     EBAY_ENVIRONMENTS,
+    EBAY_MARKETPLACE_ID,
     EBAY_SCOPES,
 )
 
@@ -514,7 +515,7 @@ class HttpEbayOrderAdapter:
             query = urlencode(
                 {
                     "filter": (
-                        f"creationdate:[{start.isoformat()}..{end.isoformat()}]"
+                        f"creationdate:[{_ebay_datetime(start)}..{_ebay_datetime(end)}]"
                     ),
                     "limit": str(limit),
                     "offset": str(offset),
@@ -552,7 +553,7 @@ class HttpEbayFinancesAdapter:
             query = urlencode(
                 {
                     "filter": (
-                        f"transactionDate:[{start.isoformat()}..{end.isoformat()}]"
+                        f"transactionDate:[{_ebay_datetime(start)}..{_ebay_datetime(end)}]"
                     ),
                     "limit": str(limit),
                     "offset": str(offset),
@@ -560,10 +561,13 @@ class HttpEbayFinancesAdapter:
                 quote_via=quote,
             )
             response = _request_json(
-                f"{_api_base(self.environment)}/sell/finances/v1/transaction?{query}",
+                f"{_finances_base(self.environment)}/sell/finances/v1/transaction?{query}",
                 access_token=access_token,
                 method="GET",
-                headers={"Accept": "application/json"},
+                headers={
+                    "Accept": "application/json",
+                    "X-EBAY-C-MARKETPLACE-ID": EBAY_MARKETPLACE_ID,
+                },
                 timeout_seconds=self.timeout_seconds,
                 service_name="eBay finances transaction endpoint",
             )
@@ -973,6 +977,14 @@ def _media_base(environment: str) -> str:
     raise EbayUnavailable("EBAY_ENV must be sandbox or production.")
 
 
+def _finances_base(environment: str) -> str:
+    if environment == EBAY_ENV_SANDBOX:
+        return "https://apiz.sandbox.ebay.com"
+    if environment == EBAY_ENV_PRODUCTION:
+        return "https://apiz.ebay.com"
+    raise EbayUnavailable("EBAY_ENV must be sandbox or production.")
+
+
 def _identity_base(environment: str) -> str:
     if environment == EBAY_ENV_SANDBOX:
         return "https://apiz.sandbox.ebay.com"
@@ -1018,6 +1030,13 @@ def _request_json(
         raise EbayUnavailable(f"{service_name} returned HTTP {exc.code}.") from exc
     except (URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise EbayUnavailable(f"{service_name} request failed.") from exc
+
+
+def _ebay_datetime(value) -> str:
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value, UTC)
+    value = value.astimezone(UTC).replace(microsecond=0)
+    return value.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
 
 def _token_set_from_payload(data: dict) -> TokenSet:
