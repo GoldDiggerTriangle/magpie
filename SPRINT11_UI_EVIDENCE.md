@@ -111,8 +111,11 @@ Secret-free model-count check after browser proof:
 
 ## Remote Validation
 
-Pending after final push.
+- `Validation` for UI completion commit `41310c1` passed:
+  - run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/27506306626
+  - sqlite: success
+  - postgres: success
 
 ## Closure Status
 
-Sprint 11 UI completion is implemented and live-deployed. It is formally closable after the final pushed commit has a green dual-lane `Validation` workflow.
+Sprint 11 UI completion is implemented, live-deployed, and validated by the dual-lane `Validation` workflow. Final closure requires this evidence update to be committed and pushed.
