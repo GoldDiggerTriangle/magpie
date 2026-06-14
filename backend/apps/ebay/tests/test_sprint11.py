@@ -430,6 +430,52 @@ def test_order_sync_api_and_staging_resolution_paths(
     assert resolve("/api/ebay/orders/sync/").url_name == "ebay-orders-sync"
 
 
+@pytest.mark.django_db
+def test_staging_link_sold_out_item_returns_friendly_quantity_detail(
+    api_client,
+    category,
+    fee_schedule,
+):
+    item = make_item(category, quantity_total=1, acquisition_cost=Decimal("20.00"))
+    InventoryItem.objects.filter(pk=item.pk).update(sku="STM-00002")
+    item.refresh_from_db()
+    create_sale_record(
+        data={
+            "item": item,
+            "sale_date": date(2026, 6, 14),
+            "quantity": 1,
+            "sale_price": Decimal("50.00"),
+            "channel": SaleRecord.Channel.MANUAL,
+            "actual_fees_total": Decimal("5.00"),
+            "actual_shipping_cost": Decimal("0.00"),
+        }
+    )
+    staging = EbayOrderStaging.objects.create(
+        ebay_order_id="ORDER-SOLD-OUT",
+        ebay_line_item_id="LINE-SOLD-OUT",
+        sku="STM-00002",
+        quantity=1,
+        line_price=Decimal("1.00"),
+        sale_date=date(2026, 6, 14),
+    )
+
+    response = api_client.post(
+        f"/api/ebay/order-staging/{staging.id}/resolve/",
+        {"action": "link", "item": str(item.id)},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert response.data["code"] == "quantity_remaining_exceeded"
+    assert response.data["detail"] == (
+        "Can\u2019t link \u2014 STM-00002 has no remaining quantity "
+        "(1 of 1 already sold). Increase that item\u2019s quantity, "
+        "choose a different item, or mark this order external."
+    )
+    assert EbayOrderStaging.objects.get(pk=staging.pk).status == EbayOrderStaging.Status.PENDING
+    assert SaleRecord.objects.count() == 1
+
+
 @pytest.mark.django_db(transaction=True)
 def test_backup_includes_order_staging_and_duplicate_tables(
     tmp_path,

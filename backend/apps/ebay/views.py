@@ -1,6 +1,7 @@
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -175,15 +176,28 @@ class EbayOrderStagingViewSet(
         staging = self.get_object()
         serializer = EbayOrderStagingResolveSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        sale = order_sync.resolve_staging(
-            staging,
-            action=serializer.validated_data["action"],
-            actor=request.user,
-            item=serializer.validated_data.get("item"),
-            item_data=serializer.item_data,
-            cost_basis_override=serializer.validated_data.get("cost_basis_override"),
-            notes=serializer.validated_data.get("notes", ""),
-        )
+        action_name = serializer.validated_data["action"]
+        item = serializer.validated_data.get("item")
+        try:
+            sale = order_sync.resolve_staging(
+                staging,
+                action=action_name,
+                actor=request.user,
+                item=item,
+                item_data=serializer.item_data,
+                cost_basis_override=serializer.validated_data.get("cost_basis_override"),
+                notes=serializer.validated_data.get("notes", ""),
+            )
+        except DRFValidationError as exc:
+            payload = _staging_resolution_error_payload(
+                exc,
+                staging=staging,
+                action=action_name,
+                item=item,
+            )
+            if payload:
+                return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            raise
         return Response(SaleRecordSerializer(sale).data, status=status.HTTP_201_CREATED)
 
 
@@ -217,3 +231,47 @@ class EbayOrderDuplicateCandidateViewSet(
             actor=request.user,
         )
         return Response(self.get_serializer(resolved).data)
+
+
+def _staging_resolution_error_payload(
+    exc: DRFValidationError,
+    *,
+    staging: EbayOrderStaging,
+    action: str,
+    item,
+) -> dict | None:
+    if action != "link" or item is None or not _has_quantity_error(exc):
+        return None
+    item.refresh_from_db()
+    sold = item.quantity_sold
+    total = item.quantity_total
+    remaining = item.quantity_remaining
+    if remaining <= 0:
+        detail = (
+            f"Can\u2019t link \u2014 {item.sku} has no remaining quantity "
+            f"({sold} of {total} already sold). Increase that item\u2019s quantity, "
+            "choose a different item, or mark this order external."
+        )
+    else:
+        detail = (
+            f"Can\u2019t link \u2014 {item.sku} only has {remaining} remaining "
+            f"({sold} of {total} already sold), but this order needs {staging.quantity}. "
+            "Increase that item\u2019s quantity, choose a different item, or mark this order external."
+        )
+    return {
+        "detail": detail,
+        "code": "quantity_remaining_exceeded",
+        "item": str(item.id),
+        "sku": item.sku,
+        "quantity_total": total,
+        "quantity_sold": sold,
+        "quantity_remaining": remaining,
+        "field_errors": exc.detail,
+    }
+
+
+def _has_quantity_error(exc: DRFValidationError) -> bool:
+    detail = exc.detail
+    if isinstance(detail, dict):
+        return "quantity" in detail
+    return False

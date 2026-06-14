@@ -25,9 +25,28 @@ export function formatApiErrorMessage(status: number, data: unknown): string {
     if (typeof detail === "string" && detail.trim()) {
       return detail.trim();
     }
+    const fieldError = firstFieldError(data as Record<string, unknown>);
+    if (fieldError) {
+      return fieldError;
+    }
   }
 
   return `API request failed with status ${status}`;
+}
+
+function firstFieldError(data: Record<string, unknown>): string {
+  for (const value of Object.values(data)) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+    if (Array.isArray(value)) {
+      const first = value.find((entry) => typeof entry === "string" && entry.trim());
+      if (typeof first === "string") {
+        return first.trim();
+      }
+    }
+  }
+  return "";
 }
 
 export function getCookie(name: string): string | null {

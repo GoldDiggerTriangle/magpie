@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, vi } from "vitest";
@@ -61,6 +61,21 @@ test("AddItem blocks submit with no photo", async () => {
   await userEvent.type(screen.getByLabelText(/title/i), "Stamp lot");
   await userEvent.click(screen.getByRole("button", { name: /save item/i }));
   expect(await screen.findByText("Add at least one photo.")).toBeInTheDocument();
+});
+
+test("AddItem submits total quantity from the item form", async () => {
+  const user = userEvent.setup();
+  renderAddItem();
+
+  await user.type(screen.getByLabelText(/title/i), "Stamp lot");
+  fireEvent.change(screen.getByLabelText(/total quantity/i), { target: { value: "4" } });
+  await user.upload(screen.getByLabelText(/add photos/i), new File(["photo"], "stamp.jpg", { type: "image/jpeg" }));
+  await user.click(screen.getByRole("button", { name: /save item/i }));
+
+  expect(mocks.createItem).toHaveBeenCalledWith(expect.objectContaining({
+    title: "Stamp lot",
+    quantity_total: 4
+  }));
 });
 
 test("AddItem keeps gold capture fields optional", async () => {

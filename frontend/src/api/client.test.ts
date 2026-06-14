@@ -73,3 +73,9 @@ test("ApiError uses JSON detail when available", () => {
 
   expect(error.message).toBe("eBay taxonomy endpoint unavailable.");
 });
+
+test("ApiError uses JSON field errors when detail is absent", () => {
+  const error = new ApiError(400, { quantity: ["Quantity exceeds remaining available units (0)."] });
+
+  expect(error.message).toBe("Quantity exceeds remaining available units (0).");
+});

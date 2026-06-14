@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 
+import { ApiError } from "../../api/client";
 import { EbayOrders } from "./EbayOrders";
 import type { EbayOrderDuplicateCandidate, EbayOrderStaging, EbayStatus, InventoryItemList, SaleRecord } from "../../types";
 
@@ -44,6 +45,16 @@ const item: InventoryItemList = {
   main_thumb_url: null,
   created_at: "2026-06-01T00:00:00Z"
 };
+
+const soldOutItem = {
+  ...item,
+  id: "item-sold-out",
+  sku: "STM-00002",
+  title: "Sold stamp",
+  quantity_total: 1,
+  quantity_sold: 1,
+  quantity_remaining: 0
+} satisfies InventoryItemList;
 
 const stagingRow: EbayOrderStaging = {
   id: "stage-1",
@@ -242,6 +253,24 @@ test("links a staged row to an existing item and removes it from the pending que
   }));
   expect(await screen.findByText("No pending staged orders")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "View it on Sales" })).toHaveAttribute("href", "/sales");
+});
+
+test("shows a friendly remaining-quantity error when linking a sold-out item", async () => {
+  const user = userEvent.setup();
+  const friendly = "Can\u2019t link \u2014 STM-00002 has no remaining quantity (1 of 1 already sold). Increase that item\u2019s quantity, choose a different item, or mark this order external.";
+  mocks.listItems.mockResolvedValue({ count: 1, next: null, previous: null, results: [soldOutItem] });
+  mocks.resolveEbayOrderStaging.mockRejectedValue(new ApiError(400, {
+    detail: friendly,
+    code: "quantity_remaining_exceeded"
+  }));
+  renderOrders();
+
+  const row = await screen.findByRole("article", { name: "" });
+  await user.selectOptions(within(row).getByLabelText("Existing item for UNKNOWN-SKU"), "item-sold-out");
+  await user.click(within(row).getByRole("button", { name: "Link to item" }));
+
+  expect(await screen.findByText(friendly)).toBeInTheDocument();
+  expect(screen.queryByText("API request failed with status 400")).not.toBeInTheDocument();
 });
 
 test("quick-creates an item for a staged row", async () => {
