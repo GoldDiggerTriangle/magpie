@@ -129,6 +129,168 @@ export interface DashboardSummary {
   high_value_unlisted: number;
 }
 
+export type DashboardKpiId =
+  | "realised_profit"
+  | "gross_revenue"
+  | "net_proceeds"
+  | "items_sold"
+  | "sell_through"
+  | "avg_realised_margin"
+  | "avg_time_to_sale"
+  | "inventory_cost_basis"
+  | "estimated_inventory_value"
+  | "aged_inventory_count"
+  | "unresolved_ebay_staging_count"
+  | "cost_basis_unknown_sales_count";
+
+export type DashboardKpiFormat = "currency" | "integer" | "percent" | "days";
+
+export interface DashboardAvailableTile {
+  id: DashboardKpiId;
+  label: string;
+  format: DashboardKpiFormat;
+  description: string;
+}
+
+export interface DashboardPreference {
+  kpi_tiles: DashboardKpiId[];
+  schema_version: number;
+  available_tiles: DashboardAvailableTile[];
+  updated_at: string | null;
+}
+
+export interface DashboardKpiTile {
+  id: DashboardKpiId;
+  label: string;
+  format: DashboardKpiFormat;
+  value: string;
+  secondary: string;
+  excluded_count: number;
+  description: string;
+}
+
+export interface AnalyticsFilters {
+  range: string;
+  start: string | null;
+  end: string | null;
+  category: UUID[];
+  channel: string;
+  unknown: string;
+}
+
+export interface AnalyticsSummary {
+  currency: string;
+  filters: AnalyticsFilters;
+  tiles: Record<DashboardKpiId, DashboardKpiTile>;
+  action_counts: {
+    unresolved_ebay_staging: number;
+    cost_basis_unknown_sales: number;
+    listing_opportunities: number;
+  };
+  sample: {
+    sales: number;
+    known_profit_sales: number;
+    linked_sales: number;
+  };
+}
+
+export interface AnalyticsPnlPoint {
+  month: string;
+  realised_profit: string;
+  net_proceeds: string;
+  gross_revenue: string;
+  quantity: number;
+  unknown_cost_sales: number;
+}
+
+export interface AnalyticsPnl {
+  currency: string;
+  series: AnalyticsPnlPoint[];
+  small_sample: boolean;
+  empty: boolean;
+}
+
+export interface AnalyticsCategoryRow {
+  category_id: UUID;
+  category: string;
+  gross_revenue: string;
+  realised_profit: string;
+  margin: string;
+  sell_through: string;
+  items_sold: number;
+  available_units: number;
+  unknown_cost_sales: number;
+}
+
+export interface AnalyticsByCategory {
+  currency: string;
+  categories: AnalyticsCategoryRow[];
+  empty: boolean;
+  small_sample: boolean;
+}
+
+export interface EstimateVsActualPoint {
+  sale_id: UUID;
+  item_id: UUID;
+  sku: string;
+  title: string;
+  sale_date: string;
+  estimated: string;
+  actual: string;
+  delta_pct: string;
+}
+
+export interface AnalyticsEstimateVsActual {
+  currency: string;
+  points: EstimateVsActualPoint[];
+  accuracy: {
+    sample_size: number;
+    within_20_pct: string;
+    median_abs_pct_error: string | null;
+    small_sample: boolean;
+    empty: boolean;
+  };
+  fees: {
+    sample_size: number;
+    estimated_fees_total: string;
+    actual_fees_total: string;
+    delta: string;
+  };
+}
+
+export interface AgingBucket {
+  id: string;
+  label: string;
+  count: number;
+  quantity_remaining: number;
+  cost_basis: string;
+  estimated_value: string;
+}
+
+export interface AnalyticsAging {
+  currency: string;
+  buckets: AgingBucket[];
+  empty: boolean;
+}
+
+export interface ListingOpportunity {
+  item_id: UUID;
+  sku: string;
+  title: string;
+  category: string;
+  quantity_remaining: number;
+  estimated_value: string;
+  cost_basis: string;
+  estimated_margin: string | null;
+  status: string;
+}
+
+export interface AnalyticsListingOpportunities {
+  currency: string;
+  items: ListingOpportunity[];
+  empty: boolean;
+}
+
 export interface ItemFormPayload {
   title: string;
   category: UUID | null;

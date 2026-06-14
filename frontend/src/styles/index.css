@@ -8,14 +8,14 @@
   }
 
   html {
-    background: #020617;
+    background: #fafaf7;
   }
 
   body {
     margin: 0;
     min-width: 320px;
-    background: #020617;
-    color: #e2e8f0;
+    background: #fafaf7;
+    color: #1c1b19;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
@@ -75,19 +75,19 @@
   }
 
   .nav-link {
-    @apply flex items-center gap-3 rounded px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-slate-900 hover:text-slate-100;
+    @apply flex items-center gap-3 rounded px-3 py-2 text-sm font-medium text-stone-600 transition hover:bg-white hover:text-stone-950;
   }
 
   .nav-link-active {
-    @apply bg-slate-900 text-cyan-200;
+    @apply bg-white text-stone-950 shadow-sm;
   }
 
   .mobile-nav-link {
-    @apply flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium text-slate-400;
+    @apply flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium text-stone-600;
   }
 
   .mobile-nav-link-active {
-    @apply text-cyan-200;
+    @apply text-[#9A7B2E];
   }
 
   .metric-tile {
@@ -100,5 +100,340 @@
 
   .item-card {
     @apply overflow-hidden rounded border border-slate-800 bg-slate-900 transition hover:-translate-y-0.5 hover:border-slate-600 hover:shadow-xl hover:shadow-slate-950/40;
+  }
+
+  .dashboard-ledger-page {
+    @apply min-h-screen w-full px-4 py-5 sm:px-6 lg:px-8;
+    background:
+      linear-gradient(180deg, rgba(154, 123, 46, 0.07), rgba(154, 123, 46, 0) 240px),
+      #fafaf7;
+    color: #1c1b19;
+  }
+
+  .dashboard-hero {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-5 border-b pb-5 lg:flex-row lg:items-end lg:justify-between;
+    border-color: #e4e1d8;
+  }
+
+  .ledger-title {
+    @apply mt-1 text-4xl font-semibold tracking-normal sm:text-5xl;
+    color: #1c1b19;
+    font-family: Georgia, "Times New Roman", serif;
+    letter-spacing: 0;
+  }
+
+  .ledger-subtitle {
+    @apply mt-2 max-w-2xl text-sm leading-6 sm:text-base;
+    color: #2c3340;
+  }
+
+  .ledger-kicker {
+    @apply text-xs font-semibold uppercase tracking-normal;
+    color: #9a7b2e;
+  }
+
+  .ledger-section-title {
+    @apply text-xl font-semibold tracking-normal sm:text-2xl;
+    color: #1c1b19;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .ledger-filter-bar {
+    @apply grid w-full gap-3 sm:grid-cols-2 lg:max-w-3xl lg:grid-cols-5;
+  }
+
+  .ledger-filter {
+    @apply block text-xs font-semibold uppercase tracking-normal;
+    color: #686256;
+  }
+
+  .ledger-filter select,
+  .ledger-filter input {
+    @apply mt-1 min-h-10 w-full rounded border bg-white px-3 py-2 text-sm outline-none transition focus:ring-2;
+    border-color: #d5d1c5;
+    color: #1c1b19;
+    --tw-ring-color: rgba(154, 123, 46, 0.22);
+  }
+
+  .ledger-filter select[multiple] {
+    @apply min-h-24;
+  }
+
+  .kpi-ledger-row,
+  .ledger-section {
+    @apply mx-auto mt-7 w-full max-w-7xl border-b pb-7;
+    border-color: #e4e1d8;
+  }
+
+  .ledger-section-prominent {
+    @apply pb-8;
+  }
+
+  .kpi-row-header,
+  .ledger-section-header {
+    @apply mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between;
+  }
+
+  .ledger-section-header > p {
+    @apply max-w-xl text-sm leading-6;
+    color: #686256;
+  }
+
+  .kpi-grid {
+    @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-5;
+  }
+
+  .ledger-kpi-tile {
+    @apply flex min-h-32 flex-col justify-between rounded border bg-white p-4;
+    border-color: #e4e1d8;
+    box-shadow: 0 8px 28px rgba(28, 27, 25, 0.04);
+  }
+
+  .ledger-kpi-tile span {
+    @apply text-xs font-semibold uppercase tracking-normal;
+    color: #686256;
+  }
+
+  .ledger-kpi-tile strong {
+    @apply mt-3 text-3xl font-semibold tracking-normal;
+    color: #1c1b19;
+    font-family: "Arial Narrow", "Roboto Condensed", ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-kpi-tile small {
+    @apply mt-3 text-xs leading-5;
+    color: #686256;
+  }
+
+  .ledger-button {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded border bg-white px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    border-color: #d5d1c5;
+    color: #1c1b19;
+  }
+
+  .ledger-button:hover {
+    border-color: #9a7b2e;
+  }
+
+  .ledger-button-primary {
+    background: #9a7b2e;
+    border-color: #9a7b2e;
+    color: white;
+  }
+
+  .kpi-picker {
+    @apply mb-4 rounded border bg-white p-4;
+    border-color: #e4e1d8;
+  }
+
+  .kpi-picker-list {
+    @apply grid gap-2 lg:grid-cols-2;
+  }
+
+  .kpi-picker-row {
+    @apply flex items-start justify-between gap-3 rounded border p-3;
+    border-color: #ece8dd;
+  }
+
+  .kpi-picker-row label {
+    @apply flex gap-3 text-sm;
+  }
+
+  .kpi-picker-row input {
+    @apply mt-1;
+    accent-color: #9a7b2e;
+  }
+
+  .kpi-picker-row strong,
+  .kpi-picker-row small {
+    @apply block;
+  }
+
+  .kpi-picker-row small {
+    @apply mt-1 text-xs leading-5;
+    color: #686256;
+  }
+
+  .kpi-picker-order {
+    @apply inline-flex gap-1;
+  }
+
+  .kpi-picker-order button {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded border bg-white;
+    border-color: #d5d1c5;
+  }
+
+  .kpi-picker-footer {
+    @apply mt-4 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between;
+    color: #686256;
+  }
+
+  .kpi-picker-footer strong {
+    color: #b0413e;
+  }
+
+  .dashboard-two-column {
+    @apply mx-auto grid w-full max-w-7xl gap-7 lg:grid-cols-2;
+  }
+
+  .dashboard-two-column .ledger-section {
+    @apply mt-7;
+  }
+
+  .ledger-chart {
+    @apply min-h-72 w-full rounded border bg-white p-3;
+    border-color: #e4e1d8;
+  }
+
+  .ledger-chart-compact {
+    @apply min-h-64;
+  }
+
+  .estimate-layout {
+    @apply grid gap-4;
+  }
+
+  .accuracy-strip {
+    @apply grid gap-3 sm:grid-cols-3;
+  }
+
+  .accuracy-strip > div {
+    @apply border-l-2 bg-white px-4 py-3;
+    border-color: #9a7b2e;
+  }
+
+  .accuracy-strip span {
+    @apply block text-xs font-semibold uppercase tracking-normal;
+    color: #686256;
+  }
+
+  .accuracy-strip strong {
+    @apply mt-1 block text-2xl font-semibold;
+    color: #1c1b19;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .estimate-table {
+    @apply block overflow-x-auto sm:hidden;
+  }
+
+  .estimate-table table,
+  .ledger-table {
+    @apply w-full text-left text-sm;
+    border-collapse: collapse;
+  }
+
+  .estimate-table th,
+  .estimate-table td,
+  .ledger-table th,
+  .ledger-table td {
+    @apply border-b px-3 py-3 align-top;
+    border-color: #e4e1d8;
+  }
+
+  .estimate-table th,
+  .ledger-table th {
+    @apply text-xs font-semibold uppercase tracking-normal;
+    color: #686256;
+  }
+
+  .ledger-table td,
+  .estimate-table td {
+    color: #1c1b19;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-table a {
+    color: #7a611f;
+    font-weight: 700;
+  }
+
+  .ledger-table small {
+    @apply mt-1 block;
+    color: #686256;
+  }
+
+  .ledger-table-wrap {
+    @apply overflow-x-auto rounded border bg-white;
+    border-color: #e4e1d8;
+  }
+
+  .velocity-grid {
+    @apply grid gap-3 md:grid-cols-3;
+  }
+
+  .small-sample {
+    @apply mb-3 rounded border px-3 py-2 text-sm;
+    border-color: rgba(154, 123, 46, 0.28);
+    background: rgba(154, 123, 46, 0.08);
+    color: #5d4a1c;
+  }
+
+  .ledger-empty {
+    @apply flex flex-col gap-3 rounded border bg-white p-5 sm:flex-row sm:items-center sm:justify-between;
+    border-color: #e4e1d8;
+  }
+
+  .ledger-empty strong {
+    @apply text-base;
+    color: #1c1b19;
+  }
+
+  .ledger-empty p {
+    @apply mt-1 text-sm leading-6;
+    color: #686256;
+  }
+
+  .ledger-empty a {
+    @apply inline-flex min-h-10 items-center justify-center rounded border px-3 py-2 text-sm font-semibold;
+    border-color: #9a7b2e;
+    color: #7a611f;
+  }
+
+  .ledger-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: #ece8dd;
+  }
+
+  .ledger-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+    animation: ledger-shimmer 1.4s infinite;
+  }
+
+  .ledger-table-skeleton {
+    @apply min-h-64 rounded border;
+    border-color: #e4e1d8;
+  }
+
+  @media (max-width: 640px) {
+    .ledger-title {
+      font-size: 2.25rem;
+    }
+
+    .estimate-chart {
+      display: none;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ledger-skeleton::after {
+      animation: none;
+    }
+  }
+}
+
+@keyframes ledger-shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }

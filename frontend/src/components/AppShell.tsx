@@ -12,11 +12,11 @@ const navItems = [
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <aside className="fixed left-0 top-0 hidden h-full w-64 border-r border-slate-800 bg-slate-950/95 p-5 md:block">
+    <div className="min-h-screen bg-[#FAFAF7] text-[#1C1B19]">
+      <aside className="fixed left-0 top-0 hidden h-full w-64 border-r border-[#E4E1D8] bg-[#F4F2EA]/95 p-5 md:block">
         <div>
-          <p className="text-lg font-semibold">Gold, Stamps & Phonetech</p>
-          <p className="mt-1 text-sm text-slate-500">Inventory</p>
+          <p className="text-lg font-semibold text-[#1C1B19]">Gold, Stamps & Phonetech</p>
+          <p className="mt-1 text-sm text-[#686256]">Inventory</p>
         </div>
         <nav className="mt-8 space-y-1">
           {navItems.map(({ to, label, icon: Icon }) => (
@@ -30,7 +30,7 @@ export function AppShell() {
       <main className="min-h-screen pb-24 md:ml-64 md:pb-0">
         <Outlet />
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-6 border-t border-slate-800 bg-slate-950 md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-6 border-t border-[#E4E1D8] bg-[#FAFAF7] md:hidden">
         {navItems.map(({ to, shortLabel, icon: Icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link-active" : ""}`} end={to === "/"}>
             <Icon className="h-5 w-5" aria-hidden="true" />

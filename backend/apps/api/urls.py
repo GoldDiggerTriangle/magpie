@@ -5,7 +5,16 @@ from apps.api.views import HealthCheckView
 from apps.audit.views import AuditLogViewSet
 from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
-from apps.dashboard.views import DashboardSummaryView
+from apps.dashboard.views import (
+    AnalyticsAgingView,
+    AnalyticsByCategoryView,
+    AnalyticsEstimateVsActualView,
+    AnalyticsListingOpportunitiesView,
+    AnalyticsPnlView,
+    AnalyticsSummaryView,
+    DashboardPreferenceView,
+    DashboardSummaryView,
+)
 from apps.ebay.views import (
     EbayCategoryAspectsView,
     EbayCategorySuggestionsView,
@@ -140,4 +149,19 @@ urlpatterns = [
     ),
     path("", include(router.urls)),
     path("dashboard/summary/", DashboardSummaryView.as_view(), name="dashboard-summary"),
+    path("dashboard/preferences/", DashboardPreferenceView.as_view(), name="dashboard-preferences"),
+    path("analytics/summary/", AnalyticsSummaryView.as_view(), name="analytics-summary"),
+    path("analytics/pnl/", AnalyticsPnlView.as_view(), name="analytics-pnl"),
+    path("analytics/by-category/", AnalyticsByCategoryView.as_view(), name="analytics-by-category"),
+    path(
+        "analytics/estimate-vs-actual/",
+        AnalyticsEstimateVsActualView.as_view(),
+        name="analytics-estimate-vs-actual",
+    ),
+    path("analytics/aging/", AnalyticsAgingView.as_view(), name="analytics-aging"),
+    path(
+        "analytics/listing-opportunities/",
+        AnalyticsListingOpportunitiesView.as_view(),
+        name="analytics-listing-opportunities",
+    ),
 ]

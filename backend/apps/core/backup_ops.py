@@ -53,6 +53,7 @@ LOCAL_APP_LABELS = {
     "sales",
     "audit",
     "ebay",
+    "dashboard",
 }
 
 ENV_VAR_NAMES = [
@@ -81,6 +82,7 @@ KEY_ROW_TABLES = {
     "sales": "sales_salerecord",
     "ebay_staging": "ebay_ebayorderstaging",
     "ebay_duplicates": "ebay_ebayorderduplicatecandidate",
+    "dashboard_preferences": "dashboard_dashboardpreference",
     "credential": "ebay_ebaycredential",
 }
 
