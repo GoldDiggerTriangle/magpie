@@ -108,9 +108,14 @@ This confirms the reconciled Sprint 8 business data was not damaged by Sprint 10
 
 ## Remote Validation
 
-Remote GitHub Actions dual-lane `Validation` result: pending commit/push.
+Remote GitHub Actions dual-lane `Validation` result: PASS.
 
-Expected lanes:
+- Commit: `707d5c7`.
+- Run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/27486309712.
+- `sqlite` job: completed successfully.
+- `postgres` job: completed successfully.
+
+Lanes covered:
 
 - `sqlite`: SQLite runtime lane, backend tests, encrypted backup/restore, frontend tests/typecheck/build, collectstatic, deploy check, Waitress/WhiteNoise smoke.
 - `postgres`: PostgreSQL lane, migrations, seed, schema/fake-adapter assertions, backend tests.
