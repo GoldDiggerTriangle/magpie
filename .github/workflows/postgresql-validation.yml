@@ -101,7 +101,8 @@ jobs:
           adapter_file = Path("backend/apps/ebay/adapters.py")
           frontend_root = Path("frontend/src")
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
-          network_imports = {"requests", "httpx", "aiohttp", "urllib"}
+          network_imports = {"requests", "httpx", "aiohttp"}
+          urllib_network_modules = {"urllib.request", "urllib.error"}
           ebay_hosts = [
               "api.ebay.com",
               "api.sandbox.ebay.com",
@@ -129,9 +130,9 @@ jobs:
               for node in ast.walk(tree):
                   if isinstance(node, ast.Import):
                       for alias in node.names:
-                          yield alias.name.split(".")[0]
+                          yield alias.name
                   elif isinstance(node, ast.ImportFrom) and node.module:
-                      yield node.module.split(".")[0]
+                      yield node.module
 
           def text_without_comments(path):
               text = path.read_text(encoding="utf-8", errors="ignore")
@@ -161,7 +162,8 @@ jobs:
                   continue
               if path.suffix == ".py":
                   for import_name in python_imports(path):
-                      if import_name in network_imports:
+                      root_import = import_name.split(".")[0]
+                      if root_import in network_imports or import_name in urllib_network_modules:
                           bad.append(f"{path}: network import {import_name}")
               text = text_without_comments(path)
               for host in ebay_hosts:
