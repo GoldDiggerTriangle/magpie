@@ -80,7 +80,6 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
     if corrected_from is not None:
         corrected_from = (
             SaleRecord.objects.select_for_update()
-            .select_related("item")
             .get(pk=corrected_from.pk)
         )
         if corrected_from.item_id != item.id:
