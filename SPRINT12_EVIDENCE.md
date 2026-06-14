@@ -112,4 +112,9 @@ Regan sign-off is still required for the final aesthetic gate. Codex cannot sign
 
 ## Remote Validation
 
-Remote dual-lane GitHub Actions Validation must be checked after the final Sprint 12 evidence commit is pushed.
+Remote dual-lane GitHub Actions Validation for Sprint 12 implementation commit `32e2511`:
+
+- Run: `27509514825`
+- URL: `https://github.com/GoldDiggerTriangle/magpie/actions/runs/27509514825`
+- Result: success
+- Jobs: `sqlite` success, `postgres` success
