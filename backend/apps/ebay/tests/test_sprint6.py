@@ -18,6 +18,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 import integrations.ebay as ebay_integration
+import apps.ebay.adapters as ebay_adapters
 from apps.audit.models import AuditLog
 from apps.audit.services import record
 from apps.core.backup_ops import DB_SNAPSHOT_NAME
@@ -183,6 +184,7 @@ def test_http_identity_endpoint_uses_apiz_host(settings, monkeypatch):
         return FakeResponse()
 
     monkeypatch.setattr(ebay_integration, "urlopen", fake_urlopen)
+    monkeypatch.setattr(ebay_adapters, "urlopen", fake_urlopen)
 
     identity = ebay_integration.HttpEbayAccountAdapter().get_identity(access_token="access-token")
 
@@ -225,6 +227,8 @@ def test_inspect_ebay_oauth_command_prints_safe_fields(settings):
     assert "redirect_uri=sandbox-runame" in text
     assert "scope=https://api.ebay.com/oauth/api_scope/sell.inventory" in text
     assert "scope=https://api.ebay.com/oauth/api_scope/sell.account.readonly" in text
+    assert "scope=https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly" in text
+    assert "scope=https://api.ebay.com/oauth/api_scope/sell.finances" in text
     assert "scope_separator_encoding=%20" in text
     assert "state_length=26" in text
     assert settings.EBAY_CLIENT_ID not in text
@@ -374,6 +378,8 @@ def test_status_unconfigured_without_credentials_reports_not_configured(api_clie
         "configured": False,
         "environment": "",
         "connected": False,
+        "requires_reconsent": False,
+        "missing_scopes": [],
         "ebay_username": "",
         "scopes": [],
         "access_token_expires_at": None,
@@ -534,7 +540,7 @@ def test_backup_json_restore_includes_audit_and_ebay_tables_with_ciphertext(tmp_
     )
 
 
-def test_ebay_http_is_confined_to_integrations():
+def test_ebay_http_is_confined_to_ebay_adapters():
     import apps.ebay.models as ebay_models
     import apps.ebay.services as ebay_services
     import apps.ebay.views as ebay_views
@@ -547,7 +553,9 @@ def test_ebay_http_is_confined_to_integrations():
         assert token not in app_source.lower()
 
     integration_source = inspect.getsource(ebay_integration)
-    assert "api.ebay.com" in integration_source
+    assert "api.ebay.com" not in integration_source
+    adapter_source = inspect.getsource(ebay_adapters)
+    assert "api.ebay.com" in adapter_source
 
 
 def test_admin_redacts_tokens():

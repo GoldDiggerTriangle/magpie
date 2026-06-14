@@ -10,10 +10,14 @@ const sandboxStatus: EbayStatus = {
   configured: true,
   environment: "sandbox",
   connected: true,
+  requires_reconsent: false,
+  missing_scopes: [],
   ebay_username: "fake_sandbox_seller",
   scopes: [
     "https://api.ebay.com/oauth/api_scope/sell.inventory",
-    "https://api.ebay.com/oauth/api_scope/sell.account.readonly"
+    "https://api.ebay.com/oauth/api_scope/sell.account.readonly",
+    "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
+    "https://api.ebay.com/oauth/api_scope/sell.finances"
   ],
   access_token_expires_at: "2026-06-11T04:00:00Z",
   refresh_token_expires_at: "2026-12-11T04:00:00Z",
@@ -29,8 +33,13 @@ const mocks = vi.hoisted(() => ({
   completeEbayConnect: vi.fn(),
   disconnectEbay: vi.fn(),
   getEbayStatus: vi.fn(),
+  listEbayOrderDuplicates: vi.fn(),
+  listEbayOrderStaging: vi.fn(),
   listAuditLogs: vi.fn(),
   refreshEbayPolicies: vi.fn(),
+  resolveEbayOrderDuplicate: vi.fn(),
+  resolveEbayOrderStaging: vi.fn(),
+  syncEbayOrders: vi.fn(),
   startEbayConnect: vi.fn()
 }));
 
@@ -38,7 +47,12 @@ vi.mock("../../api/ebay", () => ({
   completeEbayConnect: (...args: unknown[]) => mocks.completeEbayConnect(...args),
   disconnectEbay: (...args: unknown[]) => mocks.disconnectEbay(...args),
   getEbayStatus: (...args: unknown[]) => mocks.getEbayStatus(...args),
+  listEbayOrderDuplicates: (...args: unknown[]) => mocks.listEbayOrderDuplicates(...args),
+  listEbayOrderStaging: (...args: unknown[]) => mocks.listEbayOrderStaging(...args),
   refreshEbayPolicies: (...args: unknown[]) => mocks.refreshEbayPolicies(...args),
+  resolveEbayOrderDuplicate: (...args: unknown[]) => mocks.resolveEbayOrderDuplicate(...args),
+  resolveEbayOrderStaging: (...args: unknown[]) => mocks.resolveEbayOrderStaging(...args),
+  syncEbayOrders: (...args: unknown[]) => mocks.syncEbayOrders(...args),
   startEbayConnect: (...args: unknown[]) => mocks.startEbayConnect(...args)
 }));
 
@@ -53,6 +67,10 @@ beforeEach(() => {
   mocks.disconnectEbay.mockResolvedValue(undefined);
   mocks.getEbayStatus.mockReset();
   mocks.getEbayStatus.mockResolvedValue(sandboxStatus);
+  mocks.listEbayOrderDuplicates.mockReset();
+  mocks.listEbayOrderDuplicates.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  mocks.listEbayOrderStaging.mockReset();
+  mocks.listEbayOrderStaging.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mocks.listAuditLogs.mockReset();
   mocks.listAuditLogs.mockResolvedValue({
     count: 1,
@@ -72,6 +90,24 @@ beforeEach(() => {
   });
   mocks.refreshEbayPolicies.mockReset();
   mocks.refreshEbayPolicies.mockResolvedValue(sandboxStatus);
+  mocks.resolveEbayOrderDuplicate.mockReset();
+  mocks.resolveEbayOrderDuplicate.mockResolvedValue({});
+  mocks.resolveEbayOrderStaging.mockReset();
+  mocks.resolveEbayOrderStaging.mockResolvedValue({});
+  mocks.syncEbayOrders.mockReset();
+  mocks.syncEbayOrders.mockResolvedValue({
+    environment: "sandbox",
+    start: "2026-06-10T00:00:00Z",
+    end: "2026-06-11T00:00:00Z",
+    counts: {
+      created: 0,
+      staged: 1,
+      duplicate_flagged: 0,
+      skipped: 0,
+      fee_authoritative: 0,
+      fee_estimated_or_unmapped: 1
+    }
+  });
   mocks.startEbayConnect.mockReset();
   mocks.startEbayConnect.mockResolvedValue({ consent_url: "https://signin.sandbox.ebay.test/consent?state=abc" });
 });
@@ -92,7 +128,18 @@ test("EbaySettings renders sandbox status, readiness counts, and audit rows", as
   expect(screen.getByText("fake_sandbox_seller")).toBeInTheDocument();
   expect(screen.getByText("Payment")).toBeInTheDocument();
   expect(screen.getByText("1")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Sync eBay Orders" })).toBeInTheDocument();
   expect(screen.getByText("ebay.connect.completed")).toBeInTheDocument();
+});
+
+test("EbaySettings manually starts order sync and shows counts", async () => {
+  const user = userEvent.setup();
+  renderSettings();
+
+  await user.click(await screen.findByRole("button", { name: "Sync eBay Orders" }));
+
+  await waitFor(() => expect(mocks.syncEbayOrders).toHaveBeenCalled());
+  expect(await screen.findByText("Staged")).toBeInTheDocument();
 });
 
 test("EbaySettings starts connect and completes the paste-back flow", async () => {

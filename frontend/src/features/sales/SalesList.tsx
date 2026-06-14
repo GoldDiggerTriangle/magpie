@@ -33,15 +33,19 @@ export function SalesList() {
               <tr key={sale.id} className={sale.is_superseded ? "text-slate-500" : "text-slate-200"}>
                 <td className="px-4 py-3">{sale.sale_date}</td>
                 <td className="px-4 py-3">
-                  <Link className="text-cyan-200 hover:text-cyan-100" to={`/inventory/${sale.item}`}>
-                    {sale.item_sku} {sale.item_title ? `- ${sale.item_title}` : ""}
-                  </Link>
+                  {sale.item ? (
+                    <Link className="text-cyan-200 hover:text-cyan-100" to={`/inventory/${sale.item}`}>
+                      {sale.item_sku} {sale.item_title ? `- ${sale.item_title}` : ""}
+                    </Link>
+                  ) : (
+                    <span>{sale.item_title || "External sale"}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">{sale.quantity}</td>
                 <td className="px-4 py-3">${sale.sale_price}</td>
                 <td className="px-4 py-3">${sale.net_proceeds}</td>
-                <td className="px-4 py-3">${sale.allocated_cost_basis}</td>
-                <td className="px-4 py-3">${sale.realised_profit}</td>
+                <td className="px-4 py-3">{sale.allocated_cost_basis ? `$${sale.allocated_cost_basis}` : "-"}</td>
+                <td className="px-4 py-3">{sale.realised_profit ? `$${sale.realised_profit}` : "-"}</td>
                 <td className="px-4 py-3">{sale.is_superseded ? "Superseded" : sale.corrected_from ? "Correction" : "Active"}</td>
               </tr>
             ))}

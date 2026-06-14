@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   CircleAlert,
+  DownloadCloud,
   ExternalLink,
   Link2,
   RefreshCw,
   ShieldCheck,
-  Unplug
+  Unplug,
+  XCircle
 } from "lucide-react";
 import { useState } from "react";
 
@@ -15,12 +17,17 @@ import {
   completeEbayConnect,
   disconnectEbay,
   getEbayStatus,
+  listEbayOrderDuplicates,
+  listEbayOrderStaging,
   refreshEbayPolicies,
-  startEbayConnect
+  resolveEbayOrderDuplicate,
+  resolveEbayOrderStaging,
+  startEbayConnect,
+  syncEbayOrders
 } from "../../api/ebay";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
-import type { AuditLogEntry, EbayStatus } from "../../types";
+import type { AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus } from "../../types";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -28,8 +35,11 @@ export function EbaySettings() {
   const [pastedUrl, setPastedUrl] = useState("");
   const [auditPrefix, setAuditPrefix] = useState("ebay.");
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [stagingInputs, setStagingInputs] = useState<Record<string, { item: string; title: string; cost: string }>>({});
 
   const status = useQuery({ queryKey: ["ebay-status"], queryFn: getEbayStatus });
+  const staging = useQuery({ queryKey: ["ebay-order-staging", "pending"], queryFn: () => listEbayOrderStaging("pending") });
+  const duplicates = useQuery({ queryKey: ["ebay-order-duplicates", "pending"], queryFn: () => listEbayOrderDuplicates("pending") });
   const audit = useQuery({
     queryKey: ["audit-log", auditPrefix],
     queryFn: () => listAuditLogs({ actionPrefix: auditPrefix })
@@ -37,6 +47,8 @@ export function EbaySettings() {
 
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ["ebay-status"] });
+    queryClient.invalidateQueries({ queryKey: ["ebay-order-staging"] });
+    queryClient.invalidateQueries({ queryKey: ["ebay-order-duplicates"] });
     queryClient.invalidateQueries({ queryKey: ["audit-log"] });
   };
 
@@ -54,6 +66,39 @@ export function EbaySettings() {
   });
   const policyMutation = useMutation({
     mutationFn: refreshEbayPolicies,
+    onSuccess: refreshAll
+  });
+  const syncMutation = useMutation({
+    mutationFn: () => syncEbayOrders(),
+    onSuccess: refreshAll
+  });
+  const resolveStagingMutation = useMutation({
+    mutationFn: ({ row, action }: { row: EbayOrderStaging; action: "link" | "quick_create" | "mark_external" }) => {
+      const input = stagingInputs[row.id] ?? { item: "", title: "", cost: "" };
+      if (action === "link") {
+        return resolveEbayOrderStaging(row.id, {
+          action,
+          item: input.item,
+          cost_basis_override: input.cost || null
+        });
+      }
+      if (action === "quick_create") {
+        return resolveEbayOrderStaging(row.id, {
+          action,
+          title: input.title || row.sku || `eBay order ${row.ebay_order_id}`,
+          quantity_total: row.quantity,
+          acquisition_cost: input.cost || null
+        });
+      }
+      return resolveEbayOrderStaging(row.id, {
+        action,
+        cost_basis_override: input.cost || null
+      });
+    },
+    onSuccess: refreshAll
+  });
+  const resolveDuplicateMutation = useMutation({
+    mutationFn: ({ row, action }: { row: EbayOrderDuplicateCandidate; action: "link" | "dismiss" }) => resolveEbayOrderDuplicate(row.id, { action }),
     onSuccess: refreshAll
   });
   const disconnectMutation = useMutation({
@@ -96,6 +141,23 @@ export function EbaySettings() {
             status={status.data}
             error={errorText(policyMutation.error)}
           />
+          <OrderSyncPanel
+            duplicateRows={duplicates.data?.results ?? []}
+            duplicatesLoading={duplicates.isLoading}
+            duplicatePending={resolveDuplicateMutation.isPending}
+            error={errorText(syncMutation.error) || errorText(resolveStagingMutation.error) || errorText(resolveDuplicateMutation.error)}
+            onDuplicateResolve={(row, action) => resolveDuplicateMutation.mutate({ row, action })}
+            onInputChange={(id, patch) => setStagingInputs((current) => ({ ...current, [id]: { ...(current[id] ?? { item: "", title: "", cost: "" }), ...patch } }))}
+            onResolve={(row, action) => resolveStagingMutation.mutate({ row, action })}
+            onSync={() => syncMutation.mutate()}
+            pending={syncMutation.isPending}
+            result={syncMutation.data}
+            stagingInputs={stagingInputs}
+            stagingLoading={staging.isLoading}
+            stagingRows={staging.data?.results ?? []}
+            stagingPending={resolveStagingMutation.isPending}
+            status={status.data}
+          />
           <AuditLogTable
             entries={audit.data?.results ?? []}
             filter={auditPrefix}
@@ -135,6 +197,136 @@ export function EbaySettings() {
         onConfirm={() => disconnectMutation.mutate()}
       />
     </div>
+  );
+}
+
+function OrderSyncPanel({
+  duplicatePending,
+  duplicateRows,
+  duplicatesLoading,
+  error,
+  onDuplicateResolve,
+  onInputChange,
+  onResolve,
+  onSync,
+  pending,
+  result,
+  stagingInputs,
+  stagingLoading,
+  stagingPending,
+  stagingRows,
+  status
+}: {
+  duplicatePending: boolean;
+  duplicateRows: EbayOrderDuplicateCandidate[];
+  duplicatesLoading: boolean;
+  error: string;
+  onDuplicateResolve: (row: EbayOrderDuplicateCandidate, action: "link" | "dismiss") => void;
+  onInputChange: (id: string, patch: { item?: string; title?: string; cost?: string }) => void;
+  onResolve: (row: EbayOrderStaging, action: "link" | "quick_create" | "mark_external") => void;
+  onSync: () => void;
+  pending: boolean;
+  result?: EbayOrderSyncResult;
+  stagingInputs: Record<string, { item: string; title: string; cost: string }>;
+  stagingLoading: boolean;
+  stagingPending: boolean;
+  stagingRows: EbayOrderStaging[];
+  status?: EbayStatus;
+}) {
+  return (
+    <section className="rounded border border-slate-800 bg-slate-950/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="section-title">Order Sync</h2>
+          <p className="mt-1 text-xs text-slate-500">Manual read-only eBay import</p>
+        </div>
+        <button className="btn-primary gap-2" disabled={!status?.connected || pending} onClick={onSync} type="button">
+          <DownloadCloud className="h-4 w-4" aria-hidden="true" />
+          Sync eBay Orders
+        </button>
+      </div>
+      {status?.requires_reconsent ? (
+        <div className="mt-3 rounded border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-50">
+          Re-consent is required before order sync. Start Connect again and complete the paste-back flow.
+        </div>
+      ) : null}
+      {result ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          <Metric label="Created" value={result.counts.created} />
+          <Metric label="Staged" value={result.counts.staged} />
+          <Metric label="Duplicates" value={result.counts.duplicate_flagged} />
+          <Metric label="Skipped" value={result.counts.skipped} />
+        </div>
+      ) : null}
+      {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
+
+      <div className="mt-5">
+        <h3 className="text-sm font-semibold text-slate-100">Unmatched Orders</h3>
+        {stagingLoading ? <EmptyState title="Loading staging queue" /> : null}
+        {!stagingLoading && stagingRows.length === 0 ? <EmptyState title="No pending staged orders" /> : null}
+        <div className="mt-3 space-y-3">
+          {stagingRows.map((row) => {
+            const input = stagingInputs[row.id] ?? { item: "", title: "", cost: "" };
+            return (
+              <div className="rounded border border-slate-800 bg-slate-900 p-3" key={row.id}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-slate-100">{row.sku || "No SKU"} · {row.quantity} · ${row.line_price}</p>
+                    <p className="mt-1 text-xs text-slate-500">{row.sale_date} · {row.ebay_order_id}/{row.ebay_line_item_id}</p>
+                    {row.fee_status === "estimated_or_unmapped" ? <p className="mt-1 text-xs text-amber-200">Fees need review</p> : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button className="btn-secondary" disabled={!input.item || stagingPending} onClick={() => onResolve(row, "link")} type="button">Link</button>
+                    <button className="btn-secondary" disabled={stagingPending} onClick={() => onResolve(row, "quick_create")} type="button">Quick-create</button>
+                    <button className="btn-secondary" disabled={stagingPending} onClick={() => onResolve(row, "mark_external")} type="button">Mark external</button>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <label className="label">
+                    <span>Item ID</span>
+                    <input className="field" onChange={(event) => onInputChange(row.id, { item: event.target.value })} value={input.item} />
+                  </label>
+                  <label className="label">
+                    <span>Quick title</span>
+                    <input className="field" onChange={(event) => onInputChange(row.id, { title: event.target.value })} value={input.title} />
+                  </label>
+                  <label className="label">
+                    <span>Cost basis</span>
+                    <input className="field" onChange={(event) => onInputChange(row.id, { cost: event.target.value })} value={input.cost} />
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <h3 className="text-sm font-semibold text-slate-100">Duplicate Candidates</h3>
+        {duplicatesLoading ? <EmptyState title="Loading duplicate candidates" /> : null}
+        {!duplicatesLoading && duplicateRows.length === 0 ? <EmptyState title="No duplicate candidates" /> : null}
+        <div className="mt-3 space-y-3">
+          {duplicateRows.map((row) => (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-800 bg-slate-900 p-3" key={row.id}>
+              <div>
+                <p className="font-medium text-slate-100">{row.item_sku} · {row.quantity} · ${row.line_price}</p>
+                <p className="mt-1 text-xs text-slate-500">{row.sale_date} · {row.ebay_order_id}/{row.ebay_line_item_id}</p>
+              </div>
+              <div className="flex gap-2">
+                <button className="btn-secondary gap-2" disabled={duplicatePending} onClick={() => onDuplicateResolve(row, "link")} type="button">
+                  <Link2 className="h-4 w-4" aria-hidden="true" />
+                  Link
+                </button>
+                <button className="btn-secondary gap-2" disabled={duplicatePending} onClick={() => onDuplicateResolve(row, "dismiss")} type="button">
+                  <XCircle className="h-4 w-4" aria-hidden="true" />
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

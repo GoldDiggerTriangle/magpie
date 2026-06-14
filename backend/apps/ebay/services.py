@@ -402,10 +402,15 @@ def status_summary() -> dict:
         .first()
     )
     snapshot = EbayAccountSnapshot.objects.filter(environment=environment).first()
+    missing_scopes = []
+    if credential is not None:
+        missing_scopes = sorted(set(EBAY_SCOPES) - set(credential.scopes or []))
     return {
         "configured": configured,
         "environment": environment if configured or credential else "",
         "connected": credential is not None,
+        "requires_reconsent": bool(missing_scopes),
+        "missing_scopes": missing_scopes,
         "ebay_username": credential.ebay_username if credential else "",
         "scopes": credential.scopes if credential else [],
         "access_token_expires_at": credential.access_token_expires_at if credential else None,

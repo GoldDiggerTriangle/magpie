@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from apps.core.models import TimeStampedUUIDModel
 from apps.ebay.constants import (
+    DEFAULT_FAKE_ENVIRONMENT,
     EBAY_ENV_PRODUCTION,
     EBAY_ENV_SANDBOX,
     OAUTH_STATE_TTL_MINUTES,
@@ -134,3 +135,123 @@ class EbayAccountSnapshot(TimeStampedUUIDModel):
 
     def __str__(self) -> str:
         return f"{self.environment} account snapshot"
+
+
+class EbayOrderSyncState(TimeStampedUUIDModel):
+    environment = models.CharField(
+        max_length=12,
+        choices=EbayCredential.Environment.choices,
+        unique=True,
+    )
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    lookback_days = models.PositiveIntegerField(default=2)
+
+    def __str__(self) -> str:
+        return f"{self.environment} order sync state"
+
+
+class EbayOrderStaging(TimeStampedUUIDModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        RESOLVED = "resolved", "Resolved"
+        DISMISSED = "dismissed", "Dismissed"
+
+    class FeeStatus(models.TextChoices):
+        AUTHORITATIVE = "authoritative", "Authoritative"
+        ESTIMATED_OR_UNMAPPED = "estimated_or_unmapped", "Estimated or unmapped"
+
+    environment = models.CharField(
+        max_length=12,
+        choices=EbayCredential.Environment.choices,
+        default=DEFAULT_FAKE_ENVIRONMENT,
+    )
+    ebay_order_id = models.CharField(max_length=80)
+    ebay_line_item_id = models.CharField(max_length=120)
+    sku = models.CharField(max_length=120, blank=True, default="")
+    quantity = models.PositiveIntegerField(default=1)
+    line_price = models.DecimalField(max_digits=12, decimal_places=2)
+    sale_date = models.DateField()
+    actual_fee = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    fee_status = models.CharField(
+        max_length=32,
+        choices=FeeStatus.choices,
+        default=FeeStatus.ESTIMATED_OR_UNMAPPED,
+    )
+    buyer_region = models.CharField(max_length=80, blank=True, default="")
+    raw = models.JSONField(default=dict, blank=True)
+    finance_snapshot = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    resolved_sale = models.ForeignKey(
+        "sales.SaleRecord",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="staging_sources",
+    )
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-sale_date", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["environment", "ebay_order_id", "ebay_line_item_id"],
+                name="uniq_ebay_staging_order_line",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["status", "sale_date"]),
+            models.Index(fields=["sku"]),
+            models.Index(fields=["ebay_order_id", "ebay_line_item_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.ebay_order_id}/{self.ebay_line_item_id} staging"
+
+
+class EbayOrderDuplicateCandidate(TimeStampedUUIDModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        LINKED = "linked", "Linked"
+        DISMISSED = "dismissed", "Dismissed"
+
+    environment = models.CharField(
+        max_length=12,
+        choices=EbayCredential.Environment.choices,
+        default=DEFAULT_FAKE_ENVIRONMENT,
+    )
+    ebay_order_id = models.CharField(max_length=80)
+    ebay_line_item_id = models.CharField(max_length=120)
+    sku = models.CharField(max_length=120, blank=True, default="")
+    item = models.ForeignKey(
+        "inventory.InventoryItem",
+        on_delete=models.CASCADE,
+        related_name="ebay_duplicate_candidates",
+    )
+    manual_sale = models.ForeignKey(
+        "sales.SaleRecord",
+        on_delete=models.CASCADE,
+        related_name="ebay_duplicate_candidates",
+    )
+    quantity = models.PositiveIntegerField(default=1)
+    line_price = models.DecimalField(max_digits=12, decimal_places=2)
+    sale_date = models.DateField()
+    raw = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    notes = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-sale_date", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["environment", "ebay_order_id", "ebay_line_item_id"],
+                name="uniq_ebay_duplicate_order_line",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["status", "sale_date"]),
+            models.Index(fields=["sku"]),
+            models.Index(fields=["item"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.ebay_order_id}/{self.ebay_line_item_id} duplicate candidate"

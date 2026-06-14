@@ -25,10 +25,11 @@ def active_quantity_sold(item: InventoryItem, *, exclude: SaleRecord | None = No
 
 
 def active_realised_profit(item: InventoryItem) -> Decimal:
-    return sum(
-        (sale.realised_profit for sale in active_sales_queryset(item).select_related("item")),
-        Decimal("0.00"),
-    )
+    total = Decimal("0.00")
+    for sale in active_sales_queryset(item).select_related("item"):
+        if sale.realised_profit is not None:
+            total += sale.realised_profit
+    return total
 
 
 @transaction.atomic
@@ -55,7 +56,25 @@ def recompute_item_sale_status(item: InventoryItem) -> InventoryItem:
 
 @transaction.atomic
 def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) -> SaleRecord:
-    item = data["item"]
+    item = data.get("item")
+    if item is None:
+        if not data.get("is_external"):
+            raise serializers.ValidationError({"item": ["This field is required."]})
+        if corrected_from is not None:
+            raise serializers.ValidationError(
+                {"corrected_from": ["External sale corrections are not supported yet."]}
+            )
+        estimated_fee_snapshot = fee_snapshot_for_sale_price(data["sale_price"])
+        if data.get("actual_fees_total") is None:
+            data["actual_fees_total"] = money(estimated_fee_snapshot["estimated_fees_total"])
+        if not data.get("actual_fee_breakdown"):
+            data["actual_fee_breakdown"] = estimated_fee_snapshot.get("fee_breakdown", {})
+        return SaleRecord.objects.create(
+            **data,
+            valuation_snapshot=valuation_snapshot_for(None),
+            estimated_fee_snapshot=estimated_fee_snapshot,
+        )
+
     item = InventoryItem.objects.select_for_update().get(pk=item.pk)
 
     if corrected_from is not None:
@@ -97,7 +116,14 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
     return sale
 
 
-def valuation_snapshot_for(item: InventoryItem) -> dict:
+def valuation_snapshot_for(item: InventoryItem | None) -> dict:
+    if item is None:
+        return {
+            "captured_at": timezone.now().isoformat(),
+            "current_report": None,
+            "item_estimated_value": None,
+            "currency": "AUD",
+        }
     report = (
         item.valuation_reports.filter(is_current=True)
         .select_related("fee_schedule")

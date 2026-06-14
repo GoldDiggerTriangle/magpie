@@ -12,6 +12,9 @@ from apps.ebay.views import (
     EbayConnectCompleteView,
     EbayConnectStartView,
     EbayDisconnectView,
+    EbayOrderDuplicateCandidateViewSet,
+    EbayOrderStagingViewSet,
+    EbayOrderSyncView,
     EbayMerchantLocationView,
     EbayRefreshPoliciesView,
     EbayStatusView,
@@ -53,6 +56,12 @@ router.register(
     basename="listing-boilerplate",
 )
 router.register("sales", SaleRecordViewSet, basename="sale")
+router.register("ebay/order-staging", EbayOrderStagingViewSet, basename="ebay-order-staging")
+router.register(
+    "ebay/order-duplicates",
+    EbayOrderDuplicateCandidateViewSet,
+    basename="ebay-order-duplicate",
+)
 router.register("audit-log", AuditLogViewSet, basename="audit-log")
 
 urlpatterns = [
@@ -103,6 +112,7 @@ urlpatterns = [
     ),
     path("ebay/disconnect/", EbayDisconnectView.as_view(), name="ebay-disconnect"),
     path("ebay/status/", EbayStatusView.as_view(), name="ebay-status"),
+    path("ebay/orders/sync/", EbayOrderSyncView.as_view(), name="ebay-orders-sync"),
     path(
         "ebay/refresh-policies/",
         EbayRefreshPoliciesView.as_view(),

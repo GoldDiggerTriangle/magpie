@@ -4,6 +4,9 @@ from apps.ebay.models import (
     EbayAccountSnapshot,
     EbayAppToken,
     EbayCredential,
+    EbayOrderDuplicateCandidate,
+    EbayOrderStaging,
+    EbayOrderSyncState,
     MerchantLocation,
     OAuthState,
 )
@@ -83,6 +86,47 @@ class EbayAccountSnapshotAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(EbayOrderSyncState)
+class EbayOrderSyncStateAdmin(admin.ModelAdmin):
+    list_display = ["environment", "last_synced_at", "lookback_days", "updated_at"]
+    readonly_fields = ["environment", "last_synced_at", "lookback_days", "created_at", "updated_at"]
+
+
+@admin.register(EbayOrderStaging)
+class EbayOrderStagingAdmin(admin.ModelAdmin):
+    list_display = [
+        "environment",
+        "ebay_order_id",
+        "ebay_line_item_id",
+        "sku",
+        "quantity",
+        "line_price",
+        "fee_status",
+        "status",
+        "sale_date",
+    ]
+    list_filter = ["environment", "status", "fee_status", "sale_date"]
+    search_fields = ["ebay_order_id", "ebay_line_item_id", "sku", "notes"]
+    readonly_fields = ["raw", "finance_snapshot", "created_at", "updated_at"]
+
+
+@admin.register(EbayOrderDuplicateCandidate)
+class EbayOrderDuplicateCandidateAdmin(admin.ModelAdmin):
+    list_display = [
+        "environment",
+        "ebay_order_id",
+        "ebay_line_item_id",
+        "sku",
+        "item",
+        "manual_sale",
+        "status",
+        "sale_date",
+    ]
+    list_filter = ["environment", "status", "sale_date"]
+    search_fields = ["ebay_order_id", "ebay_line_item_id", "sku", "item__sku", "notes"]
+    readonly_fields = ["raw", "created_at", "updated_at"]
 
 
 @admin.register(EbayAppToken)

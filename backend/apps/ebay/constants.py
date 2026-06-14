@@ -8,6 +8,8 @@ _SCOPE_BASE = f"https://{_SCOPE_HOST}/oauth/api_scope"
 EBAY_SCOPES = [
     f"{_SCOPE_BASE}/sell.inventory",
     f"{_SCOPE_BASE}/sell.account.readonly",
+    f"{_SCOPE_BASE}/sell.fulfillment.readonly",
+    f"{_SCOPE_BASE}/sell.finances",
 ]
 EBAY_APP_SCOPE = _SCOPE_BASE
 EBAY_MARKETPLACE_ID = "EBAY_AU"
@@ -35,6 +37,11 @@ AUDIT_TAXONOMY_ASPECTS_FETCHED = "ebay.taxonomy.aspects_fetched"
 AUDIT_TAXONOMY_ASPECTS_OVERRIDE = "ebay.taxonomy.aspects_override"
 AUDIT_LOCATION_CREATED = "ebay.location.created"
 AUDIT_LOCATION_REFRESH_FAILED = "ebay.location.refresh_failed"
+AUDIT_ORDER_SYNC_STARTED = "ebay.order.sync.started"
+AUDIT_ORDER_SYNC_COMPLETED = "ebay.order.sync.completed"
+AUDIT_ORDER_SYNC_FAILED = "ebay.order.sync.failed"
+AUDIT_ORDER_STAGING_RESOLVED = "ebay.order_staging.resolved"
+AUDIT_ORDER_DUPLICATE_FLAGGED = "ebay.order.duplicate_flagged"
 
 CONDITION_MAP = {
     "new": {"condition_id": "1000", "condition": "NEW"},

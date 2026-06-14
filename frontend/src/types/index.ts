@@ -381,6 +381,8 @@ export interface EbayStatus {
   configured: boolean;
   environment: "" | "sandbox" | "production";
   connected: boolean;
+  requires_reconsent: boolean;
+  missing_scopes: string[];
   ebay_username: string;
   scopes: string[];
   access_token_expires_at: string | null;
@@ -487,24 +489,31 @@ export interface StagedOfferReview {
 
 export interface SaleRecord {
   id: UUID;
-  item: UUID;
+  item: UUID | null;
   item_sku: string;
   item_title: string;
   sale_date: string;
   quantity: number;
   sale_price: string;
   channel: "ebay_au" | "manual" | "other";
+  is_external: boolean;
+  cost_basis_unknown: boolean;
   actual_fees_total: string;
   actual_fee_breakdown: Record<string, unknown>;
+  fee_status: "authoritative" | "estimated_or_unmapped";
   actual_shipping_cost: string;
   net_proceeds: string;
-  allocated_cost_basis: string;
-  realised_profit: string;
+  allocated_cost_basis: string | null;
+  realised_profit: string | null;
   cost_basis_override: string | null;
   listing_draft: UUID | null;
   valuation_snapshot: Record<string, unknown>;
   estimated_fee_snapshot: Record<string, unknown>;
   provenance: "manual" | "ebay_sync";
+  ebay_order_id: string | null;
+  ebay_line_item_id: string | null;
+  ebay_transaction_id: string | null;
+  channel_data: Record<string, unknown>;
   corrected_from: UUID | null;
   is_superseded: boolean;
   notes: string;
@@ -524,6 +533,58 @@ export interface SaleRecordPayload {
   cost_basis_override?: string | null;
   listing_draft?: UUID | null;
   notes?: string;
+}
+
+export interface EbayOrderSyncResult {
+  environment: "sandbox" | "production";
+  start: string;
+  end: string;
+  counts: {
+    created: number;
+    staged: number;
+    duplicate_flagged: number;
+    skipped: number;
+    fee_authoritative: number;
+    fee_estimated_or_unmapped: number;
+  };
+}
+
+export interface EbayOrderStaging {
+  id: UUID;
+  environment: "sandbox" | "production";
+  ebay_order_id: string;
+  ebay_line_item_id: string;
+  sku: string;
+  quantity: number;
+  line_price: string;
+  sale_date: string;
+  actual_fee: string | null;
+  fee_status: "authoritative" | "estimated_or_unmapped";
+  buyer_region: string;
+  status: "pending" | "resolved" | "dismissed";
+  resolved_sale: UUID | null;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EbayOrderDuplicateCandidate {
+  id: UUID;
+  environment: "sandbox" | "production";
+  ebay_order_id: string;
+  ebay_line_item_id: string;
+  sku: string;
+  item: UUID;
+  item_sku: string;
+  item_title: string;
+  manual_sale_id: UUID;
+  quantity: number;
+  line_price: string;
+  sale_date: string;
+  status: "pending" | "linked" | "dismissed";
+  notes: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditLogEntry {

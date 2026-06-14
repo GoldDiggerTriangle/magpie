@@ -3,9 +3,15 @@ import type {
   EbayCategoryAspectsResponse,
   EbayCategorySuggestionsResponse,
   EbayConnectionSummary,
+  EbayOrderDuplicateCandidate,
+  EbayOrderStaging,
+  EbayOrderSyncResult,
   EbayStatus,
   MerchantLocationPayload,
-  MerchantLocationStatus
+  MerchantLocationStatus,
+  PaginatedResponse,
+  SaleRecord,
+  UUID
 } from "../types";
 
 export function getEbayStatus() {
@@ -51,6 +57,41 @@ export function getMerchantLocation() {
 
 export function createMerchantLocation(payload: MerchantLocationPayload) {
   return apiRequest<MerchantLocationStatus>("/api/ebay/merchant-location/", {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function syncEbayOrders(payload: { first_sync_days?: number; lookback_days?: number } = {}) {
+  return apiRequest<EbayOrderSyncResult>("/api/ebay/orders/sync/", {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function listEbayOrderStaging(status = "pending") {
+  return apiRequest<PaginatedResponse<EbayOrderStaging>>(`/api/ebay/order-staging/?status=${encodeURIComponent(status)}`);
+}
+
+export function resolveEbayOrderStaging(
+  id: UUID,
+  payload:
+    | { action: "link"; item: UUID; cost_basis_override?: string | null; notes?: string }
+    | { action: "quick_create"; title?: string; quantity_total?: number; acquisition_cost?: string | null; cost_basis_override?: string | null; notes?: string }
+    | { action: "mark_external"; cost_basis_override?: string | null; notes?: string }
+) {
+  return apiRequest<SaleRecord>(`/api/ebay/order-staging/${id}/resolve/`, {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function listEbayOrderDuplicates(status = "pending") {
+  return apiRequest<PaginatedResponse<EbayOrderDuplicateCandidate>>(`/api/ebay/order-duplicates/?status=${encodeURIComponent(status)}`);
+}
+
+export function resolveEbayOrderDuplicate(id: UUID, payload: { action: "link" | "dismiss" }) {
+  return apiRequest<EbayOrderDuplicateCandidate>(`/api/ebay/order-duplicates/${id}/resolve/`, {
     method: "POST",
     body: payload
   });

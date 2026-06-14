@@ -2,6 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db.models import Q
 from django.db.models import Exists, OuterRef
 
 from apps.core.models import TimeStampedUUIDModel
@@ -32,11 +33,19 @@ class SaleRecord(TimeStampedUUIDModel):
         MANUAL = "manual", "Manual"
         EBAY_SYNC = "ebay_sync", "eBay sync"
 
+    class FeeStatus(models.TextChoices):
+        AUTHORITATIVE = "authoritative", "Authoritative"
+        ESTIMATED_OR_UNMAPPED = "estimated_or_unmapped", "Estimated or unmapped"
+
     item = models.ForeignKey(
         "inventory.InventoryItem",
-        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name="sales",
     )
+    is_external = models.BooleanField(default=False)
+    cost_basis_unknown = models.BooleanField(default=False)
     sale_date = models.DateField()
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
     sale_price = models.DecimalField(
@@ -56,6 +65,11 @@ class SaleRecord(TimeStampedUUIDModel):
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     actual_fee_breakdown = models.JSONField(default=dict, blank=True)
+    fee_status = models.CharField(
+        max_length=32,
+        choices=FeeStatus.choices,
+        default=FeeStatus.AUTHORITATIVE,
+    )
     actual_shipping_cost = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -83,6 +97,10 @@ class SaleRecord(TimeStampedUUIDModel):
         choices=Provenance.choices,
         default=Provenance.MANUAL,
     )
+    ebay_order_id = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    ebay_line_item_id = models.CharField(max_length=120, blank=True, default="", db_index=True)
+    ebay_transaction_id = models.CharField(max_length=120, blank=True, default="")
+    channel_data = models.JSONField(default=dict, blank=True)
     corrected_from = models.ForeignKey(
         "self",
         null=True,
@@ -101,6 +119,18 @@ class SaleRecord(TimeStampedUUIDModel):
             models.Index(fields=["channel"]),
             models.Index(fields=["provenance"]),
             models.Index(fields=["corrected_from"]),
+            models.Index(fields=["ebay_order_id", "ebay_line_item_id"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ebay_order_id", "ebay_line_item_id"],
+                condition=(
+                    ~Q(ebay_order_id="")
+                    & ~Q(ebay_line_item_id="")
+                    & Q(corrected_from__isnull=True)
+                ),
+                name="uniq_active_ebay_order_line_sale",
+            ),
         ]
 
     @property
@@ -108,7 +138,9 @@ class SaleRecord(TimeStampedUUIDModel):
         return money(self.sale_price - self.actual_fees_total - self.actual_shipping_cost)
 
     @property
-    def allocated_cost_basis(self) -> Decimal:
+    def allocated_cost_basis(self) -> Decimal | None:
+        if self.cost_basis_unknown:
+            return None
         if self.cost_basis_override is not None:
             return money(self.cost_basis_override)
         if not self.item_id or not self.item or not self.item.acquisition_cost:
@@ -117,8 +149,11 @@ class SaleRecord(TimeStampedUUIDModel):
         return money(cost_per_unit * Decimal(self.quantity))
 
     @property
-    def realised_profit(self) -> Decimal:
-        return money(self.net_proceeds - self.allocated_cost_basis)
+    def realised_profit(self) -> Decimal | None:
+        allocated_cost = self.allocated_cost_basis
+        if allocated_cost is None:
+            return None
+        return money(self.net_proceeds - allocated_cost)
 
     @property
     def is_superseded(self) -> bool:
@@ -127,4 +162,5 @@ class SaleRecord(TimeStampedUUIDModel):
         return self.corrections.exists()
 
     def __str__(self) -> str:
-        return f"{self.item.sku} sale {self.quantity} on {self.sale_date}"
+        sku = self.item.sku if self.item_id and self.item else "external"
+        return f"{sku} sale {self.quantity} on {self.sale_date}"

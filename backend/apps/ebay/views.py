@@ -1,5 +1,6 @@
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from rest_framework import status
+from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,11 +9,19 @@ from apps.ebay.serializers import (
     CategoryAspectsQuerySerializer,
     CategorySuggestionsQuerySerializer,
     ConnectCompleteSerializer,
+    EbayOrderDuplicateCandidateSerializer,
+    EbayOrderDuplicateResolveSerializer,
+    EbayOrderStagingResolveSerializer,
+    EbayOrderStagingSerializer,
+    EbayOrderSyncSerializer,
     MerchantLocationCreateSerializer,
     MerchantLocationSerializer,
 )
 from apps.ebay import aspects
+from apps.ebay import order_sync
 from apps.ebay import services
+from apps.ebay.models import EbayOrderDuplicateCandidate, EbayOrderStaging
+from apps.sales.serializers import SaleRecordSerializer
 
 
 class EbayConnectStartView(APIView):
@@ -131,3 +140,80 @@ class EbayMerchantLocationView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class EbayOrderSyncView(APIView):
+    def post(self, request):
+        serializer = EbayOrderSyncSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            return Response(
+                order_sync.sync_orders(actor=request.user, **serializer.validated_data)
+            )
+        except (ImproperlyConfigured, EbayUnavailable) as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class EbayOrderStagingViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = EbayOrderStagingSerializer
+    queryset = EbayOrderStaging.objects.select_related("resolved_sale").all()
+    ordering = ["-sale_date", "-created_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        staging = self.get_object()
+        serializer = EbayOrderStagingResolveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sale = order_sync.resolve_staging(
+            staging,
+            action=serializer.validated_data["action"],
+            actor=request.user,
+            item=serializer.validated_data.get("item"),
+            item_data=serializer.item_data,
+            cost_basis_override=serializer.validated_data.get("cost_basis_override"),
+            notes=serializer.validated_data.get("notes", ""),
+        )
+        return Response(SaleRecordSerializer(sale).data, status=status.HTTP_201_CREATED)
+
+
+class EbayOrderDuplicateCandidateViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = EbayOrderDuplicateCandidateSerializer
+    queryset = (
+        EbayOrderDuplicateCandidate.objects.select_related("item", "manual_sale")
+        .all()
+    )
+    ordering = ["-sale_date", "-created_at"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        return queryset
+
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        candidate = self.get_object()
+        serializer = EbayOrderDuplicateResolveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resolved = order_sync.resolve_duplicate_candidate(
+            candidate,
+            action=serializer.validated_data["action"],
+            actor=request.user,
+        )
+        return Response(self.get_serializer(resolved).data)

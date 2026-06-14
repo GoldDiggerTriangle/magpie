@@ -79,6 +79,8 @@ KEY_ROW_TABLES = {
     "valuations": "valuation_valuationreport",
     "drafts": "listing_listingdraft",
     "sales": "sales_salerecord",
+    "ebay_staging": "ebay_ebayorderstaging",
+    "ebay_duplicates": "ebay_ebayorderduplicatecandidate",
     "credential": "ebay_ebaycredential",
 }
 

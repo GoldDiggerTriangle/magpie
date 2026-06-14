@@ -8,6 +8,7 @@ on:
       - "DEPLOYMENT.md"
       - "ROBUSTNESS_EVIDENCE.md"
       - "SPRINT10_EVIDENCE.md"
+      - "SPRINT11_SYNC_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"
@@ -18,6 +19,7 @@ on:
       - "DEPLOYMENT.md"
       - "ROBUSTNESS_EVIDENCE.md"
       - "SPRINT10_EVIDENCE.md"
+      - "SPRINT11_SYNC_EVIDENCE.md"
       - "backend/**"
       - "frontend/**"
       - "scripts/**"
@@ -88,6 +90,7 @@ jobs:
 
           app_root = Path("backend/apps")
           integration_file = Path("backend/integrations/ebay.py")
+          adapter_file = Path("backend/apps/ebay/adapters.py")
           frontend_root = Path("frontend/src")
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
           network_imports = {"requests", "httpx", "aiohttp", "urllib"}
@@ -146,6 +149,8 @@ jobs:
           for path in app_root.rglob("*"):
               if not path.is_file() or not is_production_file(path):
                   continue
+              if path == adapter_file:
+                  continue
               if path.suffix == ".py":
                   for import_name in python_imports(path):
                       if import_name in network_imports:
@@ -164,11 +169,16 @@ jobs:
                       bad.append(f"{path}: frontend eBay hostname {host}")
 
           integration_text = integration_file.read_text(encoding="utf-8")
-          if "api.ebay.com" not in integration_text:
-              bad.append("backend/integrations/ebay.py: expected eBay HTTP hostnames")
+          adapter_text = adapter_file.read_text(encoding="utf-8")
+          if "api.ebay.com" in integration_text:
+              bad.append("backend/integrations/ebay.py: legacy shim must not contain eBay HTTP hostnames")
+          if "api.ebay.com" not in adapter_text:
+              bad.append("backend/apps/ebay/adapters.py: expected eBay HTTP hostnames")
+          if "urllib" not in adapter_text or "urlopen" not in adapter_text:
+              bad.append("backend/apps/ebay/adapters.py: expected eBay HTTP implementation")
           if bad:
               print("\n".join(bad))
-              raise SystemExit("eBay HTTP access must be confined to backend/integrations/ebay.py.")
+              raise SystemExit("eBay HTTP access must be confined to backend/apps/ebay/adapters.py.")
           PY
 
       - name: Run backend tests on SQLite
@@ -248,10 +258,14 @@ jobs:
           assert counts["items"] == 6
           assert counts["drafts"] == 1
           assert counts["sales"] == 0
+          assert counts["ebay_staging"] == 0
+          assert counts["ebay_duplicates"] == 0
           conn = sqlite3.connect(restored_db)
           try:
               assert conn.execute("select count(*) from sales_salerecord").fetchone()[0] == 0
               assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
+              assert conn.execute("select count(*) from ebay_ebayorderstaging").fetchone()[0] == 0
+              assert conn.execute("select count(*) from ebay_ebayorderduplicatecandidate").fetchone()[0] == 0
           finally:
               conn.close()
           print("Encrypted SQLite backup restore checks passed.")
@@ -363,7 +377,7 @@ jobs:
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert Sprint 7 schema and fake eBay adapters
+      - name: Assert eBay schema and fake eBay adapters
         working-directory: backend
         run: |
           python - <<'PY'
@@ -383,6 +397,9 @@ jobs:
               EbayAccountSnapshot,
               EbayAppToken,
               EbayCredential,
+              EbayOrderDuplicateCandidate,
+              EbayOrderStaging,
+              EbayOrderSyncState,
               MerchantLocation,
               OAuthState,
           )
@@ -402,6 +419,9 @@ jobs:
           assert OAuthState.objects.count() == 0
           assert EbayAccountSnapshot.objects.count() == 0
           assert EbayAppToken.objects.count() == 0
+          assert EbayOrderDuplicateCandidate.objects.count() == 0
+          assert EbayOrderStaging.objects.count() == 0
+          assert EbayOrderSyncState.objects.count() == 0
           assert MerchantLocation.objects.count() == 0
           assert AuditLog.objects.count() == 0
           assert ListingBoilerplate.objects.count() == 1
@@ -413,6 +433,9 @@ jobs:
               "ebay_oauthstate",
               "ebay_ebayaccountsnapshot",
               "ebay_ebayapptoken",
+              "ebay_ebayorderduplicatecandidate",
+              "ebay_ebayorderstaging",
+              "ebay_ebayordersyncstate",
               "ebay_merchantlocation",
           }
           with connection.cursor() as cursor:

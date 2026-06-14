@@ -12,7 +12,9 @@ class SaleRecordAdmin(admin.ModelAdmin):
         "sale_price",
         "channel",
         "provenance",
+        "is_external",
+        "fee_status",
         "corrected_from",
     )
-    list_filter = ("channel", "provenance", "sale_date")
-    search_fields = ("item__sku", "item__title", "notes")
+    list_filter = ("channel", "provenance", "is_external", "fee_status", "sale_date")
+    search_fields = ("item__sku", "item__title", "ebay_order_id", "ebay_line_item_id", "notes")
