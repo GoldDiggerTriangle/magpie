@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from django.apps import apps
 from django.conf import settings
+from django.db import connection
 from django.utils import timezone
 
 
@@ -182,9 +183,13 @@ def write_backup_manifest(path: Path) -> None:
 
 def collect_django_row_counts() -> dict[str, int]:
     row_counts = {}
+    existing_tables = set(connection.introspection.table_names())
     for model in apps.get_models():
         if model._meta.app_label in LOCAL_APP_LABELS:
-            row_counts[model._meta.label_lower] = model.objects.count()
+            if model._meta.db_table in existing_tables:
+                row_counts[model._meta.label_lower] = model.objects.count()
+            else:
+                row_counts[model._meta.label_lower] = 0
     return row_counts
 
 

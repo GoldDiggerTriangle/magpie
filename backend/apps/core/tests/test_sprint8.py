@@ -21,6 +21,7 @@ from apps.core.backup_ops import (
     MEDIA_DIR_NAME,
     RESTORE_RUNBOOK_NAME,
     BackupCryptoError,
+    collect_django_row_counts,
     decrypt_file,
     encrypt_file,
     find_secret_markers,
@@ -107,6 +108,20 @@ def test_backup_contains_sqlite_media_manifest_and_runbook(
     assert manifest["database_artifact"] == DB_SNAPSHOT_NAME
     assert manifest["row_counts"]["inventory.inventoryitem"] == 1
     assert sqlite_count(extract_dir / DB_SNAPSHOT_NAME, "photos_photoasset") == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_backup_row_counts_tolerate_pre_migration_tables(monkeypatch):
+    table_names = [
+        table_name
+        for table_name in connection.introspection.table_names()
+        if table_name != "sales_salerecord"
+    ]
+    monkeypatch.setattr(connection.introspection, "table_names", lambda: table_names)
+
+    counts = collect_django_row_counts()
+
+    assert counts["sales.salerecord"] == 0
 
 
 @pytest.mark.django_db(transaction=True)
