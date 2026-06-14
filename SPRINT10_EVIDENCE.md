@@ -93,6 +93,7 @@ CI proof added:
 ## Live Runtime Data Safety
 
 No Sprint 10 migrations were applied to the live NSSM runtime database during implementation.
+Live deployment happened later as a deliberate service deployment after a fresh encrypted backup.
 
 Read-only live data check after implementation:
 
@@ -105,6 +106,71 @@ Service health after implementation:
 - `http://localhost:8000/api/health/`: 200, `{"status":"ok"}`.
 
 This confirms the reconciled Sprint 8 business data was not damaged by Sprint 10 implementation/testing.
+
+## Live Deployment
+
+Deployment date: 2026-06-14.
+
+Runtime checkout:
+
+`C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-high-i-approve-sprint-2`
+
+Deployment head:
+
+- `80d1be7` (`Make backups tolerate pre-migration sales tables`).
+- GitHub Actions `Validation` for `80d1be7`: PASS, https://github.com/GoldDiggerTriangle/magpie/actions/runs/27486793983.
+
+Pre-migration backup:
+
+- Archive: `magpie-backup-20260614-031153.tar.gz.enc`.
+- Result: PASS, encrypted archive created before touching the live database.
+- Deployment fix: backup row-count collection now tolerates newly added app tables that are not yet migrated, so pre-migration backups can still run safely.
+
+Live migration:
+
+- `inventory.0003_inventoryitem_quantity_total_and_more`: applied.
+- `sales.0001_initial`: applied.
+
+Build/static/service:
+
+- `npm run build`: PASS.
+- `python manage.py collectstatic --noinput`: PASS.
+- `Magpie` NSSM service: running after Administrator start.
+- Port `0.0.0.0:8000`: listening on PID `13656`.
+
+HTTP verification:
+
+- `http://localhost:8000/api/health/`: 200, `{"status":"ok"}`.
+- `http://localhost:8000/`: 200, built SPA index for `Gold, Stamps & Phonetech`.
+- `http://localhost:8000/sales`: 200, built SPA deep-link route.
+- `http://192.168.1.86:8000/`: 200, built SPA index from the LAN URL.
+- `http://localhost:8000/api/sales/`: endpoint present; unauthenticated shell request returned 403 rather than 404, as expected for session-protected API access.
+
+Post-migration live data:
+
+| Items | Photos | Valuations | Drafts | Sales | Credential |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 2 | 5 | 2 | 0 | 1 |
+
+Quantity defaults:
+
+- Existing item count: 8.
+- `quantity_total` minimum: 1.
+- `quantity_total` maximum: 1.
+- Items with `quantity_total=1`: 8.
+
+Sales UI/API:
+
+- The collected production bundle contains the `/sales` route, `Record sale`, `Save correction`, `/api/sales/`, and item-scoped `/api/items/{id}/sales/` calls.
+- No fake live sales were created.
+
+Post-migration backup and restore:
+
+- Archive: `magpie-backup-20260614-041510.tar.gz.enc`.
+- Restore target: `.tmp\sprint10-live-post-restore`.
+- Restored counts: `items=8`, `photos=2`, `valuations=5`, `drafts=2`, `sales=0`, `credential=1`.
+- Restored migrations include `inventory.0003_inventoryitem_quantity_total_and_more` and `sales.0001_initial`.
+- Restored `sales_salerecord` table/schema: PASS, required Sprint 10 columns present.
 
 ## Remote Validation
 
