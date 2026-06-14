@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.ebay",
     "apps.dashboard",
+    "apps.intelligence",
     "apps.api",
 ]
 

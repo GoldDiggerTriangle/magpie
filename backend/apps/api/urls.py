@@ -29,6 +29,12 @@ from apps.ebay.views import (
     EbayStatusView,
 )
 from apps.inventory.views import InventoryItemViewSet
+from apps.intelligence.views import (
+    FieldSuggestionViewSet,
+    ItemDuplicateScanView,
+    ItemOcrRunView,
+    ItemSoldSearchView,
+)
 from apps.listing.views import (
     ItemListingDraftListCreateView,
     ListingBoilerplateViewSet,
@@ -65,6 +71,7 @@ router.register(
     basename="listing-boilerplate",
 )
 router.register("sales", SaleRecordViewSet, basename="sale")
+router.register("field-suggestions", FieldSuggestionViewSet, basename="field-suggestion")
 router.register("ebay/order-staging", EbayOrderStagingViewSet, basename="ebay-order-staging")
 router.register(
     "ebay/order-duplicates",
@@ -89,6 +96,21 @@ urlpatterns = [
         "items/<uuid:item_id>/sales/",
         ItemSaleRecordListCreateView.as_view(),
         name="item-sales",
+    ),
+    path(
+        "items/<uuid:item_id>/sold-searches/",
+        ItemSoldSearchView.as_view(),
+        name="item-sold-searches",
+    ),
+    path(
+        "items/<uuid:item_id>/ocr/",
+        ItemOcrRunView.as_view(),
+        name="item-ocr",
+    ),
+    path(
+        "items/<uuid:item_id>/duplicate-scan/",
+        ItemDuplicateScanView.as_view(),
+        name="item-duplicate-scan",
     ),
     path(
         "valuation-reports/<uuid:pk>/",

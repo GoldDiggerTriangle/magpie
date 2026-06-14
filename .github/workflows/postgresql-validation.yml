@@ -11,6 +11,7 @@ on:
       - "SPRINT11_SYNC_EVIDENCE.md"
       - "SPRINT11_UI_EVIDENCE.md"
       - "SPRINT12_EVIDENCE.md"
+      - "SPRINT13_EVIDENCE.md"
       - "backend/**"
       - "docs/evidence/**"
       - "frontend/**"
@@ -25,6 +26,7 @@ on:
       - "SPRINT11_SYNC_EVIDENCE.md"
       - "SPRINT11_UI_EVIDENCE.md"
       - "SPRINT12_EVIDENCE.md"
+      - "SPRINT13_EVIDENCE.md"
       - "backend/**"
       - "docs/evidence/**"
       - "frontend/**"
@@ -266,12 +268,16 @@ jobs:
           assert counts["sales"] == 0
           assert counts["ebay_staging"] == 0
           assert counts["ebay_duplicates"] == 0
+          assert counts["field_suggestions"] == 0
+          assert counts["image_fingerprints"] == 0
           conn = sqlite3.connect(restored_db)
           try:
               assert conn.execute("select count(*) from sales_salerecord").fetchone()[0] == 0
               assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
               assert conn.execute("select count(*) from ebay_ebayorderstaging").fetchone()[0] == 0
               assert conn.execute("select count(*) from ebay_ebayorderduplicatecandidate").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_fieldsuggestion").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_imagefingerprint").fetchone()[0] == 0
           finally:
               conn.close()
           print("Encrypted SQLite backup restore checks passed.")

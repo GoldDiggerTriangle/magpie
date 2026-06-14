@@ -6,6 +6,7 @@ from django.db.models import Max
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from apps.photos.models import PhotoAsset
+from apps.intelligence.images import fingerprint_and_flag
 from integrations.storage import LocalFileStorageAdapter
 
 
@@ -42,7 +43,7 @@ class MediaService:
         order_index = 0 if max_order is None else max_order + 1
         is_main = not item.photos.exists()
 
-        return PhotoAsset.objects.create(
+        photo = PhotoAsset.objects.create(
             item=item,
             role=role or PhotoAsset.Role.OTHER,
             is_main=is_main,
@@ -55,6 +56,8 @@ class MediaService:
             bytes_original=len(original_bytes),
             exif_stripped=True,
         )
+        fingerprint_and_flag(photo, image=image, storage=self.storage)
+        return photo
 
     def render_jpeg(self, image: Image.Image, quality: int) -> bytes:
         output = BytesIO()

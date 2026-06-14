@@ -21,7 +21,9 @@ import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
 import { SalesPanel } from "../../components/SalesPanel";
 import { sanitizeSchemaAttributes, SchemaFieldsForm } from "../../components/SchemaFieldsForm";
+import { SoldSearchPanel } from "../../components/SoldSearchPanel";
 import { StatusBadge } from "../../components/StatusBadge";
+import { SuggestionReviewPanel } from "../../components/SuggestionReviewPanel";
 import { ValuationPanel } from "../../components/ValuationPanel";
 import type { ItemFormPayload, PhotoAsset, UUID } from "../../types";
 
@@ -277,6 +279,8 @@ export function ItemDetail() {
       </div>
 
       <div className="mt-8 grid gap-6">
+        <SoldSearchPanel itemId={itemId} />
+        <SuggestionReviewPanel itemId={itemId} />
         <ResearchLinks itemId={itemId} />
         <div className="grid gap-6 xl:grid-cols-2">
           <ComparableList itemId={itemId} />

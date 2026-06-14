@@ -291,6 +291,42 @@ export interface AnalyticsListingOpportunities {
   empty: boolean;
 }
 
+export type SuggestionSource = "ocr" | "duplicate" | "later_ai";
+export type SuggestionConfidenceBand = "high" | "medium" | "low" | "candidate";
+export type SuggestionStatus = "pending" | "approved" | "edited" | "rejected";
+
+export interface FieldSuggestion {
+  id: UUID;
+  item: UUID;
+  item_sku: string;
+  item_title: string;
+  photo: UUID | null;
+  photo_thumb_url: string | null;
+  field: string;
+  proposed_value: unknown;
+  source: SuggestionSource;
+  confidence_band: SuggestionConfidenceBand;
+  evidence: string;
+  status: SuggestionStatus;
+  resolved_value: unknown;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SoldSearchLink {
+  id: string;
+  label: string;
+  query: string;
+  url: string;
+}
+
+export interface OcrRunResult {
+  available: boolean;
+  detail: string;
+  suggestions: FieldSuggestion[];
+}
+
 export interface ItemFormPayload {
   title: string;
   category: UUID | null;

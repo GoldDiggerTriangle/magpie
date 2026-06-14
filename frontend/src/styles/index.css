@@ -411,6 +411,159 @@
     border-color: #e4e1d8;
   }
 
+  .intelligence-panel {
+    @apply rounded border bg-white p-4 sm:p-5;
+    border-color: #e4e1d8;
+    color: #1c1b19;
+    box-shadow: 0 8px 28px rgba(28, 27, 25, 0.04);
+  }
+
+  .intelligence-panel-header {
+    @apply flex items-start justify-between gap-4 border-b pb-4;
+    border-color: #e4e1d8;
+  }
+
+  .intelligence-panel-header h2 {
+    @apply mt-1 text-xl font-semibold tracking-normal sm:text-2xl;
+    color: #1c1b19;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .intelligence-panel-header p:last-child {
+    @apply mt-2 max-w-3xl text-sm leading-6;
+    color: #686256;
+  }
+
+  .intelligence-kicker {
+    @apply text-xs font-semibold uppercase tracking-normal;
+    color: #9a7b2e;
+  }
+
+  .sold-search-grid {
+    @apply mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .sold-search-link {
+    @apply flex min-h-24 items-center justify-between gap-3 rounded border bg-[#FAFAF7] p-4 text-sm transition;
+    border-color: #e4e1d8;
+    color: #1c1b19;
+  }
+
+  .sold-search-link:hover,
+  .sold-search-link:focus-visible {
+    border-color: #9a7b2e;
+    outline: none;
+  }
+
+  .sold-search-link strong,
+  .sold-search-link small {
+    @apply block;
+  }
+
+  .sold-search-link small {
+    @apply mt-1 text-xs leading-5;
+    color: #686256;
+  }
+
+  .intelligence-actions {
+    @apply mt-4 flex flex-wrap gap-2;
+  }
+
+  .intelligence-success,
+  .intelligence-warning,
+  .intelligence-error {
+    @apply mt-3 rounded border px-3 py-2 text-sm;
+  }
+
+  .intelligence-success {
+    border-color: rgba(46, 125, 91, 0.24);
+    background: rgba(46, 125, 91, 0.08);
+    color: #245f47;
+  }
+
+  .intelligence-warning {
+    border-color: rgba(154, 123, 46, 0.28);
+    background: rgba(154, 123, 46, 0.08);
+    color: #5d4a1c;
+  }
+
+  .intelligence-error {
+    border-color: rgba(176, 65, 62, 0.28);
+    background: rgba(176, 65, 62, 0.08);
+    color: #7c2f2d;
+  }
+
+  .intelligence-skeleton {
+    @apply ledger-skeleton mt-4 min-h-32 rounded border;
+    border-color: #e4e1d8;
+  }
+
+  .suggestion-section {
+    @apply mt-5;
+  }
+
+  .suggestion-section-title {
+    @apply mb-3 flex items-center gap-2 text-sm font-semibold;
+    color: #2c3340;
+  }
+
+  .suggestion-list {
+    @apply space-y-3;
+  }
+
+  .suggestion-row {
+    @apply grid gap-4 rounded border bg-[#FAFAF7] p-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,300px)_auto];
+    border-color: #e4e1d8;
+  }
+
+  .suggestion-row-lead {
+    background: #fbfaf5;
+  }
+
+  .suggestion-row-main {
+    @apply flex gap-3;
+  }
+
+  .suggestion-row-main img {
+    @apply h-16 w-16 shrink-0 rounded border object-cover;
+    border-color: #e4e1d8;
+  }
+
+  .suggestion-row-main strong {
+    @apply mt-2 block text-base font-semibold;
+    color: #1c1b19;
+  }
+
+  .suggestion-row-main p {
+    @apply mt-1 text-sm leading-5;
+    color: #686256;
+  }
+
+  .suggestion-meta {
+    @apply flex flex-wrap gap-2;
+  }
+
+  .suggestion-meta span {
+    @apply rounded border bg-white px-2 py-1 text-xs font-semibold uppercase tracking-normal;
+    border-color: #e4e1d8;
+    color: #686256;
+  }
+
+  .suggestion-edit {
+    @apply block space-y-1 text-sm font-medium;
+    color: #2c3340;
+  }
+
+  .suggestion-edit .field {
+    @apply border bg-white text-stone-950 focus:ring-2;
+    border-color: #d5d1c5;
+    --tw-ring-color: rgba(154, 123, 46, 0.22);
+  }
+
+  .suggestion-actions {
+    @apply flex flex-wrap items-start gap-2 lg:justify-end;
+  }
+
   @media (max-width: 640px) {
     .ledger-title {
       font-size: 2.25rem;
