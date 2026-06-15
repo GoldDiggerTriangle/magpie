@@ -1,16 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BrainCircuit,
   CheckCircle2,
   CircleAlert,
   DownloadCloud,
   ExternalLink,
+  KeyRound,
   Link2,
   RefreshCw,
   ShieldCheck,
   Unplug,
   XCircle
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { listAuditLogs } from "../../api/audit";
 import {
@@ -25,9 +27,10 @@ import {
   startEbayConnect,
   syncEbayOrders
 } from "../../api/ebay";
+import { configureAICredential, disconnectAICredential, getAIStatus } from "../../api/intelligence";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
-import type { AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus } from "../../types";
+import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus } from "../../types";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -35,9 +38,15 @@ export function EbaySettings() {
   const [pastedUrl, setPastedUrl] = useState("");
   const [auditPrefix, setAuditPrefix] = useState("ebay.");
   const [disconnectOpen, setDisconnectOpen] = useState(false);
+  const [aiDisconnectOpen, setAiDisconnectOpen] = useState(false);
+  const [aiApiKey, setAiApiKey] = useState("");
+  const [aiProvider, setAiProvider] = useState("openai");
+  const [aiModelId, setAiModelId] = useState("gpt-5.4-mini");
+  const [aiMonthlyCap, setAiMonthlyCap] = useState("5.00");
   const [stagingInputs, setStagingInputs] = useState<Record<string, { item: string; title: string; cost: string }>>({});
 
   const status = useQuery({ queryKey: ["ebay-status"], queryFn: getEbayStatus });
+  const aiStatus = useQuery({ queryKey: ["ai-status"], queryFn: getAIStatus });
   const staging = useQuery({ queryKey: ["ebay-order-staging", "pending"], queryFn: () => listEbayOrderStaging("pending") });
   const duplicates = useQuery({ queryKey: ["ebay-order-duplicates", "pending"], queryFn: () => listEbayOrderDuplicates("pending") });
   const audit = useQuery({
@@ -47,10 +56,20 @@ export function EbaySettings() {
 
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ["ebay-status"] });
+    queryClient.invalidateQueries({ queryKey: ["ai-status"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-order-staging"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-order-duplicates"] });
     queryClient.invalidateQueries({ queryKey: ["audit-log"] });
   };
+
+  useEffect(() => {
+    if (!aiStatus.data) {
+      return;
+    }
+    setAiProvider(aiStatus.data.provider);
+    setAiModelId(aiStatus.data.model_id);
+    setAiMonthlyCap(aiStatus.data.monthly_budget_cap_usd);
+  }, [aiStatus.data]);
 
   const startMutation = useMutation({
     mutationFn: startEbayConnect,
@@ -108,13 +127,33 @@ export function EbaySettings() {
       refreshAll();
     }
   });
+  const aiConfigureMutation = useMutation({
+    mutationFn: () => configureAICredential({
+      provider: aiProvider,
+      model_id: aiModelId,
+      monthly_budget_cap_usd: aiMonthlyCap,
+      api_key: aiApiKey
+    }),
+    onSuccess: () => {
+      setAiApiKey("");
+      refreshAll();
+    }
+  });
+  const aiDisconnectMutation = useMutation({
+    mutationFn: disconnectAICredential,
+    onSuccess: () => {
+      setAiApiKey("");
+      setAiDisconnectOpen(false);
+      refreshAll();
+    }
+  });
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+    <div className="settings-page mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">Settings</h1>
-          <p className="mt-1 text-sm text-slate-500">eBay channel connection</p>
+          <p className="mt-1 text-sm text-slate-500">eBay and AI provider connections</p>
         </div>
         <EnvironmentBadge status={status.data} />
       </div>
@@ -140,6 +179,25 @@ export function EbaySettings() {
             pending={policyMutation.isPending}
             status={status.data}
             error={errorText(policyMutation.error)}
+          />
+          <AIProviderPanel
+            apiKey={aiApiKey}
+            configureError={errorText(aiConfigureMutation.error)}
+            configured={Boolean(aiStatus.data?.configured)}
+            disconnectError={errorText(aiDisconnectMutation.error)}
+            disconnectPending={aiDisconnectMutation.isPending}
+            modelId={aiModelId}
+            monthlyCap={aiMonthlyCap}
+            onApiKeyChange={setAiApiKey}
+            onDisconnect={() => setAiDisconnectOpen(true)}
+            onModelIdChange={setAiModelId}
+            onMonthlyCapChange={setAiMonthlyCap}
+            onProviderChange={setAiProvider}
+            onSave={() => aiConfigureMutation.mutate()}
+            pending={aiConfigureMutation.isPending}
+            provider={aiProvider}
+            status={aiStatus.data}
+            statusError={errorText(aiStatus.error)}
           />
           <OrderSyncPanel
             duplicateRows={duplicates.data?.results ?? []}
@@ -196,7 +254,129 @@ export function EbaySettings() {
         onCancel={() => setDisconnectOpen(false)}
         onConfirm={() => disconnectMutation.mutate()}
       />
+      <ConfirmDialog
+        open={aiDisconnectOpen}
+        title="Disconnect AI provider?"
+        detail="This deletes the encrypted AI key. Staged suggestions, usage records, and audit history remain."
+        confirmLabel="Disconnect"
+        onCancel={() => setAiDisconnectOpen(false)}
+        onConfirm={() => aiDisconnectMutation.mutate()}
+      />
     </div>
+  );
+}
+
+function AIProviderPanel({
+  apiKey,
+  configureError,
+  configured,
+  disconnectError,
+  disconnectPending,
+  modelId,
+  monthlyCap,
+  onApiKeyChange,
+  onDisconnect,
+  onModelIdChange,
+  onMonthlyCapChange,
+  onProviderChange,
+  onSave,
+  pending,
+  provider,
+  status,
+  statusError
+}: {
+  apiKey: string;
+  configureError: string;
+  configured: boolean;
+  disconnectError: string;
+  disconnectPending: boolean;
+  modelId: string;
+  monthlyCap: string;
+  onApiKeyChange: (value: string) => void;
+  onDisconnect: () => void;
+  onModelIdChange: (value: string) => void;
+  onMonthlyCapChange: (value: string) => void;
+  onProviderChange: (value: string) => void;
+  onSave: () => void;
+  pending: boolean;
+  provider: string;
+  status?: AIStatus;
+  statusError: string;
+}) {
+  const canSave = Boolean(apiKey.trim() || configured);
+  return (
+    <section className="settings-card ai-settings-card">
+      <div className="settings-card-header">
+        <div className="flex items-center gap-2">
+          <BrainCircuit className="h-4 w-4 text-[#9A7B2E]" aria-hidden="true" />
+          <div>
+            <h2 className="section-title">AI Provider</h2>
+            <p className="mt-1 text-xs text-slate-500">Encrypted key, model, and monthly cap</p>
+          </div>
+        </div>
+        <span className={`settings-pill ${status?.enabled ? "settings-pill-good" : "settings-pill-muted"}`}>
+          {status?.configured ? "Configured" : "Not configured"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Provider" value={status?.provider || provider} />
+        <Metric label="Model" value={status?.model_id || modelId} />
+        <Metric label="Used" value={money(status?.monthly_usage_usd ?? "0.00")} />
+        <Metric label="Remaining" value={money(status?.budget_remaining_usd ?? monthlyCap)} />
+      </div>
+
+      <form
+        className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-[0.75fr_1fr_0.75fr_1.35fr_auto]"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+      >
+        <label className="label">
+          <span>Provider</span>
+          <select className="field" value={provider} onChange={(event) => onProviderChange(event.target.value)}>
+            <option value="openai">OpenAI</option>
+          </select>
+        </label>
+        <label className="label">
+          <span>Model</span>
+          <input className="field" value={modelId} onChange={(event) => onModelIdChange(event.target.value)} />
+        </label>
+        <label className="label">
+          <span>Monthly cap USD</span>
+          <input className="field" inputMode="decimal" value={monthlyCap} onChange={(event) => onMonthlyCapChange(event.target.value)} />
+        </label>
+        <label className="label">
+          <span>{configured ? "Replace key" : "API key"}</span>
+          <input
+            autoComplete="off"
+            className="field"
+            placeholder={configured ? "Configured; paste a new key to replace" : "Paste API key"}
+            type="password"
+            value={apiKey}
+            onChange={(event) => onApiKeyChange(event.target.value)}
+          />
+        </label>
+        <button className="btn-primary gap-2" disabled={!canSave || pending} type="submit">
+          <KeyRound className="h-4 w-4" aria-hidden="true" />
+          Save AI
+        </button>
+      </form>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-400">
+        <span>{configured ? "Stored key is encrypted and never displayed." : "No key is stored yet."}</span>
+        <button className="btn-secondary gap-2" disabled={!configured || disconnectPending} onClick={onDisconnect} type="button">
+          <Unplug className="h-4 w-4" aria-hidden="true" />
+          Disconnect AI
+        </button>
+      </div>
+
+      {status?.disabled_reason ? <p className="mt-3 rounded border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">{status.disabled_reason}</p> : null}
+      {statusError ? <p className="mt-3 text-sm text-rose-200">{statusError}</p> : null}
+      {configureError ? <p className="mt-3 text-sm text-rose-200">{configureError}</p> : null}
+      {disconnectError ? <p className="mt-3 text-sm text-rose-200">{disconnectError}</p> : null}
+    </section>
   );
 }
 
@@ -462,7 +642,7 @@ function AuditLogTable({ entries, filter, loading, onFilterChange }: { entries: 
       {loading ? <EmptyState title="Loading audit log" /> : null}
       {!loading && entries.length === 0 ? <EmptyState title="No audit entries" /> : null}
       {entries.length ? (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 hidden overflow-x-auto sm:block">
           <table className="min-w-full text-left text-sm">
             <thead className="text-xs uppercase tracking-normal text-slate-500">
               <tr>
@@ -485,6 +665,20 @@ function AuditLogTable({ entries, filter, loading, onFilterChange }: { entries: 
           </table>
         </div>
       ) : null}
+      {entries.length ? (
+        <div className="mt-4 space-y-2 sm:hidden">
+          {entries.map((entry) => (
+            <article className="rounded border border-slate-800 bg-slate-900 p-3" key={entry.id}>
+              <p className="break-words text-sm font-medium text-slate-100">{entry.action}</p>
+              <dl className="mt-2 grid gap-1 text-xs text-slate-400">
+                <Row label="Time" value={formatDate(entry.created_at)} />
+                <Row label="Actor" value={entry.actor || "-"} />
+                <Row label="Target" value={entry.target_type || "-"} />
+              </dl>
+            </article>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -501,9 +695,9 @@ function EnvironmentBadge({ status }: { status?: EbayStatus }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-100">{value}</dd>
+    <div className="flex min-w-0 items-center justify-between gap-3">
+      <dt className="shrink-0 text-slate-500">{label}</dt>
+      <dd className="min-w-0 break-words text-right text-slate-100">{value}</dd>
     </div>
   );
 }
@@ -525,6 +719,10 @@ function formatDate(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+function money(value: string) {
+  return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function errorText(error: unknown) {

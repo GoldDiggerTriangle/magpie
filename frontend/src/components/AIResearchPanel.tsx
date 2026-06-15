@@ -23,7 +23,7 @@ export function AIResearchPanel({ itemId }: { itemId: UUID }) {
   });
   const [apiKey, setApiKey] = useState("");
   const [provider, setProvider] = useState("openai");
-  const [modelId, setModelId] = useState("gpt-4.1-mini");
+  const [modelId, setModelId] = useState("gpt-5.4-mini");
   const [monthlyCap, setMonthlyCap] = useState("5.00");
 
   useEffect(() => {

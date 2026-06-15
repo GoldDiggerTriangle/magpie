@@ -155,7 +155,7 @@ function FieldControl({
         <legend className="px-1 text-sm font-semibold text-slate-200">{field.label}</legend>
         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
           <button
-            className="btn-secondary min-h-8 gap-2 px-3 py-1"
+            className="btn-secondary gap-2"
             type="button"
             onClick={() => onChange([...rows, {}])}
           >

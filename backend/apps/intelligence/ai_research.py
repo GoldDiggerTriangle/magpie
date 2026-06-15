@@ -32,7 +32,7 @@ from integrations.storage import LocalFileStorageAdapter
 
 
 DEFAULT_PROVIDER = AICredential.Provider.OPENAI
-DEFAULT_MODEL = "gpt-4.1-mini"
+DEFAULT_MODEL = "gpt-5.4-mini"
 PROHIBITED_FIELD_FRAGMENTS = {
     "price",
     "value",
@@ -72,22 +72,24 @@ def ai_status() -> dict:
     }
 
 
-def configure_ai_credential(*, api_key: str, provider: str, model_id: str, monthly_budget_cap_usd, actor=None) -> AICredential:
-    if not api_key or not api_key.strip():
-        raise AIResearchUnavailable("API key is required.")
+def configure_ai_credential(*, api_key: str = "", provider: str, model_id: str, monthly_budget_cap_usd, actor=None) -> AICredential:
     provider = provider or DEFAULT_PROVIDER
     model_id = model_id or DEFAULT_MODEL
     cap = Decimal(str(monthly_budget_cap_usd or "5.00")).quantize(Decimal("0.01"))
-    credential, _ = AICredential.objects.update_or_create(
-        provider=provider,
-        defaults={
-            "api_key": api_key.strip(),
-            "model_id": model_id,
-            "monthly_budget_cap_usd": cap,
-            "is_active": True,
-            "last_error": "",
-        },
-    )
+    existing = AICredential.objects.filter(provider=provider).first()
+    cleaned_key = api_key.strip() if api_key else ""
+    if not cleaned_key and existing is None:
+        raise AIResearchUnavailable("API key is required.")
+
+    defaults = {
+        "model_id": model_id,
+        "monthly_budget_cap_usd": cap,
+        "is_active": True,
+        "last_error": "",
+    }
+    if cleaned_key:
+        defaults["api_key"] = cleaned_key
+    credential, _ = AICredential.objects.update_or_create(provider=provider, defaults=defaults)
     audit_record(
         actor=actor,
         action="ai.credential.configured",

@@ -203,7 +203,7 @@ def test_ai_credential_is_encrypted_and_api_never_returns_key(api_client):
         "/api/ai/credential/",
         {
             "provider": AICredential.Provider.OPENAI,
-            "model_id": "gpt-4.1-mini",
+            "model_id": "gpt-5.4-mini",
             "monthly_budget_cap_usd": "3.00",
             "api_key": "unit-test-key-material",
         },
@@ -219,6 +219,24 @@ def test_ai_credential_is_encrypted_and_api_never_returns_key(api_client):
         cursor.execute('select api_key from "intelligence_aicredential"')
         raw = cursor.fetchone()[0]
     assert raw != "unit-test-key-material"
+
+    update_response = api_client.post(
+        "/api/ai/credential/",
+        {
+            "provider": AICredential.Provider.OPENAI,
+            "model_id": "gpt-5.5",
+            "monthly_budget_cap_usd": "4.00",
+            "api_key": "",
+        },
+        format="json",
+    )
+
+    assert update_response.status_code == 200, update_response.data
+    assert "api_key" not in update_response.data
+    credential.refresh_from_db()
+    assert credential.api_key == "unit-test-key-material"
+    assert credential.model_id == "gpt-5.5"
+    assert str(credential.monthly_budget_cap_usd) == "4.00"
     assert "unit-test-key-material" not in str(AuditLog.objects.latest("created_at").payload)
 
 

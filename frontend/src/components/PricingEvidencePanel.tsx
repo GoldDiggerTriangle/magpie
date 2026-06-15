@@ -181,20 +181,20 @@ function EvidenceRows({ rows }: { rows: PricingEvidenceRow[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td>
+              <td data-label="Evidence">
                 <div className="pricing-title-cell">
                   <strong>{row.title || row.sku || "Untitled evidence"}</strong>
                   {row.own_sale ? <span className="own-sale-pill"><Star className="h-3 w-3" aria-hidden="true" /> Own sale</span> : null}
                 </div>
               </td>
-              <td>{row.source_label}</td>
-              <td>
+              <td data-label="Source">{row.source_label}</td>
+              <td data-label="Match">
                 <span className={row.match_scope === "exact" ? "match-pill exact" : "match-pill"}>{row.match_scope}</span>
                 <small>{row.match_reason}</small>
               </td>
-              <td>{label(row.sale_format)}</td>
-              <td>{row.date ?? "undated"}</td>
-              <td className="numeric">{row.price ? `${money(row.price)} ${row.currency}` : "-"}</td>
+              <td data-label="Format">{label(row.sale_format)}</td>
+              <td data-label="Date">{row.date ?? "undated"}</td>
+              <td data-label="Price" className="numeric">{row.price ? `${money(row.price)} ${row.currency}` : "-"}</td>
             </tr>
           ))}
         </tbody>

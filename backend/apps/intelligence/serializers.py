@@ -94,14 +94,14 @@ class AICredentialConfigureSerializer(serializers.Serializer):
         required=False,
         default=AICredential.Provider.OPENAI,
     )
-    model_id = serializers.CharField(required=False, allow_blank=True, default="gpt-4.1-mini")
+    model_id = serializers.CharField(required=False, allow_blank=True, default="gpt-5.4-mini")
     monthly_budget_cap_usd = serializers.DecimalField(
         max_digits=8,
         decimal_places=2,
         required=False,
         default="5.00",
     )
-    api_key = serializers.CharField(write_only=True, trim_whitespace=True)
+    api_key = serializers.CharField(write_only=True, trim_whitespace=True, required=False, allow_blank=True)
 
 
 class AIResearchCallSerializer(serializers.ModelSerializer):

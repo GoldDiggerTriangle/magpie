@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { EbaySettings } from "./EbaySettings";
-import type { EbayStatus } from "../../types";
+import type { AIStatus, EbayStatus } from "../../types";
 
 const sandboxStatus: EbayStatus = {
   configured: true,
@@ -29,10 +29,33 @@ const sandboxStatus: EbayStatus = {
   }
 };
 
+const aiDisconnectedStatus: AIStatus = {
+  configured: false,
+  provider: "openai",
+  model_id: "gpt-5.4-mini",
+  monthly_budget_cap_usd: "5.00",
+  monthly_usage_usd: "0.000000",
+  budget_remaining_usd: "5.000000",
+  enabled: false,
+  disabled_reason: "Connect an AI provider to enable the deep-dive."
+};
+
+const aiConnectedStatus: AIStatus = {
+  ...aiDisconnectedStatus,
+  configured: true,
+  enabled: true,
+  disabled_reason: "",
+  monthly_usage_usd: "0.250000",
+  budget_remaining_usd: "4.750000"
+};
+
 const mocks = vi.hoisted(() => ({
+  configureAICredential: vi.fn(),
   completeEbayConnect: vi.fn(),
+  disconnectAICredential: vi.fn(),
   disconnectEbay: vi.fn(),
   getEbayStatus: vi.fn(),
+  getAIStatus: vi.fn(),
   listEbayOrderDuplicates: vi.fn(),
   listEbayOrderStaging: vi.fn(),
   listAuditLogs: vi.fn(),
@@ -41,6 +64,12 @@ const mocks = vi.hoisted(() => ({
   resolveEbayOrderStaging: vi.fn(),
   syncEbayOrders: vi.fn(),
   startEbayConnect: vi.fn()
+}));
+
+vi.mock("../../api/intelligence", () => ({
+  configureAICredential: (...args: unknown[]) => mocks.configureAICredential(...args),
+  disconnectAICredential: (...args: unknown[]) => mocks.disconnectAICredential(...args),
+  getAIStatus: (...args: unknown[]) => mocks.getAIStatus(...args)
 }));
 
 vi.mock("../../api/ebay", () => ({
@@ -61,10 +90,16 @@ vi.mock("../../api/audit", () => ({
 }));
 
 beforeEach(() => {
+  mocks.configureAICredential.mockReset();
+  mocks.configureAICredential.mockResolvedValue(aiConnectedStatus);
   mocks.completeEbayConnect.mockReset();
   mocks.completeEbayConnect.mockResolvedValue({ ebay_username: "fake_sandbox_seller" });
+  mocks.disconnectAICredential.mockReset();
+  mocks.disconnectAICredential.mockResolvedValue(aiDisconnectedStatus);
   mocks.disconnectEbay.mockReset();
   mocks.disconnectEbay.mockResolvedValue(undefined);
+  mocks.getAIStatus.mockReset();
+  mocks.getAIStatus.mockResolvedValue(aiDisconnectedStatus);
   mocks.getEbayStatus.mockReset();
   mocks.getEbayStatus.mockResolvedValue(sandboxStatus);
   mocks.listEbayOrderDuplicates.mockReset();
@@ -129,7 +164,59 @@ test("EbaySettings renders sandbox status, readiness counts, and audit rows", as
   expect(screen.getByText("Payment")).toBeInTheDocument();
   expect(screen.getByText("1")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Sync eBay Orders" })).toBeInTheDocument();
-  expect(screen.getByText("ebay.connect.completed")).toBeInTheDocument();
+  expect(screen.getAllByText("ebay.connect.completed").length).toBeGreaterThan(0);
+  expect(screen.getByText("AI Provider")).toBeInTheDocument();
+  expect(screen.getByDisplayValue("gpt-5.4-mini")).toBeInTheDocument();
+});
+
+test("EbaySettings saves an encrypted AI key without displaying it", async () => {
+  const user = userEvent.setup();
+  renderSettings();
+
+  await screen.findByText("AI Provider");
+  await user.type(screen.getByLabelText("API key"), "unit-test-openai-key");
+  await user.click(screen.getByRole("button", { name: "Save AI" }));
+
+  await waitFor(() => expect(mocks.configureAICredential).toHaveBeenCalledWith({
+    provider: "openai",
+    model_id: "gpt-5.4-mini",
+    monthly_budget_cap_usd: "5.00",
+    api_key: "unit-test-openai-key"
+  }));
+  expect(screen.queryByText("unit-test-openai-key")).not.toBeInTheDocument();
+});
+
+test("EbaySettings updates the AI model without resubmitting the stored key", async () => {
+  const user = userEvent.setup();
+  mocks.getAIStatus.mockResolvedValue(aiConnectedStatus);
+  renderSettings();
+
+  await screen.findByText("Configured");
+  const model = screen.getByLabelText("Model");
+  await user.clear(model);
+  await user.type(model, "gpt-5.5");
+  await user.click(screen.getByRole("button", { name: "Save AI" }));
+
+  await waitFor(() => expect(mocks.configureAICredential).toHaveBeenCalledWith({
+    provider: "openai",
+    model_id: "gpt-5.5",
+    monthly_budget_cap_usd: "5.00",
+    api_key: ""
+  }));
+  expect(screen.getByPlaceholderText("Configured; paste a new key to replace")).toHaveAttribute("type", "password");
+});
+
+test("EbaySettings confirms before disconnecting AI", async () => {
+  const user = userEvent.setup();
+  mocks.getAIStatus.mockResolvedValue(aiConnectedStatus);
+  renderSettings();
+
+  await user.click(await screen.findByRole("button", { name: "Disconnect AI" }));
+  expect(screen.getByText("Disconnect AI provider?")).toBeInTheDocument();
+  const disconnectButtons = screen.getAllByRole("button", { name: "Disconnect" });
+  await user.click(disconnectButtons[disconnectButtons.length - 1]);
+
+  await waitFor(() => expect(mocks.disconnectAICredential).toHaveBeenCalled());
 });
 
 test("EbaySettings manually starts order sync and shows counts", async () => {

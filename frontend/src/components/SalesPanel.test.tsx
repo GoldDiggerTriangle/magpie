@@ -164,7 +164,8 @@ test("SalesPanel writes corrections as a correction endpoint call", async () => 
   const user = userEvent.setup();
   renderPanel();
 
-  await user.click(await screen.findByRole("button", { name: "Correct" }));
+  const correctButtons = await screen.findAllByRole("button", { name: "Correct" });
+  await user.click(correctButtons[0]);
   expect(screen.getByText("Correction for sale 2026-06-14")).toBeInTheDocument();
 
   await user.clear(screen.getByLabelText(/Quantity/));

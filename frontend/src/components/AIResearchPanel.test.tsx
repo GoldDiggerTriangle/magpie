@@ -28,7 +28,7 @@ vi.mock("../api/intelligence", () => ({
 const disabledStatus: AIStatus = {
   configured: false,
   provider: "openai",
-  model_id: "gpt-4.1-mini",
+  model_id: "gpt-5.4-mini",
   monthly_budget_cap_usd: "5.00",
   monthly_usage_usd: "0.000000",
   budget_remaining_usd: "5.000000",
@@ -129,7 +129,7 @@ test("AIResearchPanel runs identify and keeps output staged", async () => {
   mocks.getAIReferences.mockResolvedValue(references);
   renderWithClient(<AIResearchPanel itemId="item-1" />);
 
-  await screen.findByText(/openai \/ gpt-4.1-mini/i);
+  await screen.findByText(/openai \/ gpt-5.4-mini/i);
   await user.click(screen.getByRole("button", { name: /Identify & fill/i }));
 
   await waitFor(() => expect(mocks.runAIIdentify).toHaveBeenCalledWith("item-1"));
@@ -146,7 +146,7 @@ test("AIResearchPanel price assist does not surface price-like terms", async () 
   mocks.getAIReferences.mockResolvedValue(references);
   renderWithClient(<AIResearchPanel itemId="item-1" />);
 
-  await screen.findByText(/openai \/ gpt-4.1-mini/i);
+  await screen.findByText(/openai \/ gpt-5.4-mini/i);
   await user.click(screen.getByRole("button", { name: /Price-assist search terms/i }));
 
   await waitFor(() => expect(mocks.runAIPriceAssist).toHaveBeenCalledWith("item-1"));

@@ -70,7 +70,7 @@ class AICredential(TimeStampedUUIDModel):
         unique=True,
         default=Provider.OPENAI,
     )
-    model_id = models.CharField(max_length=120, default="gpt-4.1-mini")
+    model_id = models.CharField(max_length=120, default="gpt-5.4-mini")
     api_key = EncryptedTextField()
     monthly_budget_cap_usd = models.DecimalField(
         max_digits=8,

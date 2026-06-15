@@ -14,7 +14,7 @@ export function SalesList() {
         <p className="mt-1 text-sm text-slate-500">{sales.data?.count ?? 0} records</p>
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded border border-slate-800 bg-slate-900">
+      <div className="mt-6 hidden overflow-x-auto rounded border border-slate-800 bg-slate-900 sm:block">
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead className="text-xs uppercase tracking-normal text-slate-500">
             <tr>
@@ -53,9 +53,49 @@ export function SalesList() {
         </table>
       </div>
 
+      <div className="mt-6 space-y-3 sm:hidden">
+        {(sales.data?.results ?? []).map((sale) => (
+          <article key={sale.id} className={`rounded border border-slate-800 bg-slate-900 p-3 ${sale.is_superseded ? "text-slate-500" : "text-slate-200"}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-sm text-slate-100">{sale.sale_date}</p>
+                <p className="mt-1 break-words text-sm">
+                  {sale.item ? (
+                    <Link className="text-cyan-200 hover:text-cyan-100" to={`/inventory/${sale.item}`}>
+                      {sale.item_sku} {sale.item_title ? `- ${sale.item_title}` : ""}
+                    </Link>
+                  ) : (
+                    <span>{sale.item_title || "External sale"}</span>
+                  )}
+                </p>
+              </div>
+              <span className="shrink-0 rounded border border-slate-700 px-2 py-1 text-xs text-slate-300">
+                {sale.is_superseded ? "Superseded" : sale.corrected_from ? "Correction" : "Active"}
+              </span>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <MobileMetric label="Qty" value={String(sale.quantity)} />
+              <MobileMetric label="Gross" value={`$${sale.sale_price}`} />
+              <MobileMetric label="Net" value={`$${sale.net_proceeds}`} />
+              <MobileMetric label="Cost" value={sale.allocated_cost_basis ? `$${sale.allocated_cost_basis}` : "-"} />
+              <MobileMetric label="P&L" value={sale.realised_profit ? `$${sale.realised_profit}` : "-"} />
+            </dl>
+          </article>
+        ))}
+      </div>
+
       {sales.isLoading ? <EmptyState title="Loading sales" /> : null}
       {sales.error ? <EmptyState title="Unable to load sales" detail="Check your Django admin session." /> : null}
       {sales.data && sales.data.results.length === 0 ? <EmptyState title="No sales recorded" /> : null}
+    </div>
+  );
+}
+
+function MobileMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded border border-slate-800 bg-slate-950/50 px-2 py-2">
+      <dt className="text-xs uppercase tracking-normal text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words font-mono text-slate-100">{value}</dd>
     </div>
   );
 }

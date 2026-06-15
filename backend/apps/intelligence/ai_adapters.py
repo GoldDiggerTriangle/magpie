@@ -152,7 +152,7 @@ class OpenAIAiResearchAdapter:
     INPUT_RATE_PER_MILLION = Decimal("0.400000")
     OUTPUT_RATE_PER_MILLION = Decimal("1.600000")
 
-    def __init__(self, *, api_key: str, model_id: str = "gpt-4.1-mini", timeout: int = 60):
+    def __init__(self, *, api_key: str, model_id: str = "gpt-5.4-mini", timeout: int = 60):
         self.api_key = api_key
         self.model_id = model_id
         self.timeout = timeout

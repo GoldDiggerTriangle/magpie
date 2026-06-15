@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('provider', models.CharField(choices=[('openai', 'OpenAI')], default='openai', max_length=40, unique=True)),
-                ('model_id', models.CharField(default='gpt-4.1-mini', max_length=120)),
+                ('model_id', models.CharField(default='gpt-5.4-mini', max_length=120)),
                 ('api_key', apps.ebay.fields.EncryptedTextField()),
                 ('monthly_budget_cap_usd', models.DecimalField(decimal_places=2, default='5.00', max_digits=8)),
                 ('is_active', models.BooleanField(default=True)),

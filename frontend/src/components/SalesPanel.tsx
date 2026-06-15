@@ -182,7 +182,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
           <div className="rounded border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-100 lg:col-span-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span>Correction for sale {correctionTarget.sale_date}</span>
-              <button className="btn-secondary min-h-8 px-3 py-1" type="button" onClick={cancelCorrection}>
+              <button className="btn-secondary" type="button" onClick={cancelCorrection}>
                 <X className="h-4 w-4" aria-hidden="true" />
                 Cancel
               </button>
@@ -266,7 +266,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
 
       {submit.error ? <EmptyState title="Unable to record sale" detail={(submit.error as Error).message} /> : null}
 
-      <div className="mt-5 overflow-x-auto">
+      <div className="mt-5 hidden overflow-x-auto sm:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="text-xs uppercase tracking-normal text-slate-500">
             <tr>
@@ -292,7 +292,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
                 <td className="py-2 pr-3">{sale.is_superseded ? "Superseded" : sale.corrected_from ? "Correction" : "Active"}</td>
                 <td className="py-2 pr-0 text-right">
                   <button
-                    className="btn-secondary min-h-8 px-3 py-1"
+                    className="btn-secondary"
                     disabled={sale.is_superseded}
                     type="button"
                     onClick={() => startCorrection(sale)}
@@ -305,9 +305,48 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
             ))}
           </tbody>
         </table>
-        {sales.isLoading ? <EmptyState title="Loading sales" /> : null}
-        {sales.data && sales.data.results.length === 0 ? <EmptyState title="No sales recorded" /> : null}
       </div>
+      <div className="mt-5 space-y-3 sm:hidden">
+        {(sales.data?.results ?? []).map((sale) => (
+          <article key={sale.id} className={`rounded border border-slate-800 bg-slate-950/70 p-3 ${sale.is_superseded ? "text-slate-500" : "text-slate-200"}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-sm text-slate-100">{sale.sale_date}</p>
+                <p className="mt-1 text-xs text-slate-500">Qty {sale.quantity}</p>
+              </div>
+              <span className="shrink-0 rounded border border-slate-700 px-2 py-1 text-xs text-slate-300">
+                {sale.is_superseded ? "Superseded" : sale.corrected_from ? "Correction" : "Active"}
+              </span>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <MobileSaleMetric label="Gross" value={`$${sale.sale_price}`} />
+              <MobileSaleMetric label="Net" value={`$${sale.net_proceeds}`} />
+              <MobileSaleMetric label="Cost" value={`$${sale.allocated_cost_basis}`} />
+              <MobileSaleMetric label="P&L" value={`$${sale.realised_profit}`} />
+            </dl>
+            <button
+              className="btn-secondary mt-3 w-full"
+              disabled={sale.is_superseded}
+              type="button"
+              onClick={() => startCorrection(sale)}
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              Correct
+            </button>
+          </article>
+        ))}
+      </div>
+      {sales.isLoading ? <EmptyState title="Loading sales" /> : null}
+      {sales.data && sales.data.results.length === 0 ? <EmptyState title="No sales recorded" /> : null}
     </section>
+  );
+}
+
+function MobileSaleMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded border border-slate-800 bg-slate-900 px-2 py-2">
+      <dt className="text-xs uppercase tracking-normal text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words font-mono text-slate-100">{value}</dd>
+    </div>
   );
 }
