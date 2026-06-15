@@ -147,8 +147,12 @@ Schema spot-check confirmed `research_comparable` contains:
 
 ## Remote Validation
 
-Pending final push. To close Sprint 14, the pushed head must pass dual-lane GitHub `Validation` for SQLite and Postgres.
+- GitHub Actions `Validation` run: `27519035863`
+- Commit: `1f50572`
+- Run URL: `https://github.com/GoldDiggerTriangle/magpie/actions/runs/27519035863`
+- `sqlite`: success
+- `postgres`: success
 
 ## Closure Status
 
-Sprint 14 implementation and live deployment evidence are complete locally. Formal closure is pending commit, push, and green remote dual-lane `Validation`.
+Sprint 14 implementation, live deployment evidence, backup/restore proof, screenshots, and dual-lane remote `Validation` are complete.
