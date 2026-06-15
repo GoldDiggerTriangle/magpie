@@ -114,4 +114,8 @@ Live key note:
 
 ## GitHub Validation
 
-Pending at the time this evidence file was first written. It will be updated after commit/push and the dual-lane `Validation` workflow completes.
+- GitHub Actions `Validation` run `27573395435`: passed.
+- Commit: `74a35a7e9e779bda05006a7fc6044d6e84a411ff`.
+- SQLite job: passed.
+- Postgres job: passed.
+- Run URL: https://github.com/GoldDiggerTriangle/magpie/actions/runs/27573395435
