@@ -13,6 +13,7 @@ on:
       - "SPRINT12_EVIDENCE.md"
       - "SPRINT13_EVIDENCE.md"
       - "SPRINT14_EVIDENCE.md"
+      - "SPRINT15_EVIDENCE.md"
       - "backend/**"
       - "docs/evidence/**"
       - "frontend/**"
@@ -29,6 +30,7 @@ on:
       - "SPRINT12_EVIDENCE.md"
       - "SPRINT13_EVIDENCE.md"
       - "SPRINT14_EVIDENCE.md"
+      - "SPRINT15_EVIDENCE.md"
       - "backend/**"
       - "docs/evidence/**"
       - "frontend/**"
@@ -101,9 +103,11 @@ jobs:
           app_root = Path("backend/apps")
           integration_file = Path("backend/integrations/ebay.py")
           adapter_file = Path("backend/apps/ebay/adapters.py")
+          ai_adapter_file = Path("backend/apps/intelligence/ai_adapters.py")
           frontend_root = Path("frontend/src")
           url_builder_files = {
               Path("backend/apps/intelligence/sold_search.py"),
+              Path("backend/apps/intelligence/reference_sources.py"),
               Path("backend/apps/research/links.py"),
               Path("backend/apps/research/pricing_sources.py"),
           }
@@ -177,7 +181,7 @@ jobs:
           for path in app_root.rglob("*"):
               if not path.is_file() or not is_production_file(path):
                   continue
-              if path == adapter_file:
+              if path in {adapter_file, ai_adapter_file}:
                   continue
               if path.suffix == ".py":
                   for import_name in python_imports(path):
@@ -295,6 +299,10 @@ jobs:
           assert counts["ebay_duplicates"] == 0
           assert counts["field_suggestions"] == 0
           assert counts["image_fingerprints"] == 0
+          assert counts["ai_credentials"] == 0
+          assert counts["ai_research_calls"] == 0
+          assert counts["ai_search_terms"] == 0
+          assert counts["ai_reference_links"] == 0
           conn = sqlite3.connect(restored_db)
           try:
               assert conn.execute("select count(*) from sales_salerecord").fetchone()[0] == 0
@@ -304,6 +312,10 @@ jobs:
               assert conn.execute("select count(*) from ebay_ebayorderduplicatecandidate").fetchone()[0] == 0
               assert conn.execute("select count(*) from intelligence_fieldsuggestion").fetchone()[0] == 0
               assert conn.execute("select count(*) from intelligence_imagefingerprint").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_aicredential").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_airesearchcall").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_airesearchsearchterm").fetchone()[0] == 0
+              assert conn.execute("select count(*) from intelligence_aireferencelink").fetchone()[0] == 0
           finally:
               conn.close()
           print("Encrypted SQLite backup restore checks passed.")

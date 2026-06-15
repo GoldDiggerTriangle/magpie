@@ -30,7 +30,12 @@ from apps.ebay.views import (
 )
 from apps.inventory.views import InventoryItemViewSet
 from apps.intelligence.views import (
+    AICredentialView,
+    AIStatusView,
     FieldSuggestionViewSet,
+    ItemAIIdentifyView,
+    ItemAIPriceAssistView,
+    ItemAIReferencesView,
     ItemDuplicateScanView,
     ItemOcrRunView,
     ItemSoldSearchView,
@@ -112,6 +117,23 @@ urlpatterns = [
         "items/<uuid:item_id>/duplicate-scan/",
         ItemDuplicateScanView.as_view(),
         name="item-duplicate-scan",
+    ),
+    path("ai/status/", AIStatusView.as_view(), name="ai-status"),
+    path("ai/credential/", AICredentialView.as_view(), name="ai-credential"),
+    path(
+        "items/<uuid:item_id>/ai/identify/",
+        ItemAIIdentifyView.as_view(),
+        name="item-ai-identify",
+    ),
+    path(
+        "items/<uuid:item_id>/ai/price-assist/",
+        ItemAIPriceAssistView.as_view(),
+        name="item-ai-price-assist",
+    ),
+    path(
+        "items/<uuid:item_id>/ai/references/",
+        ItemAIReferencesView.as_view(),
+        name="item-ai-references",
     ),
     path(
         "valuation-reports/<uuid:pk>/",

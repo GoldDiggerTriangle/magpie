@@ -116,6 +116,11 @@ def pricing_source_links(item: InventoryItem) -> list[PricingSourceLink]:
 
 
 def pricing_query(item: InventoryItem) -> str:
+    from apps.intelligence.ai_research import latest_ai_search_query
+
+    ai_query = latest_ai_search_query(item)
+    if ai_query:
+        return ai_query
     query = broad_query(item)
     if query:
         return query

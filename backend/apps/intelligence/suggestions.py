@@ -20,6 +20,18 @@ WRITABLE_ITEM_FIELDS = {
     "est_outbound_shipping",
     "est_packaging_cost",
 }
+AI_BLOCKED_FIELD_FRAGMENTS = {
+    "price",
+    "value",
+    "valuation",
+    "acquisition",
+    "cost",
+    "profit",
+    "catalogue_id",
+    "catalogue_number",
+    "catalog_id",
+    "grade",
+}
 
 
 class SuggestionError(ValueError):
@@ -69,6 +81,12 @@ def apply_value_to_item(suggestion: FieldSuggestion, value) -> bool:
     item = suggestion.item
     if field == "duplicate_candidate":
         return False
+    if field.startswith("ai_candidate."):
+        return False
+    if suggestion.source == FieldSuggestion.Source.AI and any(
+        fragment in field.lower() for fragment in AI_BLOCKED_FIELD_FRAGMENTS
+    ):
+        raise SuggestionError("AI suggestions cannot write price, value, cost, profit, grade, or catalogue fields.")
     if field.startswith("attributes."):
         attribute_name = field.split(".", 1)[1]
         attributes = deepcopy(item.attributes or {})

@@ -9,6 +9,7 @@ import { deleteItem, getItem, reorderPhotos, updateItem, uploadItemPhoto } from 
 import { listLocations } from "../../api/locations";
 import { deletePhoto, updatePhoto } from "../../api/photos";
 import { CategorySelect } from "../../components/CategorySelect";
+import { AIResearchPanel } from "../../components/AIResearchPanel";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
@@ -281,6 +282,7 @@ export function ItemDetail() {
 
       <div className="mt-8 grid gap-6">
         <PricingEvidencePanel itemId={itemId} />
+        <AIResearchPanel itemId={itemId} />
         <SoldSearchPanel itemId={itemId} />
         <SuggestionReviewPanel itemId={itemId} />
         <ResearchLinks itemId={itemId} />

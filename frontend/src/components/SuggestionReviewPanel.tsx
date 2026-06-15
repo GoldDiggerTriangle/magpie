@@ -181,7 +181,7 @@ function SuggestionSection({
                 <p>{row.evidence}</p>
               </div>
             </div>
-            {row.field !== "duplicate_candidate" ? (
+            {!isReviewOnlyField(row.field) ? (
               <label className="suggestion-edit">
                 <span>Edit value</span>
                 <input
@@ -194,9 +194,9 @@ function SuggestionSection({
             <div className="suggestion-actions">
               <button className="ledger-button ledger-button-primary" disabled={busy} onClick={() => onApprove(row)} type="button">
                 <Check className="h-4 w-4" aria-hidden="true" />
-                {row.field === "duplicate_candidate" ? "Mark reviewed" : "Approve"}
+                {isReviewOnlyField(row.field) ? "Mark reviewed" : "Approve"}
               </button>
-              {row.field !== "duplicate_candidate" ? (
+              {!isReviewOnlyField(row.field) ? (
                 <button className="ledger-button" disabled={busy} onClick={() => onEdit(row)} type="button">
                   <Pencil className="h-4 w-4" aria-hidden="true" />
                   Edit
@@ -228,6 +228,9 @@ function labelForField(field: string) {
   if (field === "duplicate_candidate") {
     return "Possible duplicate";
   }
+  if (field.startsWith("ai_candidate.")) {
+    return `Candidate ${field.replace(/^ai_candidate\./, "").replace(/_/g, " ")}`;
+  }
   return field.replace(/^attributes\./, "").replace(/_/g, " ");
 }
 
@@ -237,6 +240,9 @@ function sourceLabel(source: FieldSuggestion["source"]) {
   }
   if (source === "duplicate") {
     return "Duplicate image";
+  }
+  if (source === "ai") {
+    return "AI research";
   }
   return "Later AI";
 }
@@ -250,4 +256,8 @@ function errorText(error: unknown) {
     return "";
   }
   return error instanceof Error ? error.message : "Request failed.";
+}
+
+function isReviewOnlyField(field: string) {
+  return field === "duplicate_candidate" || field.startsWith("ai_candidate.");
 }

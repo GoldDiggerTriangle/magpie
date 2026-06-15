@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from apps.intelligence.models import FieldSuggestion, ImageFingerprint
+from apps.intelligence.models import (
+    AICredential,
+    AIReferenceLink,
+    AIResearchCall,
+    AIResearchSearchTerm,
+    FieldSuggestion,
+    ImageFingerprint,
+)
 
 
 class FieldSuggestionSerializer(serializers.ModelSerializer):
@@ -68,3 +75,96 @@ class OcrRunResultSerializer(serializers.Serializer):
     available = serializers.BooleanField()
     detail = serializers.CharField()
     suggestions = FieldSuggestionSerializer(many=True)
+
+
+class AIStatusSerializer(serializers.Serializer):
+    configured = serializers.BooleanField()
+    provider = serializers.CharField()
+    model_id = serializers.CharField()
+    monthly_budget_cap_usd = serializers.CharField()
+    monthly_usage_usd = serializers.CharField()
+    budget_remaining_usd = serializers.CharField()
+    enabled = serializers.BooleanField()
+    disabled_reason = serializers.CharField(allow_blank=True)
+
+
+class AICredentialConfigureSerializer(serializers.Serializer):
+    provider = serializers.ChoiceField(
+        choices=AICredential.Provider.choices,
+        required=False,
+        default=AICredential.Provider.OPENAI,
+    )
+    model_id = serializers.CharField(required=False, allow_blank=True, default="gpt-4.1-mini")
+    monthly_budget_cap_usd = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        required=False,
+        default="5.00",
+    )
+    api_key = serializers.CharField(write_only=True, trim_whitespace=True)
+
+
+class AIResearchCallSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIResearchCall
+        fields = [
+            "id",
+            "item",
+            "phase",
+            "status",
+            "provider",
+            "model_id",
+            "image_count",
+            "exif_stripped",
+            "suggestions_created",
+            "search_terms_created",
+            "reference_links_created",
+            "input_tokens",
+            "output_tokens",
+            "estimated_cost_usd",
+            "request_metadata",
+            "response_metadata",
+            "error",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class AIResearchSearchTermSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIResearchSearchTerm
+        fields = [
+            "id",
+            "item",
+            "phrase",
+            "source_basis",
+            "created_by_call",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class AIReferenceLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIReferenceLink
+        fields = [
+            "id",
+            "item",
+            "label",
+            "url",
+            "source_basis",
+            "created_by_call",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class AIResearchRunResultSerializer(serializers.Serializer):
+    call = AIResearchCallSerializer()
+    suggestions = FieldSuggestionSerializer(many=True)
+    search_terms = AIResearchSearchTermSerializer(many=True)
+    reference_links = AIReferenceLinkSerializer(many=True)

@@ -87,6 +87,10 @@ KEY_ROW_TABLES = {
     "dashboard_preferences": "dashboard_dashboardpreference",
     "field_suggestions": "intelligence_fieldsuggestion",
     "image_fingerprints": "intelligence_imagefingerprint",
+    "ai_credentials": "intelligence_aicredential",
+    "ai_research_calls": "intelligence_airesearchcall",
+    "ai_search_terms": "intelligence_airesearchsearchterm",
+    "ai_reference_links": "intelligence_aireferencelink",
     "credential": "ebay_ebaycredential",
 }
 

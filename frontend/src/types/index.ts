@@ -291,7 +291,7 @@ export interface AnalyticsListingOpportunities {
   empty: boolean;
 }
 
-export type SuggestionSource = "ocr" | "duplicate" | "later_ai";
+export type SuggestionSource = "ocr" | "duplicate" | "ai" | "later_ai";
 export type SuggestionConfidenceBand = "high" | "medium" | "low" | "candidate";
 export type SuggestionStatus = "pending" | "approved" | "edited" | "rejected";
 
@@ -396,6 +396,80 @@ export interface OcrRunResult {
   available: boolean;
   detail: string;
   suggestions: FieldSuggestion[];
+}
+
+export interface AIStatus {
+  configured: boolean;
+  provider: string;
+  model_id: string;
+  monthly_budget_cap_usd: string;
+  monthly_usage_usd: string;
+  budget_remaining_usd: string;
+  enabled: boolean;
+  disabled_reason: string;
+}
+
+export interface AICredentialPayload {
+  provider?: string;
+  model_id?: string;
+  monthly_budget_cap_usd?: string;
+  api_key: string;
+}
+
+export interface AIResearchCall {
+  id: UUID;
+  item: UUID | null;
+  phase: "identify" | "price_assist";
+  status: "success" | "failed" | "blocked";
+  provider: string;
+  model_id: string;
+  image_count: number;
+  exif_stripped: boolean;
+  suggestions_created: number;
+  search_terms_created: number;
+  reference_links_created: number;
+  input_tokens: number;
+  output_tokens: number;
+  estimated_cost_usd: string;
+  request_metadata: Record<string, unknown>;
+  response_metadata: Record<string, unknown>;
+  error: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIResearchSearchTerm {
+  id: UUID;
+  item: UUID;
+  phrase: string;
+  source_basis: string;
+  created_by_call: UUID | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIReferenceLink {
+  id: UUID;
+  item: UUID;
+  label: string;
+  url: string;
+  source_basis: string;
+  created_by_call: UUID | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AIResearchRunResult {
+  call: AIResearchCall;
+  suggestions: FieldSuggestion[];
+  search_terms: AIResearchSearchTerm[];
+  reference_links: AIReferenceLink[];
+}
+
+export interface AIReferencesResult {
+  search_terms: AIResearchSearchTerm[];
+  reference_links: AIReferenceLink[];
 }
 
 export interface ItemFormPayload {
