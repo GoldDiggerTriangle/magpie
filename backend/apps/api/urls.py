@@ -44,6 +44,7 @@ from apps.locations.views import StorageLocationViewSet
 from apps.photos.views import PhotoAssetViewSet
 from apps.research.views import (
     ComparableViewSet,
+    PricingEvidenceView,
     ResearchLinksView,
     ResearchRecordViewSet,
 )
@@ -133,6 +134,11 @@ urlpatterns = [
         "items/<uuid:item_id>/research-links/",
         ResearchLinksView.as_view(),
         name="item-research-links",
+    ),
+    path(
+        "items/<uuid:item_id>/pricing-evidence/",
+        PricingEvidenceView.as_view(),
+        name="item-pricing-evidence",
     ),
     path("metals/spot/", MetalsSpotView.as_view(), name="metals-spot"),
     path("ebay/connect/start/", EbayConnectStartView.as_view(), name="ebay-connect-start"),

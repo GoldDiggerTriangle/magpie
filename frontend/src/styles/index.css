@@ -564,9 +564,198 @@
     @apply flex flex-wrap items-start gap-2 lg:justify-end;
   }
 
+  .pricing-evidence-panel {
+    @apply rounded-md border bg-[#FAFAF7] p-5 text-[#1C1B19] shadow-sm;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-evidence-header,
+  .pricing-capture-title {
+    @apply flex items-start justify-between gap-4;
+  }
+
+  .pricing-evidence-header h2,
+  .pricing-capture-title h3,
+  .pricing-grid-card h3 {
+    @apply m-0 font-serif text-[#1C1B19];
+  }
+
+  .pricing-evidence-header p,
+  .pricing-muted,
+  .pricing-summary-row p {
+    color: #586071;
+  }
+
+  .pricing-source-strip {
+    @apply mt-4 grid gap-3 lg:grid-cols-[minmax(240px,0.75fr)_minmax(0,1.25fr)];
+  }
+
+  .pricing-primary-link,
+  .pricing-source-link {
+    @apply flex items-center justify-between rounded border bg-white text-[#1C1B19] no-underline;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-primary-link {
+    @apply p-3;
+    border-color: #9a7b2e;
+    box-shadow: inset 3px 0 0 #9a7b2e;
+  }
+
+  .pricing-primary-link small,
+  .pricing-source-link span,
+  .pricing-evidence-table small,
+  .pricing-grid-card small {
+    color: #586071;
+  }
+
+  .pricing-secondary-links {
+    @apply grid gap-2 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .pricing-source-link {
+    @apply px-3 py-2;
+  }
+
+  .pricing-summary-row {
+    @apply mt-4 grid border-y lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(220px,1.2fr)];
+    border-color: #e4e1d8;
+  }
+
+  .pricing-summary-row div,
+  .pricing-summary-row p {
+    @apply m-0 border-r p-3;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-summary-row strong {
+    @apply block font-mono text-xl text-[#1C1B19];
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pricing-summary-row span {
+    @apply text-xs uppercase tracking-normal;
+    color: #586071;
+  }
+
+  .pricing-evidence-table-wrap {
+    @apply mt-4 overflow-x-auto;
+  }
+
+  .pricing-evidence-table,
+  .pricing-grid-card table {
+    @apply w-full border-collapse;
+  }
+
+  .pricing-evidence-table th,
+  .pricing-evidence-table td,
+  .pricing-grid-card th,
+  .pricing-grid-card td {
+    @apply border-b p-3 text-left align-top;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-evidence-table th,
+  .pricing-grid-card th {
+    @apply text-xs font-bold uppercase tracking-normal;
+    color: #586071;
+  }
+
+  .pricing-evidence-table td,
+  .pricing-grid-card td {
+    @apply text-sm;
+  }
+
+  .pricing-title-cell {
+    @apply grid gap-1;
+  }
+
+  .numeric,
+  .pricing-grid-card td:not(:first-child) {
+    @apply text-right font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .own-sale-pill,
+  .match-pill {
+    @apply inline-flex w-fit items-center gap-1 rounded-full border px-2 py-1 text-xs leading-none;
+  }
+
+  .own-sale-pill {
+    background: #edf7f2;
+    border-color: rgba(46, 125, 91, 0.25);
+    color: #2e7d5b;
+  }
+
+  .match-pill {
+    @apply mr-2;
+    background: #f4f2eb;
+    border-color: #e4e1d8;
+    color: #586071;
+  }
+
+  .match-pill.exact {
+    background: #f9f3df;
+    border-color: rgba(154, 123, 46, 0.28);
+    color: #7a611f;
+  }
+
+  .pricing-capture-form {
+    @apply mt-4 grid gap-4 rounded border bg-white p-4;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-capture-grid {
+    @apply grid gap-3 lg:grid-cols-4;
+  }
+
+  .pricing-span-2 {
+    @apply lg:col-span-2;
+  }
+
+  .pricing-error {
+    @apply m-0 rounded border px-3 py-2;
+    background: rgba(176, 65, 62, 0.08);
+    border-color: rgba(176, 65, 62, 0.24);
+    color: #b0413e;
+  }
+
+  .pricing-grid-layout {
+    @apply mt-4 grid gap-4 xl:grid-cols-2;
+  }
+
+  .pricing-grid-card {
+    @apply overflow-hidden rounded border bg-white;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-grid-card h3 {
+    @apply border-b p-3;
+    border-color: #e4e1d8;
+  }
+
+  .pricing-grid-card .pricing-muted {
+    @apply m-0 p-3;
+  }
+
+  .pricing-grid-card td:first-child {
+    @apply grid gap-1;
+  }
+
+  .pricing-skeleton {
+    @apply ledger-skeleton mt-4 h-40 rounded border;
+    border-color: #e4e1d8;
+  }
+
   @media (max-width: 640px) {
     .ledger-title {
       font-size: 2.25rem;
+    }
+
+    .pricing-summary-row div,
+    .pricing-summary-row p {
+      @apply border-b border-r-0;
+      border-color: #e4e1d8;
     }
 
     .estimate-chart {

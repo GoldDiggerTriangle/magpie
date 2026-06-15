@@ -16,6 +16,7 @@ import { ListingPanel } from "../../components/ListingPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
 import { ComparableList } from "../../components/ComparableList";
+import { PricingEvidencePanel } from "../../components/PricingEvidencePanel";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
 import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
@@ -279,6 +280,7 @@ export function ItemDetail() {
       </div>
 
       <div className="mt-8 grid gap-6">
+        <PricingEvidencePanel itemId={itemId} />
         <SoldSearchPanel itemId={itemId} />
         <SuggestionReviewPanel itemId={itemId} />
         <ResearchLinks itemId={itemId} />

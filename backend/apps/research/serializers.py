@@ -16,6 +16,11 @@ class ComparableSerializer(serializers.ModelSerializer):
             "shipping",
             "currency",
             "condition",
+            "grade",
+            "sale_format",
+            "source_tag",
+            "match_scope",
+            "match_reason",
             "url",
             "observed_on",
             "notes",
@@ -23,6 +28,11 @@ class ComparableSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_source_tag(self, value):
+        if not value:
+            return ""
+        return "_".join(value.strip().lower().split())[:80]
 
 
 class ResearchRecordSerializer(serializers.ModelSerializer):

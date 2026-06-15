@@ -12,6 +12,17 @@ class Comparable(TimeStampedUUIDModel):
         MANUAL_ESTIMATE = "manual_estimate", "Manual estimate"
         AUCTION_RESULT = "auction_result", "Auction result"
 
+    class SaleFormat(models.TextChoices):
+        UNKNOWN = "unknown", "Unknown"
+        AUCTION = "auction", "Auction"
+        FIXED_PRICE = "fixed_price", "Fixed price"
+        DEALER = "dealer", "Dealer / guide"
+        OTHER = "other", "Other"
+
+    class MatchScope(models.TextChoices):
+        EXACT = "exact", "Exact item"
+        SIMILAR = "similar", "Similar item"
+
     item = models.ForeignKey(
         "inventory.InventoryItem",
         on_delete=models.CASCADE,
@@ -24,6 +35,19 @@ class Comparable(TimeStampedUUIDModel):
     shipping = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="AUD")
     condition = models.CharField(max_length=20, blank=True, default="")
+    grade = models.CharField(max_length=80, blank=True, default="")
+    sale_format = models.CharField(
+        max_length=20,
+        choices=SaleFormat.choices,
+        default=SaleFormat.UNKNOWN,
+    )
+    source_tag = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    match_scope = models.CharField(
+        max_length=20,
+        choices=MatchScope.choices,
+        default=MatchScope.SIMILAR,
+    )
+    match_reason = models.CharField(max_length=240, blank=True, default="")
     url = models.URLField(blank=True, default="")
     observed_on = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True, default="")
@@ -33,6 +57,9 @@ class Comparable(TimeStampedUUIDModel):
         indexes = [
             models.Index(fields=["item"]),
             models.Index(fields=["kind"]),
+            models.Index(fields=["source_tag"]),
+            models.Index(fields=["sale_format"]),
+            models.Index(fields=["match_scope"]),
         ]
 
     def __str__(self) -> str:

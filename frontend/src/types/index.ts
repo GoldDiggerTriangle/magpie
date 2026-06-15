@@ -321,6 +321,77 @@ export interface SoldSearchLink {
   url: string;
 }
 
+export interface PricingSourceLink {
+  id: string;
+  label: string;
+  source_tag: string;
+  query: string;
+  url: string;
+  note: string;
+  primary: boolean;
+}
+
+export interface PricingEvidenceRow {
+  id: string;
+  record_type: "sale" | "comparable";
+  own_sale: boolean;
+  match_scope: "exact" | "similar";
+  match_reason: string;
+  date: string | null;
+  title: string;
+  sku: string;
+  source_tag: string;
+  source_label: string;
+  condition: string;
+  grade: string;
+  sale_format: string;
+  price: string | null;
+  currency: string;
+  quantity: number;
+  url: string;
+  notes: string;
+}
+
+export interface PricingGridCell {
+  key: string;
+  label: string;
+  low: string | null;
+  median: string | null;
+  high: string | null;
+  count: number;
+  own_sale_count: number;
+  thin: boolean;
+}
+
+export interface PricingEvidence {
+  item: UUID;
+  currency: string;
+  source_links: PricingSourceLink[];
+  headline: PricingEvidenceRow[];
+  own_sales: PricingEvidenceRow[];
+  comparables: PricingEvidenceRow[];
+  grids: {
+    condition_grade: PricingGridCell[];
+    sale_format: PricingGridCell[];
+    recency: PricingGridCell[];
+    source: PricingGridCell[];
+  };
+  summary: {
+    evidence_count: number;
+    priced_count: number;
+    own_sale_count: number;
+    comparable_count: number;
+    exact_count: number;
+    similar_count: number;
+    thin: boolean;
+    empty: boolean;
+  };
+  empty_state: {
+    title: string;
+    detail: string;
+  };
+}
+
 export interface OcrRunResult {
   available: boolean;
   detail: string;
@@ -356,6 +427,11 @@ export interface Comparable {
   shipping: string | null;
   currency: string;
   condition: string;
+  grade: string;
+  sale_format: "unknown" | "auction" | "fixed_price" | "dealer" | "other";
+  source_tag: string;
+  match_scope: "exact" | "similar";
+  match_reason: string;
   url: string;
   observed_on: string | null;
   notes: string;
@@ -363,7 +439,24 @@ export interface Comparable {
   updated_at: string;
 }
 
-export type ComparablePayload = Omit<Comparable, "id" | "created_at" | "updated_at">;
+export interface ComparablePayload {
+  item: UUID;
+  kind: ComparableKind;
+  source: string;
+  title: string;
+  price: string | null;
+  shipping: string | null;
+  currency: string;
+  condition: string;
+  grade?: string;
+  sale_format?: Comparable["sale_format"];
+  source_tag?: string;
+  match_scope?: Comparable["match_scope"];
+  match_reason?: string;
+  url: string;
+  observed_on: string | null;
+  notes: string;
+}
 
 export interface ResearchLink {
   type?: "link" | "checklist";

@@ -89,7 +89,7 @@ jobs:
         working-directory: backend
         run: python manage.py seed
 
-      - name: Assert eBay HTTP confinement
+      - name: Assert marketplace URL-only confinement
         run: |
           python - <<'PY'
           import ast
@@ -100,6 +100,14 @@ jobs:
           integration_file = Path("backend/integrations/ebay.py")
           adapter_file = Path("backend/apps/ebay/adapters.py")
           frontend_root = Path("frontend/src")
+          url_builder_files = {
+              Path("backend/apps/intelligence/sold_search.py"),
+              Path("backend/apps/research/links.py"),
+              Path("backend/apps/research/pricing_sources.py"),
+          }
+          frontend_view_only_url_files = {
+              Path("frontend/src/components/PublishPanel.tsx"),
+          }
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
           network_imports = {"requests", "httpx", "aiohttp"}
           urllib_network_modules = {"urllib.request", "urllib.error"}
@@ -112,6 +120,15 @@ jobs:
               "apiz.sandbox.ebay.com",
               "auth.ebay.com",
               "auth.sandbox.ebay.com",
+          ]
+          marketplace_view_hosts = [
+              "www.ebay.com.au",
+              "www.facebook.com",
+              "www.invaluable.com",
+              "www.worthpoint.com",
+              "en.numista.com",
+              "colnect.com",
+              "www.google.com",
           ]
 
           def is_production_file(path):
@@ -169,14 +186,17 @@ jobs:
               for host in ebay_hosts:
                   if host in text:
                       bad.append(f"{path}: eBay hostname {host}")
+              for host in marketplace_view_hosts:
+                  if host in text and path not in url_builder_files:
+                      bad.append(f"{path}: marketplace URL host {host} outside URL-only source registry")
 
           for path in frontend_root.rglob("*"):
               if not path.is_file() or not is_production_file(path):
                   continue
               text = text_without_comments(path)
-              for host in ebay_hosts:
-                  if host in text:
-                      bad.append(f"{path}: frontend eBay hostname {host}")
+              for host in [*ebay_hosts, *marketplace_view_hosts]:
+                  if host in text and path not in frontend_view_only_url_files:
+                      bad.append(f"{path}: frontend marketplace hostname {host}")
 
           integration_text = integration_file.read_text(encoding="utf-8")
           adapter_text = adapter_file.read_text(encoding="utf-8")
@@ -266,6 +286,7 @@ jobs:
           assert restored_media.exists()
           counts = count_key_rows(restored_db)
           assert counts["items"] == 6
+          assert counts["comparables"] == 4
           assert counts["drafts"] == 1
           assert counts["sales"] == 0
           assert counts["ebay_staging"] == 0
@@ -275,6 +296,7 @@ jobs:
           conn = sqlite3.connect(restored_db)
           try:
               assert conn.execute("select count(*) from sales_salerecord").fetchone()[0] == 0
+              assert conn.execute("select count(*) from research_comparable").fetchone()[0] == 4
               assert conn.execute("select count(*) from listing_listingdraft").fetchone()[0] == 1
               assert conn.execute("select count(*) from ebay_ebayorderstaging").fetchone()[0] == 0
               assert conn.execute("select count(*) from ebay_ebayorderduplicatecandidate").fetchone()[0] == 0

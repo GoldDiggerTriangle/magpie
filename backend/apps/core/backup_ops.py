@@ -78,6 +78,7 @@ ENV_VAR_NAMES = [
 KEY_ROW_TABLES = {
     "items": "inventory_inventoryitem",
     "photos": "photos_photoasset",
+    "comparables": "research_comparable",
     "valuations": "valuation_valuationreport",
     "drafts": "listing_listingdraft",
     "sales": "sales_salerecord",

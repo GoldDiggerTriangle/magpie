@@ -9,6 +9,7 @@ from apps.inventory.models import InventoryItem
 from apps.research.filters import ComparableFilter, ResearchRecordFilter
 from apps.research.links import research_links
 from apps.research.models import Comparable, ResearchRecord
+from apps.research.pricing_evidence import pricing_evidence_payload
 from apps.research.serializers import ComparableSerializer, ResearchRecordSerializer
 
 
@@ -43,3 +44,12 @@ class ResearchLinksView(APIView):
     def get(self, request, item_id):
         item = get_object_or_404(InventoryItem, pk=item_id)
         return Response({"item": str(item.id), "links": research_links(item)})
+
+
+class PricingEvidenceView(APIView):
+    def get(self, request, item_id):
+        item = get_object_or_404(
+            InventoryItem.objects.select_related("category").prefetch_related("comparables"),
+            pk=item_id,
+        )
+        return Response(pricing_evidence_payload(item))
