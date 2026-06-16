@@ -54,6 +54,33 @@ export interface AcquisitionRecord {
   notes: string;
 }
 
+export type PhotoFixupStatus = "none" | "pending_review" | "approved" | "rejected";
+export type PhotoDerivativeStatus = "pending_review" | "approved" | "rejected";
+export type PhotoDerivativeSource = "local_fixup" | "local_tweak";
+
+export interface PhotoDerivative {
+  id: UUID;
+  photo: UUID;
+  status: PhotoDerivativeStatus;
+  source: PhotoDerivativeSource;
+  fixed_path: string;
+  thumb_path: string;
+  source_path: string;
+  fixed_url: string | null;
+  thumb_url: string | null;
+  source_url: string | null;
+  width: number | null;
+  height: number | null;
+  bytes_fixed: number | null;
+  pipeline_version: string;
+  operations: Array<Record<string, unknown>>;
+  parameters: Record<string, unknown>;
+  background_mode: string;
+  condition_note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PhotoAsset {
   id: UUID;
   item: UUID;
@@ -71,6 +98,11 @@ export interface PhotoAsset {
   bytes_original: number | null;
   exif_stripped: boolean;
   quality_score: number | null;
+  fixup_status: PhotoFixupStatus;
+  active_derivative: UUID | null;
+  active_derivative_detail: PhotoDerivative | null;
+  pending_derivative: PhotoDerivative | null;
+  derivatives: PhotoDerivative[];
 }
 
 export interface InventoryItemList {

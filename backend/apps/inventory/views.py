@@ -17,6 +17,7 @@ from apps.inventory.serializers import (
 )
 from apps.photos.models import PhotoAsset
 from apps.photos.serializers import PhotoAssetSerializer
+from apps.photos.fixup import PhotoFixupService
 from apps.photos.services import MediaService
 from apps.sales.services import recompute_item_sale_status
 
@@ -98,6 +99,20 @@ class InventoryItemViewSet(ModelViewSet):
             context=self.get_serializer_context(),
         )
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="photos/fixup")
+    def fixup_photos(self, request, pk=None):
+        item = self.get_object()
+        PhotoFixupService().generate_for_item(item)
+        serializer = PhotoAssetSerializer(
+            item.photos.select_related("active_derivative").prefetch_related("derivatives").order_by(
+                "order_index",
+                "created_at",
+            ),
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="export.csv")
     def export_csv(self, request):

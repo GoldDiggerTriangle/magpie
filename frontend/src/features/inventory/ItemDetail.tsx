@@ -14,6 +14,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
 import { ListingPanel } from "../../components/ListingPanel";
+import { PhotoFixupPanel } from "../../components/PhotoFixupPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
 import { ComparableList } from "../../components/ComparableList";
@@ -191,6 +192,9 @@ export function ItemDetail() {
             <button className="btn-primary" disabled={files.length === 0 || uploadMutation.isPending} onClick={() => uploadMutation.mutate()} type="button">
               Upload selected
             </button>
+          </div>
+          <div className="mt-4">
+            <PhotoFixupPanel itemId={itemId} photos={orderedPhotos} onChanged={refresh} />
           </div>
         </div>
 

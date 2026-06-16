@@ -63,3 +63,10 @@ export function reorderPhotos(id: UUID, order: UUID[]) {
     body: { order }
   });
 }
+
+export function fixupItemPhotos(id: UUID) {
+  return apiRequest<PhotoAsset[]>(`/api/items/${id}/photos/fixup/`, {
+    method: "POST",
+    body: {}
+  });
+}
