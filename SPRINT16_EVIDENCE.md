@@ -5,42 +5,40 @@ Runtime checkout: `C:\Users\Regan\Documents\Codex\2026-06-13\reasoning-extra-hig
 
 ## Scope
 
-Sprint 16 completed the missing AI credential management UI in Settings and a mobile fit/readability pass across the existing app. No new AI behavior, real provider call, schema change, migration, photo fix-up, or redesign was added.
+Sprint 16 completed the missing AI credential management UI in Settings and the mobile fit/readability pass. Round 2 was limited to the requested colour/legibility, safe-area/overhang, remaining mobile overflow, screenshot housekeeping, and evidence updates.
 
-## Model Check
+No new AI behaviour, schemas, migrations, eBay changes, photo fix-up, or app features were added in Round 2.
 
-OpenAI model documentation was checked during implementation:
+## Round 2 Implementation Summary
 
-- https://platform.openai.com/docs/models
+- Recoloured the shared app shell and UI components to a brighter high-contrast light scheme.
+- Replaced pale grey and pastel-on-light helper/label text with dark, readable text.
+- Switched dark form fields to white fields with clear outlines and dark text.
+- Replaced old dark-theme cyan/pastel status and link text with darker accessible accent tones.
+- Added app-shell safe-area padding for mobile top insets and bottom navigation safe-area space.
+- Kept cards, forms, KPI tiles, Settings, item detail, sales, inventory, eBay, and dashboard content constrained to the viewport at phone width.
+- Left the validated AI credential form and provider behaviour unchanged.
+- Replaced the stale Sprint 16 screenshot files with fresh service-served Round 2 screenshots.
 
-The Sprint 15 default `gpt-4.1-mini` was replaced with `gpt-5.4-mini` for the OpenAI default model. The model remains user-settable through Settings and stored on the provider-agnostic AI credential record.
+## AI Settings Status
 
-## Implementation Summary
+The AI Settings section remains operational after Round 2:
 
-AI Settings:
-
-- Added an `AI Provider` section to Settings beside the existing eBay credential flow.
-- Reused the encrypted `AICredential` backend path.
-- Added UI controls for provider, model, monthly cap, and API key.
-- Save supports first-time key setup and later model/cap updates without resubmitting the stored key.
-- Disconnect removes the encrypted AI credential after confirmation.
-- Stored keys are never returned, logged, displayed, or committed; the Settings UI only shows configured/masked state.
-- `/api/ai/status/` supplies configured/enabled status, provider, model, monthly usage, cap, remaining budget, and disabled reason.
-
-Mobile fit/readability:
-
-- Removed horizontal overflow at phone width across dashboard, Settings, inventory list, item detail, sales, and eBay orders.
-- Converted sales tables/history to mobile card layouts where needed.
-- Added mobile wrapping/containment for Settings, audit rows, pricing evidence grids, form controls, cards, and action buttons.
-- Preserved the existing dealer's-ledger visual language.
+- `/api/ai/status/`: 200.
+- `configured=true`.
+- `enabled=true`.
+- Provider shown as `openai`.
+- Active model shown as `gpt-5.4-mini`.
+- Monthly usage/cap/remaining budget visible.
+- API key is not returned by the API.
+- Key field remains masked/empty in the UI.
 
 ## Schema / Backup
 
 No schema changes were made.
 
-- `python manage.py makemigrations --check --dry-run --noinput`: no changes detected.
-- No Sprint 16 migration was created.
-- No Sprint 16 pre/post migration backup was required.
+- No Sprint 16 Round 2 migration was created.
+- No pre/post migration backup was required for Round 2.
 
 ## Local Validation
 
@@ -51,26 +49,22 @@ Backend:
 
 Frontend:
 
-- `npm run test`: 75 passed.
+- `npm run test -- --run`: 75 passed.
 - `npm run typecheck`: passed.
 - `npm run build`: passed.
-- `python manage.py collectstatic --noinput --clear`: passed, 162 files copied and 468 post-processed.
-
-Build note:
-
 - Vite chunk-size warning remains present from the existing app build profile.
 
-## Service Deployment
+Static/service:
 
-After the production build and collectstatic, the `Magpie` NSSM service was restarted by Administrator action.
+- `.venv\Scripts\python.exe manage.py collectstatic --noinput`: passed.
+- Collectstatic result: 7 files copied, 155 unmodified, 425 post-processed.
+- `Magpie` NSSM service restarted by Administrator action after collectstatic.
 
-Verified service state:
+Health:
 
 - `Get-Service Magpie`: Running, Automatic.
-- Port `0.0.0.0:8000` listening, owned by PID 4824 at verification time.
 - `GET http://localhost:8000/api/health/`: 200, `{"status":"ok"}`.
 - `GET http://192.168.1.86:8000/api/health/`: 200, `{"status":"ok"}`.
-- Built SPA index references `/assets/index-B1i0QYKv.js` and `/assets/index-DiAKKLTS.css`.
 
 ## Browser / Screenshot Evidence
 
@@ -86,7 +80,7 @@ Screenshots:
 - Phone Sales: `docs\evidence\sprint16-sales-phone.png`
 - Phone eBay Orders: `docs\evidence\sprint16-ebay-orders-phone.png`
 
-Browser assertions:
+Browser assertions from `.tmp\sprint16-browser-evidence-result.json`:
 
 - Desktop Settings has no horizontal overflow.
 - Phone dashboard has no horizontal overflow at 390px.
@@ -98,24 +92,20 @@ Browser assertions:
 - No `NaN` text or broken-panel text was present on captured pages.
 - Buttons met the minimum touch-size check.
 - Settings showed the AI Provider panel, provider, model, usage, and masked key field.
-- Authenticated `/api/ai/status/` returned status 200 with:
-  - configured=false
-  - enabled=false
-  - provider=openai
-  - model_id=`gpt-5.4-mini`
-  - monthly cap visible
-  - remaining budget visible
-  - disabled reason present
-  - no API key returned
+- Authenticated `/api/ai/status/` returned no API key field.
 
-Live key note:
+## Screenshot Review Notes
 
-- No real API key was entered during Sprint 16 evidence. The save/replace/remove paths are covered by backend and frontend tests; live real-provider validation remains the explicit Sprint 15 follow-up when Regan chooses to configure a key.
+Phone screenshots were visually inspected after Round 2:
+
+- Dashboard: content fits in one column; KPI tiles and charts no longer require sideways scrolling.
+- Settings: AI Provider, Order Sync, audit, and disconnect sections fit the viewport; labels and helper text are dark/high contrast.
+- Item detail: forms and deep panels fit the viewport; no right-edge overhang was observed.
+- Sales: item links now use a dark blue accent instead of pale cyan.
+- Inventory and eBay Orders: cards, controls, and empty states fit the phone viewport.
+
+Regan's final phone-legibility sign-off is still required before formally closing Sprint 16.
 
 ## GitHub Validation
 
-- GitHub Actions `Validation` run `27573395435`: passed.
-- Commit: `74a35a7e9e779bda05006a7fc6044d6e84a411ff`.
-- SQLite job: passed.
-- Postgres job: passed.
-- Run URL: https://github.com/GoldDiggerTriangle/magpie/actions/runs/27573395435
+Dual-lane GitHub `Validation` must be verified on the pushed branch-tip commit for Sprint 16 closure. The exact run ID is recorded in final closeout after the commit is pushed and the run completes.
