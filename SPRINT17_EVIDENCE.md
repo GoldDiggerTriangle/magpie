@@ -193,4 +193,10 @@ Result:
 
 ## GitHub Validation
 
-Dual-lane GitHub `Validation` must be verified on the pushed branch-tip commit after this evidence is committed and pushed.
+Dual-lane GitHub `Validation` passed on pushed branch-tip commit `8c3ea05`.
+
+- Run ID: `27613154373`
+- Workflow: `Validation`
+- sqlite job: success
+- postgres job: success
+- Run URL: `https://github.com/GoldDiggerTriangle/magpie/actions/runs/27613154373`
