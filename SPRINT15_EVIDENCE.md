@@ -148,13 +148,37 @@ Browser assertions:
 
 ## Real Provider Validation
 
-Not yet run. This remains explicitly pending until Regan configures a real API key and is present for one real call.
+Completed on 2026-06-16 after Regan configured an OpenAI API key through Settings.
 
-When ready, the required live-provider proof is:
+Live item:
 
-- one real identify-and-fill call
-- staged suggestions created
-- one human Approve/Edit/Reject path proven
-- usage/cost increments
-- audit remains secret-free
-- no secrets printed
+- SKU: `STM-00003`
+- Photos sent: 1
+- EXIF stripping: true
+- Provider: `openai`
+- Model: `gpt-5.4-mini` (Sprint 16 updated the user-settable default before live validation)
+
+Live call result:
+
+- Identify call status: success.
+- Suggestions created: 2.
+- Search terms created: 4.
+- Reference links created: 8.
+- Estimated cost recorded: `0.001566`.
+- Monthly usage changed from `0.000000` to `0.001566`.
+- Remaining budget changed from `5.000000` to `4.998434`.
+
+Human review proof:
+
+- One staged AI suggestion was rejected through the API review path.
+- Rejected suggestion source: `ai`.
+- Rejected suggestion field: `ai_candidate.topic_theme`.
+- Item data remained unchanged after rejection.
+- Pending AI suggestions remaining for `STM-00003`: 1.
+
+Audit / secret safety:
+
+- Latest audit action: `ai.research.identify.completed`.
+- Audit payload keys: `call_id`, `estimated_cost_usd`, `image_count`, `model_id`, `provider`, `reference_links_created`, `search_terms_created`, `suggestions_created`.
+- Audit payload remained secret-free.
+- `/api/ai/status/` remained configured/enabled and did not return the API key.
