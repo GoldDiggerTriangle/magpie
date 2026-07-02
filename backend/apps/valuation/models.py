@@ -11,9 +11,28 @@ class Metal(models.TextChoices):
 
 
 class FeeSchedule(TimeStampedUUIDModel):
+    class SellerMode(models.TextChoices):
+        FREE_SELLING = "free_selling", "Free selling"
+        PRO_STARTER = "pro_starter", "Pro Starter"
+        PRO_OTHER = "pro_other", "Pro Basic or above"
+        LEGACY_MANUAL = "legacy_manual", "Legacy / manual"
+
     name = models.CharField(max_length=120)
     effective_from = models.DateField()
     is_active = models.BooleanField(default=True)
+    seller_mode = models.CharField(
+        max_length=24,
+        choices=SellerMode.choices,
+        default=SellerMode.LEGACY_MANUAL,
+        db_index=True,
+    )
+    price_basis = models.CharField(
+        max_length=24,
+        default="seller_receives",
+        help_text="Canonical basis this schedule expects for sale prices.",
+    )
+    buyer_protection_fee_enabled = models.BooleanField(default=False)
+    international_delivery_pct = models.DecimalField(max_digits=6, decimal_places=3, default=0)
     final_value_pct = models.DecimalField(max_digits=6, decimal_places=3)
     per_order_fee = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     promoted_pct = models.DecimalField(max_digits=6, decimal_places=3, default=0)

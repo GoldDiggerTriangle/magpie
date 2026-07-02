@@ -233,22 +233,24 @@ class Command(BaseCommand):
         return items, created_count
 
     def seed_fee_schedule(self) -> FeeSchedule:
-        # Temporary first-flight model for the deliberate low-value production test.
-        # Replace with Regan's exact eBay AU account fee model after Sprint 7.
         schedule, _ = FeeSchedule.objects.update_or_create(
-            name="eBay AU first-flight conservative test",
+            name="eBay AU 2026 free selling",
             effective_from=date(2026, 1, 1),
             defaults={
                 "is_active": True,
-                "final_value_pct": Decimal("15.000"),
-                "per_order_fee": Decimal("0.30"),
+                "seller_mode": FeeSchedule.SellerMode.FREE_SELLING,
+                "price_basis": "seller_receives",
+                "buyer_protection_fee_enabled": True,
+                "international_delivery_pct": Decimal("3.000"),
+                "final_value_pct": Decimal("0.000"),
+                "per_order_fee": Decimal("0.00"),
                 "promoted_pct": Decimal("0.000"),
-                "gst_pct": Decimal("10.000"),
+                "gst_pct": Decimal("0.000"),
                 "default_packaging_cost": Decimal("1.50"),
                 "default_outbound_shipping": Decimal("12.00"),
                 "notes": (
-                    "temporary conservative first-flight model; replace with exact "
-                    "eBay AU account fee model later. Listing upgrade fee: 0."
+                    "Sprint 18 eBay AU 2026 free-selling model: seller FVF is zero; "
+                    "Buyer Protection Fee is paid by buyer and normalised separately."
                 ),
             },
         )

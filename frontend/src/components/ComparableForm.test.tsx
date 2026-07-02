@@ -19,6 +19,18 @@ test("ComparableForm validates numeric price before submit", async () => {
   await user.type(screen.getByLabelText("Price"), "42.50");
   await user.click(screen.getByRole("button", { name: "Save comparable" }));
 
-  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ price: "42.50", item: "item-1" }));
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ price: "42.50", price_basis: "unknown", item: "item-1" }));
+});
+
+test("ComparableForm exposes price basis", async () => {
+  const user = userEvent.setup();
+  const onSubmit = vi.fn();
+  render(<ComparableForm itemId="item-1" onSubmit={onSubmit} />);
+
+  await user.type(screen.getByLabelText("Price"), "42.50");
+  await user.selectOptions(screen.getByLabelText("Price basis"), "seller_receives");
+  await user.click(screen.getByRole("button", { name: "Save comparable" }));
+
+  expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ price_basis: "seller_receives" }));
 });
 

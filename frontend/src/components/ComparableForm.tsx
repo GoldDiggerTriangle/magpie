@@ -25,6 +25,7 @@ const blankForm = {
   source: "",
   title: "",
   price: "",
+  price_basis: "unknown" as ComparablePayload["price_basis"],
   shipping: "",
   currency: "AUD",
   condition: "",
@@ -47,6 +48,7 @@ export function ComparableForm({ itemId, initial, onSubmit, submitLabel = "Save 
       source: initial.source,
       title: initial.title,
       price: initial.price ?? "",
+      price_basis: initial.price_basis,
       shipping: initial.shipping ?? "",
       currency: initial.currency,
       condition: initial.condition,
@@ -77,6 +79,7 @@ export function ComparableForm({ itemId, initial, onSubmit, submitLabel = "Save 
       source: form.source,
       title: form.title,
       price: form.price || null,
+      price_basis: form.price_basis,
       shipping: form.shipping || null,
       currency: form.currency,
       condition: form.condition,
@@ -102,6 +105,14 @@ export function ComparableForm({ itemId, initial, onSubmit, submitLabel = "Save 
         <label className="label">
           <span>Price</span>
           <input className="field" inputMode="decimal" value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Price basis</span>
+          <select className="field" value={form.price_basis} onChange={(event) => setForm({ ...form, price_basis: event.target.value as ComparablePayload["price_basis"] })}>
+            <option value="unknown">Unknown / review</option>
+            <option value="seller_receives">Seller receives</option>
+            <option value="buyer_visible">Buyer-visible total</option>
+          </select>
         </label>
         <label className="label">
           <span>Shipping</span>

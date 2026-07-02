@@ -58,6 +58,10 @@ const pricingEvidence: PricingEvidence = {
       grade: "VF",
       sale_format: "auction",
       price: "70.00",
+      price_basis: "seller_receives",
+      canonical_price: "70.00",
+      basis_uncertain: false,
+      basis_label: "Seller receives",
       currency: "AUD",
       quantity: 1,
       url: "",
@@ -78,6 +82,10 @@ const pricingEvidence: PricingEvidence = {
       grade: "VF",
       sale_format: "fixed_price",
       price: "55.00",
+      price_basis: "seller_receives",
+      canonical_price: "55.00",
+      basis_uncertain: false,
+      basis_label: "Seller receives",
       currency: "AUD",
       quantity: 1,
       url: "",
@@ -88,21 +96,23 @@ const pricingEvidence: PricingEvidence = {
   comparables: [],
   grids: {
     condition_grade: [
-      { key: "good / VF", label: "Good / VF", low: "55.00", median: "62.50", high: "70.00", count: 2, own_sale_count: 2, thin: true }
+      { key: "good / VF", label: "Good / VF", low: "55.00", median: "62.50", high: "70.00", count: 2, basis_uncertain_count: 0, own_sale_count: 2, thin: true }
     ],
     sale_format: [
-      { key: "auction", label: "Auction", low: "70.00", median: "70.00", high: "70.00", count: 1, own_sale_count: 1, thin: true }
+      { key: "auction", label: "Auction", low: "70.00", median: "70.00", high: "70.00", count: 1, basis_uncertain_count: 0, own_sale_count: 1, thin: true }
     ],
     recency: [
-      { key: "0-90 days", label: "0-90 Days", low: "55.00", median: "62.50", high: "70.00", count: 2, own_sale_count: 2, thin: true }
+      { key: "0-90 days", label: "0-90 Days", low: "55.00", median: "62.50", high: "70.00", count: 2, basis_uncertain_count: 0, own_sale_count: 2, thin: true }
     ],
     source: [
-      { key: "own_sale", label: "Own Sale", low: "55.00", median: "62.50", high: "70.00", count: 2, own_sale_count: 2, thin: true }
+      { key: "own_sale", label: "Own Sale", low: "55.00", median: "62.50", high: "70.00", count: 2, basis_uncertain_count: 0, own_sale_count: 2, thin: true }
     ]
   },
   summary: {
     evidence_count: 2,
     priced_count: 2,
+    precise_priced_count: 2,
+    basis_uncertain_count: 0,
     own_sale_count: 2,
     comparable_count: 0,
     exact_count: 1,
@@ -146,6 +156,7 @@ test("PricingEvidencePanel captures a source-tagged comparable into the grid", a
   fireEvent.change(screen.getByLabelText("Source tag"), { target: { value: "price_guide" } });
   fireEvent.change(screen.getByLabelText("Source label"), { target: { value: "WorthPoint manual capture" } });
   fireEvent.change(screen.getByLabelText("Sold price"), { target: { value: "65" } });
+  fireEvent.change(screen.getByLabelText("Price basis"), { target: { value: "seller_receives" } });
   fireEvent.change(screen.getByLabelText("Shipping"), { target: { value: "5" } });
   fireEvent.change(screen.getByLabelText("Format"), { target: { value: "dealer" } });
   fireEvent.change(screen.getByLabelText("Match"), { target: { value: "similar" } });
@@ -164,6 +175,7 @@ test("PricingEvidencePanel captures a source-tagged comparable into the grid", a
     sale_format: "dealer",
     match_scope: "similar",
     match_reason: "same category; same denomination; same year",
+    price_basis: "seller_receives",
     price: "65"
   })));
 });
@@ -173,7 +185,7 @@ test("PricingEvidencePanel renders empty state honestly", async () => {
     ...pricingEvidence,
     headline: [],
     grids: { condition_grade: [], sale_format: [], recency: [], source: [] },
-    summary: { ...pricingEvidence.summary, evidence_count: 0, priced_count: 0, own_sale_count: 0, exact_count: 0, similar_count: 0, thin: true, empty: true },
+    summary: { ...pricingEvidence.summary, evidence_count: 0, priced_count: 0, precise_priced_count: 0, basis_uncertain_count: 0, own_sale_count: 0, exact_count: 0, similar_count: 0, thin: true, empty: true },
     empty_state: {
       title: "No pricing evidence yet",
       detail: "Open a source link, record a verified sold result, or sell this item and the pricing grid will fill from real evidence."

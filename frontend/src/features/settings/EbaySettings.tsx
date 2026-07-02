@@ -8,6 +8,7 @@ import {
   KeyRound,
   Link2,
   RefreshCw,
+  ReceiptText,
   ShieldCheck,
   Unplug,
   XCircle
@@ -28,9 +29,10 @@ import {
   syncEbayOrders
 } from "../../api/ebay";
 import { configureAICredential, disconnectAICredential, getAIStatus } from "../../api/intelligence";
+import { getProfitSettings, updateProfitSettings } from "../../api/profit";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
-import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus } from "../../types";
+import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus, ProfitSettings, RoiBasis, SellerMode } from "../../types";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -43,6 +45,7 @@ export function EbaySettings() {
   const [aiProvider, setAiProvider] = useState("openai");
   const [aiModelId, setAiModelId] = useState("gpt-5.4-mini");
   const [aiMonthlyCap, setAiMonthlyCap] = useState("5.00");
+  const [profitSettingsForm, setProfitSettingsForm] = useState<ProfitSettings | null>(null);
   const [stagingInputs, setStagingInputs] = useState<Record<string, { item: string; title: string; cost: string }>>({});
 
   const status = useQuery({ queryKey: ["ebay-status"], queryFn: getEbayStatus });
@@ -53,6 +56,7 @@ export function EbaySettings() {
     queryKey: ["audit-log", auditPrefix],
     queryFn: () => listAuditLogs({ actionPrefix: auditPrefix })
   });
+  const profitSettings = useQuery({ queryKey: ["profit-settings"], queryFn: getProfitSettings });
 
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ["ebay-status"] });
@@ -60,6 +64,7 @@ export function EbaySettings() {
     queryClient.invalidateQueries({ queryKey: ["ebay-order-staging"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-order-duplicates"] });
     queryClient.invalidateQueries({ queryKey: ["audit-log"] });
+    queryClient.invalidateQueries({ queryKey: ["profit-settings"] });
   };
 
   useEffect(() => {
@@ -70,6 +75,12 @@ export function EbaySettings() {
     setAiModelId(aiStatus.data.model_id);
     setAiMonthlyCap(aiStatus.data.monthly_budget_cap_usd);
   }, [aiStatus.data]);
+
+  useEffect(() => {
+    if (profitSettings.data) {
+      setProfitSettingsForm(profitSettings.data);
+    }
+  }, [profitSettings.data]);
 
   const startMutation = useMutation({
     mutationFn: startEbayConnect,
@@ -147,6 +158,18 @@ export function EbaySettings() {
       refreshAll();
     }
   });
+  const profitSettingsMutation = useMutation({
+    mutationFn: () => {
+      if (!profitSettingsForm) {
+        throw new Error("Profit settings have not loaded.");
+      }
+      return updateProfitSettings(profitSettingsForm);
+    },
+    onSuccess: (data) => {
+      setProfitSettingsForm(data);
+      refreshAll();
+    }
+  });
 
   return (
     <div className="settings-page mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
@@ -198,6 +221,14 @@ export function EbaySettings() {
             provider={aiProvider}
             status={aiStatus.data}
             statusError={errorText(aiStatus.error)}
+          />
+          <ProfitSettingsPanel
+            error={errorText(profitSettings.error) || errorText(profitSettingsMutation.error)}
+            form={profitSettingsForm}
+            loading={profitSettings.isLoading}
+            onChange={setProfitSettingsForm}
+            onSave={() => profitSettingsMutation.mutate()}
+            pending={profitSettingsMutation.isPending}
           />
           <OrderSyncPanel
             duplicateRows={duplicates.data?.results ?? []}
@@ -376,6 +407,100 @@ function AIProviderPanel({
       {statusError ? <p className="mt-3 text-sm text-rose-200">{statusError}</p> : null}
       {configureError ? <p className="mt-3 text-sm text-rose-200">{configureError}</p> : null}
       {disconnectError ? <p className="mt-3 text-sm text-rose-200">{disconnectError}</p> : null}
+    </section>
+  );
+}
+
+function ProfitSettingsPanel({
+  error,
+  form,
+  loading,
+  onChange,
+  onSave,
+  pending
+}: {
+  error: string;
+  form: ProfitSettings | null;
+  loading: boolean;
+  onChange: (value: ProfitSettings) => void;
+  onSave: () => void;
+  pending: boolean;
+}) {
+  if (loading && !form) {
+    return <section className="settings-card"><EmptyState title="Loading profit settings" /></section>;
+  }
+  if (!form) {
+    return <section className="settings-card"><EmptyState title="Profit settings unavailable" detail={error || "Check your Django admin session."} /></section>;
+  }
+  const patch = (value: Partial<ProfitSettings>) => onChange({ ...form, ...value });
+  return (
+    <section className="settings-card">
+      <div className="settings-card-header">
+        <div className="flex items-center gap-2">
+          <ReceiptText className="h-4 w-4 text-[#1d4ed8]" aria-hidden="true" />
+          <div>
+            <h2 className="section-title">Profit Engine</h2>
+            <p className="mt-1 text-xs text-slate-500">Seller mode and default buy-calculator targets</p>
+          </div>
+        </div>
+        <span className="settings-pill settings-pill-good">2026 eBay AU</span>
+      </div>
+      <form
+        className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+      >
+        <label className="label">
+          <span>Seller mode</span>
+          <select className="field" value={form.seller_mode} onChange={(event) => patch({ seller_mode: event.target.value as SellerMode })}>
+            <option value="free_selling">eBay AU free selling</option>
+            <option value="pro_starter">eBay AU Pro Starter</option>
+            <option value="pro_other">eBay AU Pro other</option>
+            <option value="legacy_manual">Manual / other</option>
+          </select>
+        </label>
+        <label className="label">
+          <span>Pro other FVF %</span>
+          <input className="field" inputMode="decimal" value={form.pro_other_final_value_pct} onChange={(event) => patch({ pro_other_final_value_pct: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Manual FVF %</span>
+          <input className="field" inputMode="decimal" value={form.manual_final_value_pct} onChange={(event) => patch({ manual_final_value_pct: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Manual fixed fee</span>
+          <input className="field" inputMode="decimal" value={form.manual_fixed_fee} onChange={(event) => patch({ manual_fixed_fee: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Default flat profit</span>
+          <input className="field" inputMode="decimal" value={form.default_flat_profit_target} onChange={(event) => patch({ default_flat_profit_target: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Default ROI %</span>
+          <input className="field" inputMode="decimal" value={form.default_roi_pct} onChange={(event) => patch({ default_roi_pct: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Default ROI basis</span>
+          <select className="field" value={form.default_roi_basis} onChange={(event) => patch({ default_roi_basis: event.target.value as RoiBasis })}>
+            <option value="all_in_cash">All-in cash</option>
+            <option value="buy_price">On buy price</option>
+          </select>
+        </label>
+        <label className="label">
+          <span>Maybe band %</span>
+          <input className="field" inputMode="decimal" value={form.maybe_band_pct} onChange={(event) => patch({ maybe_band_pct: event.target.value })} />
+        </label>
+        <button className="btn-primary gap-2 md:col-span-2 xl:col-span-4" disabled={pending} type="submit">
+          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+          Save profit settings
+        </button>
+      </form>
+      <p className="mt-3 text-sm text-slate-500">
+        Free-selling mode uses 2026 Buyer Protection Fee maths for buyer-visible comps; own sales stay seller-receives basis.
+      </p>
+      {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
     </section>
   );
 }

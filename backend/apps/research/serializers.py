@@ -13,6 +13,7 @@ class ComparableSerializer(serializers.ModelSerializer):
             "source",
             "title",
             "price",
+            "price_basis",
             "shipping",
             "currency",
             "condition",

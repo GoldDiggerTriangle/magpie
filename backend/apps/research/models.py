@@ -23,6 +23,11 @@ class Comparable(TimeStampedUUIDModel):
         EXACT = "exact", "Exact item"
         SIMILAR = "similar", "Similar item"
 
+    class PriceBasis(models.TextChoices):
+        BUYER_VISIBLE = "buyer_visible", "Buyer-visible total"
+        SELLER_RECEIVES = "seller_receives", "Seller receives"
+        UNKNOWN = "unknown", "Unknown / review"
+
     item = models.ForeignKey(
         "inventory.InventoryItem",
         on_delete=models.CASCADE,
@@ -32,6 +37,12 @@ class Comparable(TimeStampedUUIDModel):
     source = models.CharField(max_length=200, blank=True, default="")
     title = models.CharField(max_length=300, blank=True, default="")
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    price_basis = models.CharField(
+        max_length=24,
+        choices=PriceBasis.choices,
+        default=PriceBasis.UNKNOWN,
+        db_index=True,
+    )
     shipping = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="AUD")
     condition = models.CharField(max_length=20, blank=True, default="")

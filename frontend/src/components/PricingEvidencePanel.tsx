@@ -11,6 +11,7 @@ import { EmptyState } from "./EmptyState";
 const blankCapture = {
   title: "",
   price: "",
+  price_basis: "unknown" as ComparablePayload["price_basis"],
   shipping: "",
   source: "",
   source_tag: "ebay_sold",
@@ -59,6 +60,7 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
       source_tag: form.source_tag,
       title: form.title,
       price: form.price,
+      price_basis: form.price_basis,
       shipping: form.shipping || null,
       currency: pricing.data?.currency ?? "AUD",
       condition: form.condition,
@@ -142,8 +144,14 @@ function EvidenceSummary({ data }: { data: PricingEvidence }) {
     <div className="pricing-summary-row">
       <div>
         <strong>{data.summary.priced_count}</strong>
-        <span>priced rows</span>
+      <span>priced rows</span>
       </div>
+      {data.summary.basis_uncertain_count ? (
+        <div>
+          <strong>{data.summary.basis_uncertain_count}</strong>
+          <span>basis uncertain</span>
+        </div>
+      ) : null}
       <div>
         <strong>{data.summary.own_sale_count}</strong>
         <span>own sales</span>
@@ -176,6 +184,7 @@ function EvidenceRows({ rows }: { rows: PricingEvidenceRow[] }) {
             <th>Format</th>
             <th>Date</th>
             <th className="numeric">Price</th>
+            <th>Basis</th>
           </tr>
         </thead>
         <tbody>
@@ -195,6 +204,10 @@ function EvidenceRows({ rows }: { rows: PricingEvidenceRow[] }) {
               <td data-label="Format">{label(row.sale_format)}</td>
               <td data-label="Date">{row.date ?? "undated"}</td>
               <td data-label="Price" className="numeric">{row.price ? `${money(row.price)} ${row.currency}` : "-"}</td>
+              <td data-label="Basis">
+                <span className={row.basis_uncertain ? "match-pill" : "match-pill exact"}>{row.basis_label}</span>
+                {row.canonical_price ? <small>seller receives {money(row.canonical_price)}</small> : null}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -241,6 +254,14 @@ function CaptureForm({
         <label className="label">
           <span>Sold price</span>
           <input className="field" inputMode="decimal" value={form.price} onChange={(event) => onChange({ ...form, price: event.target.value })} />
+        </label>
+        <label className="label">
+          <span>Price basis</span>
+          <select className="field" value={form.price_basis} onChange={(event) => onChange({ ...form, price_basis: event.target.value as typeof form.price_basis })}>
+            <option value="unknown">Unknown / review</option>
+            <option value="seller_receives">Seller receives</option>
+            <option value="buyer_visible">Buyer-visible total</option>
+          </select>
         </label>
         <label className="label">
           <span>Shipping</span>
@@ -324,6 +345,7 @@ function PricingGrid({ rows, title }: { rows: PricingGridCell[]; title: string }
               <td>
                 <span>{row.label}</span>
                 {row.own_sale_count ? <small>{row.own_sale_count} own</small> : null}
+                {row.basis_uncertain_count ? <small>{row.basis_uncertain_count} basis uncertain</small> : null}
                 {row.thin ? <small>thin</small> : null}
               </td>
               <td>{money(row.low)}</td>

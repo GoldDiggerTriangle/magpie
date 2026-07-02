@@ -132,6 +132,7 @@ def test_capture_to_grid_creates_source_tagged_comparable(api_client, coin_categ
             "source_tag": "price guide",
             "title": "1937 Australian Crown VF sold result",
             "price": "65.00",
+            "price_basis": Comparable.PriceBasis.SELLER_RECEIVES,
             "shipping": "5.00",
             "currency": "AUD",
             "condition": InventoryItem.Condition.GOOD,
@@ -170,6 +171,7 @@ def test_pricing_grids_aggregate_low_median_high_by_required_cuts(api_client, co
         source_tag="ebay_sold",
         title="Exact Crown sold",
         price=Decimal("60.00"),
+        price_basis=Comparable.PriceBasis.SELLER_RECEIVES,
         condition=InventoryItem.Condition.GOOD,
         grade="VF",
         sale_format=Comparable.SaleFormat.AUCTION,
@@ -184,6 +186,7 @@ def test_pricing_grids_aggregate_low_median_high_by_required_cuts(api_client, co
         source_tag="auction_archive",
         title="Similar Crown sold",
         price=Decimal("90.00"),
+        price_basis=Comparable.PriceBasis.SELLER_RECEIVES,
         condition=InventoryItem.Condition.GOOD,
         grade="VF",
         sale_format=Comparable.SaleFormat.AUCTION,
@@ -247,6 +250,7 @@ def test_backup_restore_includes_comparable_pricing_fields(tmp_path, monkeypatch
         source="WorthPoint manual capture",
         source_tag="price_guide",
         price=Decimal("75.00"),
+        price_basis=Comparable.PriceBasis.SELLER_RECEIVES,
         grade="VF",
         sale_format=Comparable.SaleFormat.DEALER,
         match_scope=Comparable.MatchScope.SIMILAR,
@@ -257,3 +261,6 @@ def test_backup_restore_includes_comparable_pricing_fields(tmp_path, monkeypatch
     manifest = load_backup_manifest(extract_dir)
     assert manifest["row_counts"]["research.comparable"] == 1
     assert sqlite_count(extract_dir / DB_SNAPSHOT_NAME, "research_comparable") == 1
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT price_basis FROM research_comparable")
+        assert cursor.fetchone()[0] == "seller_receives"

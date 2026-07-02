@@ -11,6 +11,7 @@ from apps.inventory.models import InventoryItem
 from apps.research.models import Comparable
 from apps.research.pricing_sources import pricing_source_links
 from apps.sales.models import SaleRecord
+from apps.profit.services import PriceBasis, normalize_to_seller_receives
 
 
 CENT = Decimal("0.01")
@@ -32,6 +33,10 @@ class PricingEvidenceRow:
     grade: str
     sale_format: str
     price: Decimal | None
+    price_basis: str
+    canonical_price: Decimal | None
+    basis_uncertain: bool
+    basis_label: str
     currency: str
     quantity: int
     url: str
@@ -41,6 +46,7 @@ class PricingEvidenceRow:
 def pricing_evidence_payload(item: InventoryItem) -> dict:
     rows = evidence_rows(item)
     priced_rows = [row for row in rows if row.price is not None]
+    precise_rows = [row for row in priced_rows if row.canonical_price is not None and not row.basis_uncertain]
     own_rows = [row for row in rows if row.own_sale]
     comparable_rows = [row for row in rows if row.record_type == "comparable"]
 
@@ -60,6 +66,8 @@ def pricing_evidence_payload(item: InventoryItem) -> dict:
         "summary": {
             "evidence_count": len(rows),
             "priced_count": len(priced_rows),
+            "precise_priced_count": len(precise_rows),
+            "basis_uncertain_count": sum(1 for row in priced_rows if row.basis_uncertain),
             "own_sale_count": len(own_rows),
             "comparable_count": len(comparable_rows),
             "exact_count": sum(1 for row in rows if row.match_scope == "exact"),
@@ -113,6 +121,7 @@ def comparable_queryset(item: InventoryItem):
 def sale_row(sale: SaleRecord, scope: str, reason: str) -> PricingEvidenceRow:
     sale_item = sale.item
     price = money(Decimal(sale.sale_price) / Decimal(sale.quantity))
+    normalized = normalize_to_seller_receives(price, PriceBasis.SELLER_RECEIVES)
     grade = ""
     if sale_item and sale_item.attributes:
         grade = str(sale_item.attributes.get("grade") or "")
@@ -131,6 +140,10 @@ def sale_row(sale: SaleRecord, scope: str, reason: str) -> PricingEvidenceRow:
         grade=grade,
         sale_format=sale_format_for_sale(sale),
         price=price,
+        price_basis=PriceBasis.SELLER_RECEIVES,
+        canonical_price=normalized.seller_receives,
+        basis_uncertain=normalized.basis_uncertain,
+        basis_label=normalized.label,
         currency=sale_item.currency if sale_item else "AUD",
         quantity=sale.quantity,
         url="",
@@ -139,6 +152,7 @@ def sale_row(sale: SaleRecord, scope: str, reason: str) -> PricingEvidenceRow:
 
 
 def comparable_row(comp: Comparable) -> PricingEvidenceRow:
+    normalized = normalize_to_seller_receives(comp.price, comp.price_basis)
     return PricingEvidenceRow(
         id=f"comp:{comp.id}",
         record_type="comparable",
@@ -154,6 +168,10 @@ def comparable_row(comp: Comparable) -> PricingEvidenceRow:
         grade=comp.grade,
         sale_format=comp.sale_format,
         price=money(comp.price) if comp.price is not None else None,
+        price_basis=comp.price_basis,
+        canonical_price=normalized.seller_receives,
+        basis_uncertain=normalized.basis_uncertain,
+        basis_label=normalized.label,
         currency=comp.currency,
         quantity=1,
         url=comp.url,
@@ -209,7 +227,11 @@ def grid_for(rows: Iterable[PricingEvidenceRow], key_func) -> list[dict]:
         buckets.setdefault(key, []).append(row)
     cells = []
     for key, bucket_rows in sorted(buckets.items(), key=lambda item: item[0]):
-        prices = sorted(row.price for row in bucket_rows if row.price is not None)
+        prices = sorted(
+            row.canonical_price
+            for row in bucket_rows
+            if row.canonical_price is not None and not row.basis_uncertain
+        )
         cells.append(
             {
                 "key": key,
@@ -218,6 +240,7 @@ def grid_for(rows: Iterable[PricingEvidenceRow], key_func) -> list[dict]:
                 "median": str(median(prices)) if prices else None,
                 "high": str(money(prices[-1])) if prices else None,
                 "count": len(prices),
+                "basis_uncertain_count": sum(1 for row in bucket_rows if row.basis_uncertain),
                 "own_sale_count": sum(1 for row in bucket_rows if row.own_sale),
                 "thin": len(prices) < 3,
             }
@@ -261,6 +284,10 @@ def serialize_row(row: PricingEvidenceRow) -> dict:
         "grade": row.grade,
         "sale_format": row.sale_format,
         "price": str(row.price) if row.price is not None else None,
+        "price_basis": row.price_basis,
+        "canonical_price": str(row.canonical_price) if row.canonical_price is not None else None,
+        "basis_uncertain": row.basis_uncertain,
+        "basis_label": row.basis_label,
         "currency": row.currency,
         "quantity": row.quantity,
         "url": row.url,

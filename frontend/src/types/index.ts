@@ -378,6 +378,10 @@ export interface PricingEvidenceRow {
   grade: string;
   sale_format: string;
   price: string | null;
+  price_basis: PriceBasis;
+  canonical_price: string | null;
+  basis_uncertain: boolean;
+  basis_label: string;
   currency: string;
   quantity: number;
   url: string;
@@ -391,6 +395,7 @@ export interface PricingGridCell {
   median: string | null;
   high: string | null;
   count: number;
+  basis_uncertain_count: number;
   own_sale_count: number;
   thin: boolean;
 }
@@ -411,6 +416,8 @@ export interface PricingEvidence {
   summary: {
     evidence_count: number;
     priced_count: number;
+    precise_priced_count: number;
+    basis_uncertain_count: number;
     own_sale_count: number;
     comparable_count: number;
     exact_count: number;
@@ -522,6 +529,9 @@ export interface ItemFormPayload {
 }
 
 export type ComparableKind = "active" | "sold" | "dealer" | "catalogue" | "manual_estimate" | "auction_result";
+export type PriceBasis = "buyer_visible" | "seller_receives" | "unknown";
+export type SellerMode = "free_selling" | "pro_starter" | "pro_other" | "legacy_manual";
+export type RoiBasis = "all_in_cash" | "buy_price";
 
 export interface Comparable {
   id: UUID;
@@ -530,6 +540,7 @@ export interface Comparable {
   source: string;
   title: string;
   price: string | null;
+  price_basis: PriceBasis;
   shipping: string | null;
   currency: string;
   condition: string;
@@ -551,6 +562,7 @@ export interface ComparablePayload {
   source: string;
   title: string;
   price: string | null;
+  price_basis?: PriceBasis;
   shipping: string | null;
   currency: string;
   condition: string;
@@ -594,6 +606,10 @@ export interface FeeSchedule {
   name: string;
   effective_from: string;
   is_active: boolean;
+  seller_mode: SellerMode;
+  price_basis: PriceBasis;
+  buyer_protection_fee_enabled: boolean;
+  international_delivery_pct: string;
   final_value_pct: string;
   per_order_fee: string;
   promoted_pct: string;
@@ -916,6 +932,79 @@ export interface SaleRecord {
   notes: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProfitSettings {
+  seller_mode: SellerMode;
+  pro_other_final_value_pct: string;
+  manual_final_value_pct: string;
+  manual_fixed_fee: string;
+  default_flat_profit_target: string;
+  default_roi_pct: string;
+  default_roi_basis: RoiBasis;
+  maybe_band_pct: string;
+  schema_version: number;
+  updated_at: string | null;
+}
+
+export interface BuyEvidenceOption {
+  id: string;
+  label: string;
+  source: "own_sale_exact" | "own_sale_similar" | "approved_comp" | "what_if";
+  confidence_label: string;
+  match_scope: "exact" | "similar";
+  match_reason: string;
+  price: string | null;
+  price_basis: PriceBasis;
+  seller_receives: string | null;
+  basis_uncertain: boolean;
+  date: string | null;
+}
+
+export interface BuyCalculatorEvidence {
+  settings: ProfitSettings;
+  item: UUID | null;
+  evidence: BuyEvidenceOption[];
+  suggested: {
+    price: string;
+    price_basis: PriceBasis;
+    source: BuyEvidenceOption["source"];
+    confidence_label: string;
+    sample_size: number;
+  } | null;
+  empty: boolean;
+  price_basis_options: Array<{ id: PriceBasis; label: string }>;
+}
+
+export interface BuyCalculationPayload {
+  expected_sell_price: string;
+  price_basis: PriceBasis;
+  seller_mode?: SellerMode;
+  target_type: "roi" | "flat";
+  flat_profit_target: string;
+  roi_pct: string;
+  roi_basis: RoiBasis;
+  postage: string;
+  packaging: string;
+  refurb: string;
+  asking_price?: string;
+  evidence_source: BuyEvidenceOption["source"];
+  confidence_label: string;
+  auction_mode?: boolean;
+}
+
+export interface BuyCalculationResult {
+  max_buy: string;
+  headline: "Max Buy Price" | "Max Bid";
+  verdict: "BUY" | "MAYBE" | "PASS" | "NO ASKING PRICE";
+  expected_profit_at_asking: string | null;
+  roi_at_asking: string | null;
+  net_proceeds_before_buy: string;
+  seller_fees: string;
+  non_buy_costs: string;
+  evidence_source: BuyEvidenceOption["source"];
+  confidence_label: string;
+  roi_basis: RoiBasis;
 }
 
 export interface SaleRecordPayload {

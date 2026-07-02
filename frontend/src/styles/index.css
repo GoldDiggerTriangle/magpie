@@ -869,6 +869,159 @@
     border-color: #e4e1d8;
   }
 
+  .buy-calculator-page {
+    @apply min-h-screen w-full px-4 py-5 sm:px-6 lg:px-8;
+    background: linear-gradient(180deg, rgba(29, 78, 216, 0.06), rgba(29, 78, 216, 0) 220px), #ffffff;
+    color: var(--magpie-ink);
+  }
+
+  .buy-calculator-header {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-4 border-b pb-5 sm:flex-row sm:items-end sm:justify-between;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .buy-calculator-grid {
+    @apply mx-auto mt-5 grid w-full max-w-7xl gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)];
+  }
+
+  .buy-card {
+    @apply rounded border bg-white p-4 sm:p-5;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-ink);
+  }
+
+  .buy-card-title {
+    @apply mb-4 flex items-center gap-2;
+  }
+
+  .buy-card-title h2,
+  .buy-evidence h2 {
+    @apply text-xl font-semibold;
+    color: var(--magpie-ink);
+  }
+
+  .buy-form-grid {
+    @apply grid gap-3 sm:grid-cols-2;
+  }
+
+  .buy-span-2 {
+    @apply sm:col-span-2;
+  }
+
+  .buy-target-toggle {
+    @apply my-4 grid grid-cols-2 rounded border bg-slate-50 p-1;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .buy-target-toggle button {
+    @apply min-h-11 rounded px-3 py-2 text-sm font-semibold;
+    color: var(--magpie-ink-muted);
+  }
+
+  .buy-target-toggle button.active {
+    background: var(--magpie-accent);
+    color: white;
+  }
+
+  .buy-note {
+    @apply mt-3 text-sm leading-6;
+    color: var(--magpie-ink-muted);
+  }
+
+  .buy-result {
+    @apply xl:sticky xl:top-4;
+    align-self: start;
+  }
+
+  .buy-max {
+    @apply block text-5xl font-semibold tracking-normal;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .buy-verdict {
+    @apply mt-3 inline-flex rounded border px-3 py-1 text-sm font-bold;
+  }
+
+  .buy-verdict-buy .buy-verdict {
+    border-color: #15803d;
+    background: #dcfce7;
+    color: #14532d;
+  }
+
+  .buy-verdict-maybe .buy-verdict {
+    border-color: #b45309;
+    background: #fffbeb;
+    color: #713f12;
+  }
+
+  .buy-verdict-pass .buy-verdict {
+    border-color: #b91c1c;
+    background: #fff1f2;
+    color: #7f1d1d;
+  }
+
+  .buy-result-list {
+    @apply mt-4 divide-y;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .buy-result-list div {
+    @apply flex items-center justify-between gap-3 py-2;
+  }
+
+  .buy-result-list dt {
+    @apply text-sm font-semibold;
+    color: var(--magpie-ink-muted);
+  }
+
+  .buy-result-list dd {
+    @apply text-right font-mono text-sm font-semibold;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .buy-evidence {
+    @apply xl:col-span-2;
+  }
+
+  .buy-evidence-list {
+    @apply mt-3 grid gap-2 md:grid-cols-2;
+  }
+
+  .buy-evidence-row {
+    @apply flex min-h-16 items-center justify-between gap-3 rounded border bg-white px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-60;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-ink);
+  }
+
+  .buy-evidence-row:hover:not(:disabled) {
+    border-color: var(--magpie-accent);
+    background: #eff6ff;
+  }
+
+  .buy-evidence-row strong,
+  .buy-evidence-row small {
+    @apply block;
+  }
+
+  .buy-evidence-row small,
+  .buy-empty {
+    color: var(--magpie-ink-muted);
+  }
+
+  .buy-empty {
+    @apply mt-3 flex items-start gap-2 rounded border bg-slate-50 p-3 text-sm;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .buy-error {
+    @apply mt-3 rounded border px-3 py-2 text-sm;
+    border-color: #b91c1c;
+    background: #fff1f2;
+    color: #7f1d1d;
+  }
+
   @media (max-width: 640px) {
     html,
     body,
@@ -1050,6 +1203,26 @@
 
     .kpi-grid {
       grid-template-columns: 1fr;
+    }
+
+    .buy-calculator-page {
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .buy-calculator-grid,
+    .buy-form-grid,
+    .buy-evidence-list {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .buy-card {
+      max-width: 100%;
+      padding: 1rem;
+    }
+
+    .buy-max {
+      font-size: 2.75rem;
     }
   }
 

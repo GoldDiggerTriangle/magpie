@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "apps.ebay",
     "apps.dashboard",
     "apps.intelligence",
+    "apps.profit",
     "apps.api",
 ]
 
