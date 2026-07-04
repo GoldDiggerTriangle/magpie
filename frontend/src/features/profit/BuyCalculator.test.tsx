@@ -8,8 +8,7 @@ import { BuyCalculator } from "./BuyCalculator";
 
 const mocks = vi.hoisted(() => ({
   listItems: vi.fn(),
-  getBuyCalculatorEvidence: vi.fn(),
-  calculateBuy: vi.fn()
+  getBuyCalculatorEvidence: vi.fn()
 }));
 
 vi.mock("../../api/items", () => ({
@@ -17,8 +16,7 @@ vi.mock("../../api/items", () => ({
 }));
 
 vi.mock("../../api/profit", () => ({
-  getBuyCalculatorEvidence: (...args: unknown[]) => mocks.getBuyCalculatorEvidence(...args),
-  calculateBuy: (...args: unknown[]) => mocks.calculateBuy(...args)
+  getBuyCalculatorEvidence: (...args: unknown[]) => mocks.getBuyCalculatorEvidence(...args)
 }));
 
 beforeEach(() => {
@@ -81,49 +79,43 @@ beforeEach(() => {
     empty: false,
     price_basis_options: []
   });
-  mocks.calculateBuy.mockResolvedValue({
-    max_buy: "58.23",
-    headline: "Max Buy Price",
-    verdict: "BUY",
-    expected_profit_at_asking: "28.23",
-    roi_at_asking: "47.05",
-    net_proceeds_before_buy: "88.23",
-    seller_fees: "0.00",
-    non_buy_costs: "1.77",
-    evidence_source: "own_sale_exact",
-    confidence_label: "own sale - exact",
-    roi_basis: "all_in_cash"
-  });
 });
 
 test("BuyCalculator renders max buy result and evidence confidence", async () => {
   renderWithClient(<BuyCalculator />);
 
   expect(await screen.findByText("Max Buy / Max Bid")).toBeInTheDocument();
-  expect(await screen.findByText("$58.23")).toBeInTheDocument();
-  expect(screen.getByText("BUY")).toBeInTheDocument();
+  expect(await screen.findByText("$69.23")).toBeInTheDocument();
+  expect(screen.getByText("NO ASKING PRICE")).toBeInTheDocument();
   expect(screen.getAllByText(/own sale - exact/i).length).toBeGreaterThan(0);
-  expect(mocks.calculateBuy).toHaveBeenCalledWith(expect.objectContaining({
-    evidence_source: "own_sale_exact",
-    roi_basis: "all_in_cash"
-  }));
 });
 
 test("BuyCalculator labels what-if input and does not call persistence APIs", async () => {
   const user = userEvent.setup();
   renderWithClient(<BuyCalculator />);
 
-  await screen.findByText("$58.23");
+  await screen.findByText("$69.23");
   const input = screen.getByLabelText(/Expected sell price/i);
   await user.clear(input);
   await user.type(input, "120");
 
-  await waitFor(() => expect(mocks.calculateBuy).toHaveBeenCalledWith(expect.objectContaining({
-    expected_sell_price: "120",
-    evidence_source: "what_if",
-    confidence_label: "what-if (your estimate)"
-  })));
+  await waitFor(() => expect(screen.getByText("$92.31")).toBeInTheDocument());
   expect(screen.getByText(/What-if inputs are calculation-only/i)).toBeInTheDocument();
+});
+
+test("BuyCalculator still calculates typed what-if input when authenticated lookups fail", async () => {
+  const user = userEvent.setup();
+  mocks.listItems.mockRejectedValue(new Error("Authentication credentials were not provided."));
+  mocks.getBuyCalculatorEvidence.mockRejectedValue(new Error("Authentication credentials were not provided."));
+
+  renderWithClient(<BuyCalculator />);
+
+  await user.type(screen.getByLabelText(/Expected sell price/i), "100");
+  await user.type(screen.getByLabelText(/Asking price/i), "60");
+
+  expect(await screen.findByText("$76.92")).toBeInTheDocument();
+  expect(screen.getByText("BUY")).toBeInTheDocument();
+  expect(screen.getByText(/typed what-if calculations still work/i)).toBeInTheDocument();
 });
 
 test("BuyCalculator keeps unknown-basis evidence out of max-buy maths", async () => {

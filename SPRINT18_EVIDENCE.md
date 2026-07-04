@@ -171,3 +171,71 @@ Open operational gate:
 - No new network calls from Magpie.
 - What-if calculator values are not persisted as evidence.
 - Unknown-basis comps are visibly labelled and excluded from precise normalized math.
+
+## Closure Bug Follow-Up: Buy Calculator Auth Block
+
+Date: 2026-07-05
+
+User-reported live failure:
+
+- `/buy-calculator` route loaded after service restart.
+- Typed what-if input did not calculate.
+- Result panel stayed at "Enter a sell price".
+- Red error showed "Authentication credentials were not provided."
+
+Confirmed failing request:
+
+- `POST /api/buy-calculator/calculate/`
+- Unauthenticated shell response: `403 {"detail":"Authentication credentials were not provided."}`
+- `GET /api/profit/settings/` and `GET /api/buy-calculator/evidence/` are active routes, but also return `403` without an authenticated app session under the global DRF auth policy.
+
+Fix implemented:
+
+- The `/buy-calculator` page now performs typed what-if calculation locally in the frontend using the Sprint 18 fee/ROI formulas.
+- Authenticated evidence/settings lookup still uses the existing shared API client with `credentials: "include"`.
+- If saved evidence/settings lookup fails auth, the evidence panel explains that Django admin sign-in is required for saved evidence while typed what-if calculations still work.
+- No backend schema, migration, eBay API call, scraping, AI pricing, or persistence change was added.
+
+Exact regression proof:
+
+- Frontend test added for the reported input:
+  - expected sell price: `100`
+  - price basis: `seller_receives`
+  - seller mode: `free_selling`
+  - asking price: `60`
+  - postage/packaging/refurb: `0`
+  - mode: Max Buy
+  - ROI target: `30`
+  - ROI basis: all-in cash
+- Expected and asserted result: `$76.92` Max Buy and `BUY`.
+- The same test forces item/evidence lookups to fail with "Authentication credentials were not provided." and confirms the typed what-if calculation still renders.
+
+Follow-up validation:
+
+- `npm run test -- BuyCalculator`: 4 passed.
+- `npm run test`: 26 files passed, 83 tests passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed; generated `index-CwMlbq2l.js` / `index-CC9TAzak.css`.
+- `python -m pytest apps/profit/tests/test_sprint18.py -q`: 17 passed.
+- `python manage.py collectstatic --noinput`: 7 files copied, 155 unmodified, 425 post-processed.
+- `/api/health/`: 200.
+
+Live deployment state after fix:
+
+- The running service served the rebuilt `/buy-calculator` index pointing at `index-CwMlbq2l.js`.
+- The running Waitress/WhiteNoise process still served the previous asset map until restart:
+  - previous bundle `index-BAwE9O8e.js`: 200
+  - new bundle `index-CwMlbq2l.js`: 404 before restart
+- NSSM restart from this non-elevated shell failed:
+  - `OpenService(): Access is denied.`
+- Administrator restart of `Magpie` is required before final live-browser proof.
+
+Remaining open closure gate:
+
+- Restart `Magpie` from Administrator PowerShell.
+- Re-check that `/assets/index-CwMlbq2l.js` returns 200.
+- In the live browser UI, enter the exact reported values and confirm `$76.92` and `BUY`.
+- Confirm authenticated sessions can access `/api/profit/settings/` and `/api/buy-calculator/evidence/`.
+- Capture the required mobile proof screenshot.
+
+Sprint 18 remains not live-closed until the post-restart browser proof succeeds.

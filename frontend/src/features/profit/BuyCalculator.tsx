@@ -1,11 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Calculator, CircleAlert, Gauge, ReceiptText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { listItems } from "../../api/items";
-import { calculateBuy, getBuyCalculatorEvidence } from "../../api/profit";
+import { getBuyCalculatorEvidence } from "../../api/profit";
 import { EmptyState } from "../../components/EmptyState";
 import type { BuyCalculationPayload, BuyEvidenceOption, PriceBasis, RoiBasis, SellerMode, UUID } from "../../types";
+import { calculateLocalBuy } from "./localCalculator";
 
 const sellerModeOptions: Array<[SellerMode, string]> = [
   ["free_selling", "eBay AU free selling"],
@@ -42,10 +43,6 @@ export function BuyCalculator() {
   const [source, setSource] = useState<BuyEvidenceOption["source"]>("what_if");
   const [confidence, setConfidence] = useState("what-if (your estimate)");
 
-  const calculation = useMutation({
-    mutationFn: (payload: BuyCalculationPayload) => calculateBuy(payload)
-  });
-
   useEffect(() => {
     const settings = evidence.data?.settings;
     if (!settings) return;
@@ -81,13 +78,16 @@ export function BuyCalculator() {
     auction_mode: auctionMode
   }), [askingPrice, auctionMode, confidence, expectedSellPrice, flatProfitTarget, packaging, postage, priceBasis, refurb, roiBasis, roiPct, sellerMode, source, targetType]);
 
-  useEffect(() => {
+  const calculation = useMemo(() => {
     if (!expectedSellPrice || priceBasis === "unknown") {
-      return;
+      return { result: null, error: "" };
     }
-    const timer = window.setTimeout(() => calculation.mutate(payload), 160);
-    return () => window.clearTimeout(timer);
-  }, [payload, expectedSellPrice, priceBasis]);
+    try {
+      return { result: calculateLocalBuy(payload, evidence.data?.settings), error: "" };
+    } catch (error) {
+      return { result: null, error: errorText(error) };
+    }
+  }, [evidence.data?.settings, expectedSellPrice, payload, priceBasis]);
 
   function useEvidence(option: BuyEvidenceOption) {
     if (!option.seller_receives || option.basis_uncertain) {
@@ -105,8 +105,9 @@ export function BuyCalculator() {
     setConfidence("what-if (your estimate)");
   }
 
-  const result = calculation.data;
+  const result = calculation.result;
   const cannotCalculate = !expectedSellPrice || priceBasis === "unknown";
+  const authLookupFailed = evidence.error || items.error;
 
   return (
     <div className="buy-calculator-page">
@@ -232,11 +233,17 @@ export function BuyCalculator() {
           ) : (
             <EmptyState title="Enter a sell price" detail="The result updates from local calculator maths only." />
           )}
-          {calculation.error ? <p className="buy-error">{errorText(calculation.error)}</p> : null}
+          {calculation.error ? <p className="buy-error">{calculation.error}</p> : null}
         </section>
 
         <section className="buy-card buy-evidence">
           <h2>Evidence lookup</h2>
+          {authLookupFailed ? (
+            <div className="buy-empty">
+              <CircleAlert className="h-5 w-5" aria-hidden="true" />
+              <p>{errorText(evidence.error ?? items.error)} Sign in through Django admin to use saved evidence; typed what-if calculations still work.</p>
+            </div>
+          ) : null}
           {evidence.isLoading ? <EmptyState title="Loading evidence" /> : null}
           {evidence.data?.empty ? (
             <div className="buy-empty">
