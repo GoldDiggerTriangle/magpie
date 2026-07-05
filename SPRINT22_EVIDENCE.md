@@ -1,6 +1,6 @@
 # Sprint 22 Evidence - Channel Copy Packs and Listing Truth
 
-Status: live deployment complete; awaiting final remote GitHub Validation after this evidence commit/push.
+Status: live deployment complete. Sprint 22 implementation was validated locally and by GitHub dual-lane `Validation`; the final closure response records the latest pushed head and run ID.
 
 ## Scope Implemented
 
@@ -55,7 +55,8 @@ Status: live deployment complete; awaiting final remote GitHub Validation after 
   - Result: `4 passed`.
 - Full frontend tests:
   - `npm run test -- --run`
-  - Result: `97 passed`.
+  - Result before push: `97 passed`.
+  - Result after the CI-stability follow-up: `97 passed`.
 - Typecheck:
   - `npm run typecheck`
   - Result: passed.
@@ -110,4 +111,14 @@ Status: live deployment complete; awaiting final remote GitHub Validation after 
 
 ## Remote Validation
 
-- GitHub dual-lane `Validation`: pending until this evidence commit is pushed.
+- Initial remote run for implementation commit `c900978`:
+  - Run `28754983245`.
+  - Postgres: success.
+  - SQLite: failed in an existing `ListingPanel` frontend test due to an async timing race waiting for the aspect override checkbox.
+- CI-stability follow-up:
+  - `frontend/src/components/ListingPanel.test.tsx` now waits for the async `Override and stage anyway` control before clicking.
+  - Product code and guard logic unchanged.
+- Remote run for commit `d304ae5`:
+  - Run `28755151802`.
+  - Postgres job `85260892385`: success.
+  - SQLite job `85260892386`: success.
