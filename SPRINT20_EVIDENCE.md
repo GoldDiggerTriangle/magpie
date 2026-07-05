@@ -149,4 +149,13 @@ Note: the evidence browser needed a temporary normal Django session to capture a
 
 ## GitHub Validation
 
-Pending after commit/push.
+Implementation commit: `6a79fdd`.
+
+Run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/28738942557
+
+Result: success.
+
+- `sqlite`: completed, success.
+- `postgres`: completed, success.
+
+This evidence file update was pushed after the green implementation run; it contains documentation only.
