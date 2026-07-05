@@ -1,4 +1,6 @@
 import csv
+import zipfile
+from io import BytesIO
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -19,6 +21,7 @@ from apps.photos.models import PhotoAsset
 from apps.photos.serializers import PhotoAssetSerializer
 from apps.photos.fixup import PhotoFixupService
 from apps.photos.services import MediaService
+from integrations.storage import LocalFileStorageAdapter
 from apps.sales.services import recompute_item_sale_status
 
 
@@ -122,6 +125,42 @@ class InventoryItemViewSet(ModelViewSet):
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["get"], url_path="photos/export.zip")
+    def export_photo_zip(self, request, pk=None):
+        item = self.get_object()
+        storage = LocalFileStorageAdapter()
+        buffer = BytesIO()
+        skipped = []
+        with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for index, photo in enumerate(
+                item.photos.select_related("active_derivative").order_by("order_index", "created_at"),
+                start=1,
+            ):
+                key, basis = display_photo_export_key(photo)
+                if not key:
+                    skipped.append(str(photo.id))
+                    continue
+                try:
+                    payload = storage.open(key)
+                except FileNotFoundError:
+                    skipped.append(str(photo.id))
+                    continue
+                extension = key.rsplit(".", 1)[-1] if "." in key else "jpg"
+                archive.writestr(f"photos/{index:02d}_{item.sku}_{basis}.{extension}", payload)
+            archive.writestr(
+                "manifest.txt",
+                "\n".join(
+                    [
+                        f"item={item.sku}",
+                        "policy=own item photos only; approved derivatives first; originals otherwise",
+                        f"skipped={','.join(skipped)}",
+                    ]
+                ),
+            )
+        response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="photos-{item.sku}.zip"'
+        return response
+
     @action(detail=False, methods=["get"], url_path="export.csv")
     def export_csv(self, request):
         response = HttpResponse(content_type="text/csv")
@@ -181,3 +220,14 @@ class InventoryItemViewSet(ModelViewSet):
                 ]
             )
         return response
+
+
+def display_photo_export_key(photo: PhotoAsset) -> tuple[str, str]:
+    derivative = photo.active_derivative
+    if (
+        derivative is not None
+        and derivative.status == "approved"
+        and derivative.fixed_path
+    ):
+        return derivative.fixed_path, "fixed"
+    return photo.original_path, "original"

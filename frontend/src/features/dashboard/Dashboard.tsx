@@ -180,6 +180,22 @@ export function Dashboard() {
         />
       </header>
 
+      {(summary.data?.action_counts.take_down_checklists ?? 0) > 0 ? (
+        <div className="mx-auto mt-5 w-full max-w-7xl">
+          <div className="take-down-alert">
+            <div>
+              <div>
+                <h2>{summary.data?.action_counts.take_down_checklists} sold-out listing checklist{summary.data?.action_counts.take_down_checklists === 1 ? "" : "s"} open</h2>
+                <p>End the real marketplace listings yourself, then tick them off in Magpie.</p>
+              </div>
+            </div>
+            <div className="mt-3">
+              <Link className="btn-danger" to="/listings">Open listings board</Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="kpi-ledger-row" aria-label="Selected KPI tiles">
         <div className="kpi-row-header">
           <div>

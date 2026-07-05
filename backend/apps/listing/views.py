@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from apps.inventory.models import InventoryItem
@@ -14,12 +15,20 @@ from apps.ebay import aspects as ebay_aspects
 from apps.ebay import publishing as ebay_publishing
 from apps.ebay import staging as ebay_staging
 from integrations.ebay import EbayUnavailable
+from apps.listing.channel_listings import (
+    CHANNEL_LABELS,
+    item_listing_state,
+    seed_ebay_channel_listings,
+    take_down_checklist_items,
+)
+from apps.listing.copy_packs import render_copy_pack
 from apps.listing.export import build_export_bundle
 from apps.listing.generators import generated_meta, generator_for
 from apps.listing.context import safe_context
-from apps.listing.models import ListingBoilerplate, ListingDraft
+from apps.listing.models import ChannelListing, ListingBoilerplate, ListingDraft
 from apps.listing.readiness import check_readiness
 from apps.listing.serializers import (
+    ChannelListingSerializer,
     ListingBoilerplateSerializer,
     ListingDraftSerializer,
 )
@@ -33,6 +42,116 @@ class ListingBoilerplateViewSet(ReadOnlyModelViewSet):
     search_fields = ["name", "notes"]
     ordering_fields = ["channel", "name"]
     ordering = ["channel", "name"]
+
+
+class ItemCopyPackView(APIView):
+    http_method_names = ["get"]
+
+    def get(self, request, *args, **kwargs):
+        item = get_object_or_404(
+            InventoryItem.objects.select_related("category").prefetch_related("listing_drafts"),
+            pk=kwargs["item_id"],
+        )
+        payload = render_copy_pack(
+            item,
+            channel=request.query_params.get("channel") or "generic",
+            evidence_price=request.query_params.get("evidence_price"),
+            evidence_label=request.query_params.get("evidence_label") or "",
+        )
+        return Response(payload)
+
+
+class ChannelListingViewSet(ModelViewSet):
+    serializer_class = ChannelListingSerializer
+    queryset = (
+        ChannelListing.objects.select_related("item", "item__category", "source_listing_draft")
+        .prefetch_related("item__sales", "item__channel_listings")
+        .all()
+    )
+    ordering_fields = ["listed_at", "ended_at", "channel"]
+    ordering = ["channel", "-listed_at"]
+    search_fields = ["item__sku", "item__title", "note", "url"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        active = self.request.query_params.get("active")
+        channel = self.request.query_params.get("channel")
+        item_id = self.request.query_params.get("item")
+        if active == "true":
+            queryset = queryset.filter(ended_at__isnull=True)
+        elif active == "false":
+            queryset = queryset.filter(ended_at__isnull=False)
+        if channel:
+            queryset = queryset.filter(channel=channel)
+        if item_id:
+            queryset = queryset.filter(item_id=item_id)
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["now"] = timezone.now()
+        return context
+
+    @action(detail=True, methods=["post"], url_path="mark-ended")
+    def mark_ended(self, request, pk=None):
+        listing = self.get_object()
+        if listing.ended_at is None:
+            listing.ended_at = timezone.now()
+            listing.save(update_fields=["ended_at", "updated_at"])
+        return Response(self.get_serializer(listing).data)
+
+    @action(detail=False, methods=["post"], url_path="seed-ebay")
+    def seed_ebay(self, request):
+        result = seed_ebay_channel_listings()
+        return Response(
+            {
+                "seeded": result.seeded,
+                "existing": result.existing,
+                "skipped_ambiguous": result.skipped_ambiguous,
+                "skipped_missing_date": result.skipped_missing_date,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["get"], url_path="board")
+    def board(self, request):
+        listings = list(
+            self.filter_queryset(self.get_queryset().filter(ended_at__isnull=True))
+            .order_by("channel", "listed_at")
+        )
+        serializer = self.get_serializer(listings, many=True)
+        groups = []
+        by_channel = {}
+        for row in serializer.data:
+            by_channel.setdefault(row["channel"], []).append(row)
+        for channel, rows in sorted(by_channel.items(), key=lambda item: CHANNEL_LABELS.get(item[0], item[0])):
+            groups.append(
+                {
+                    "channel": channel,
+                    "channel_label": CHANNEL_LABELS.get(channel, channel),
+                    "count": len(rows),
+                    "listings": rows,
+                }
+            )
+        checklist_items = [
+            _serialize_item_listing_state(item, context=self.get_serializer_context())
+            for item in take_down_checklist_items()
+        ]
+        partial_items = [
+            _serialize_item_listing_state(item, context=self.get_serializer_context())
+            for item in InventoryItem.objects.prefetch_related("channel_listings", "sales")
+            .filter(channel_listings__ended_at__isnull=True)
+            .distinct()
+            if item.quantity_sold > 0 and item.quantity_remaining > 0
+        ]
+        return Response(
+            {
+                "groups": groups,
+                "take_down_checklist": checklist_items,
+                "partial_quantity": partial_items,
+                "empty": not groups,
+            }
+        )
 
 
 class ItemListingDraftListCreateView(ListCreateAPIView):
@@ -296,3 +415,23 @@ def _validation_payload(exc: ValidationError) -> dict:
     if hasattr(exc, "message_dict"):
         return exc.message_dict
     return {"detail": "; ".join(exc.messages)}
+
+
+def _serialize_item_listing_state(item: InventoryItem, *, context: dict) -> dict:
+    state = item_listing_state(item)
+    serializer = ChannelListingSerializer(
+        state["active_listings"],
+        many=True,
+        context=context,
+    )
+    return {
+        "item": str(item.id),
+        "sku": item.sku,
+        "title": item.title,
+        "state": state["state"],
+        "message": state["message"],
+        "quantity_sold": state["quantity_sold"],
+        "quantity_remaining": state["quantity_remaining"],
+        "quantity_total": state["quantity_total"],
+        "active_listings": serializer.data,
+    }

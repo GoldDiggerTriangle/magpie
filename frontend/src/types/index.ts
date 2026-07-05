@@ -224,6 +224,7 @@ export interface AnalyticsSummary {
     unresolved_ebay_staging: number;
     cost_basis_unknown_sales: number;
     listing_opportunities: number;
+    take_down_checklists?: number;
   };
   sample: {
     sales: number;
@@ -792,6 +793,91 @@ export interface ListingDraftPayload {
   photo_ids?: UUID[];
   include_sku_footer?: boolean;
   boilerplate?: UUID | null;
+}
+
+export type ChannelListingChannel = "ebay" | "facebook_marketplace" | "gumtree" | "in_person" | "other";
+
+export interface ChannelListingTakeDownState {
+  state: "take_down_required" | "sold_out_clear" | "partial_quantity" | "available";
+  message: string;
+  quantity_sold: number;
+  quantity_remaining: number;
+  quantity_total: number;
+}
+
+export interface ChannelListing {
+  id: UUID;
+  item: UUID;
+  item_sku: string;
+  item_title: string;
+  channel: ChannelListingChannel;
+  channel_label: string;
+  listed_at: string;
+  ended_at: string | null;
+  active: boolean;
+  days_listed: number;
+  url: string;
+  note: string;
+  source_listing_draft: UUID | null;
+  take_down_state: ChannelListingTakeDownState | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChannelListingPayload {
+  item: UUID;
+  channel: ChannelListingChannel;
+  listed_at?: string;
+  ended_at?: string | null;
+  url?: string;
+  note?: string;
+}
+
+export interface ChannelListingItemState extends ChannelListingTakeDownState {
+  item: UUID;
+  sku: string;
+  title: string;
+  active_listings: ChannelListing[];
+}
+
+export interface ChannelListingBoardGroup {
+  channel: ChannelListingChannel;
+  channel_label: string;
+  count: number;
+  listings: ChannelListing[];
+}
+
+export interface ChannelListingBoard {
+  groups: ChannelListingBoardGroup[];
+  take_down_checklist: ChannelListingItemState[];
+  partial_quantity: ChannelListingItemState[];
+  empty: boolean;
+}
+
+export interface ChannelListingSeedResult {
+  seeded: number;
+  existing: number;
+  skipped_ambiguous: number;
+  skipped_missing_date: number;
+}
+
+export interface CopyPack {
+  item: UUID;
+  channel: "ebay" | "facebook_marketplace" | "gumtree" | "generic";
+  channel_label: string;
+  sections: {
+    title: string;
+    description: string;
+    price_line: string;
+    postage_pickup_line: string;
+  };
+  whole_ad: string;
+  price_source: {
+    basis: "human_picked_evidence" | "item_asking_or_listed_price" | "missing";
+    label: string;
+    hint: string;
+  };
+  rendered_at: string;
 }
 
 export interface EbayPolicyCounts {

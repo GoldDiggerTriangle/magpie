@@ -1826,6 +1826,101 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.copy-pack-panel pre {
+  color: var(--magpie-ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.take-down-alert {
+  border: 2px solid #b91c1c;
+  background: #fff1f2;
+  color: #7f1d1d;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+
+.take-down-alert > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.take-down-alert h2,
+.take-down-alert h3 {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.take-down-alert p {
+  margin-top: 0.35rem;
+  color: #7f1d1d;
+}
+
+.take-down-alert a {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.listing-form-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.listing-span-2 {
+  grid-column: span 2 / span 2;
+}
+
+.listing-board-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.listing-board-group {
+  border: 1px solid var(--magpie-border-soft);
+  background: #ffffff;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+
+.listing-board-group header,
+.listing-board-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.listing-board-group h3 {
+  margin: 0;
+  color: var(--magpie-ink);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.listing-board-row {
+  border-top: 1px solid var(--magpie-border-soft);
+  padding-top: 0.75rem;
+}
+
+.listing-board-row a,
+.listing-board-row strong,
+.listing-board-row small {
+  display: block;
+}
+
+.listing-board-row a {
+  color: var(--magpie-accent);
+  font-weight: 800;
+}
+
+.listing-board-row small {
+  color: var(--magpie-ink-muted);
+}
+
 @media (min-width: 768px) {
   .app-main {
     padding-top: 0;
@@ -2272,7 +2367,7 @@
 
   .app-main {
     padding-top: calc(max(1rem, env(safe-area-inset-top)) + 0.35rem);
-    padding-bottom: calc(6.75rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(10.5rem + env(safe-area-inset-bottom));
   }
 
   .settings-page,
@@ -2342,6 +2437,22 @@
   .ledger-button {
     min-height: 3rem;
     width: auto;
+  }
+
+  .listing-form-grid,
+  .listing-board-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .listing-form-grid,
+  .listing-board-row,
+  .listing-board-group header {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .listing-span-2 {
+    grid-column: auto;
   }
 
   .settings-page article,

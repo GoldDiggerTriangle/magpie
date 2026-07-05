@@ -21,6 +21,7 @@ import { PhotoFixupPanel } from "../../components/PhotoFixupPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
 import { ComparableList } from "../../components/ComparableList";
+import { CopyPackPanel } from "../../components/CopyPackPanel";
 import { PricingEvidencePanel } from "../../components/PricingEvidencePanel";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
 import { ResearchLinks } from "../../components/ResearchLinks";
@@ -30,6 +31,7 @@ import { sanitizeSchemaAttributes, SchemaFieldsForm } from "../../components/Sch
 import { SoldSearchPanel } from "../../components/SoldSearchPanel";
 import { StatusBadge } from "../../components/StatusBadge";
 import { SuggestionReviewPanel } from "../../components/SuggestionReviewPanel";
+import { TakeDownChecklist } from "../../components/TakeDownChecklist";
 import { ValuationPanel } from "../../components/ValuationPanel";
 import type { ItemFormPayload, PhotoAsset, UUID } from "../../types";
 
@@ -325,6 +327,8 @@ export function ItemDetail() {
       </div>
 
       <div className="mt-8 grid gap-6">
+        <TakeDownChecklist item={item.data} />
+        <CopyPackPanel item={item.data} />
         <DescriptorEvidencePanel
           attributes={item.data.attributes ?? {}}
           categoryId={item.data.category ?? ""}

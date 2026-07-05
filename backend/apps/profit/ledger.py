@@ -422,10 +422,19 @@ def effective_source_for_item(item: InventoryItem | None):
 def listed_date_for_sale(sale: SaleRecord) -> tuple[date | None, str]:
     if sale.listing_draft_id and sale.listing_draft:
         return listed_date_for_draft(sale.listing_draft)
+    if sale.item_id and sale.item:
+        return listed_date_for_item(sale.item)
     return None, "no_listing_record"
 
 
 def listed_date_for_item(item: InventoryItem) -> tuple[date | None, str]:
+    channel_listings = item.channel_listings.all()
+    if channel_listings.exists():
+        active = [listing for listing in channel_listings if listing.ended_at is None]
+        if active:
+            earliest = min(active, key=lambda listing: listing.listed_at)
+            return earliest.listed_at.date(), "active_channel_listing"
+        return None, "channel_listing_records_all_ended"
     draft = (
         item.listing_drafts.filter(Q(status=ListingDraft.Status.PUBLISHED) | Q(channel_data__has_key="listing_id"))
         .order_by("-updated_at")
@@ -467,7 +476,7 @@ def cash_lock_payload(stale_days: int) -> dict:
     for item in (
         InventoryItem.objects.select_related("category")
         .exclude(status=InventoryItem.Status.ARCHIVED)
-        .prefetch_related("listing_drafts")
+        .prefetch_related("listing_drafts", "channel_listings")
         .order_by("sku")
     ):
         if item.quantity_remaining <= 0:

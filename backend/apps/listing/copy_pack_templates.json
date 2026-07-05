@@ -1,0 +1,38 @@
+{
+  "ebay": {
+    "label": "eBay",
+    "sections": {
+      "title": "{title}",
+      "description": "{title}\nCategory: {category}\nCondition: {condition}\nDetails: {attributes}",
+      "price_line": "Price: {price}",
+      "postage_pickup_line": "Postage / pickup: {postage}"
+    }
+  },
+  "facebook_marketplace": {
+    "label": "Facebook Marketplace",
+    "sections": {
+      "title": "{title}",
+      "description": "{title}\n{category}\nCondition: {condition}\nDetails: {attributes}",
+      "price_line": "Price: {price}",
+      "postage_pickup_line": "Pickup / postage: {postage}"
+    }
+  },
+  "gumtree": {
+    "label": "Gumtree",
+    "sections": {
+      "title": "{title}",
+      "description": "{title}\nCategory: {category}\nCondition: {condition}\nDetails: {attributes}",
+      "price_line": "Asking price: {price}",
+      "postage_pickup_line": "Pickup / delivery: {postage}"
+    }
+  },
+  "generic": {
+    "label": "Plain copy",
+    "sections": {
+      "title": "{title}",
+      "description": "{title}\nCategory: {category}\nCondition: {condition}\nDetails: {attributes}",
+      "price_line": "Price: {price}",
+      "postage_pickup_line": "Postage / pickup: {postage}"
+    }
+  }
+}

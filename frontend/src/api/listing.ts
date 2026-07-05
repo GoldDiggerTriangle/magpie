@@ -1,6 +1,11 @@
 import { ApiError, apiRequest } from "./client";
 import type {
   ListingBoilerplate,
+  ChannelListing,
+  ChannelListingBoard,
+  ChannelListingPayload,
+  ChannelListingSeedResult,
+  CopyPack,
   EbayAspectCheck,
   ListingCheck,
   ListingDraft,
@@ -82,6 +87,51 @@ export function publishListingDraft(id: UUID, confirmSku: string) {
 
 export function listListingBoilerplates() {
   return apiRequest<PaginatedResponse<ListingBoilerplate>>("/api/listing-boilerplates/");
+}
+
+export function getItemCopyPack(
+  itemId: UUID,
+  options: { channel?: CopyPack["channel"]; evidence_price?: string; evidence_label?: string } = {}
+) {
+  const params = new URLSearchParams();
+  if (options.channel) params.set("channel", options.channel);
+  if (options.evidence_price) params.set("evidence_price", options.evidence_price);
+  if (options.evidence_label) params.set("evidence_label", options.evidence_label);
+  const query = params.toString();
+  return apiRequest<CopyPack>(`/api/items/${itemId}/copy-pack/${query ? `?${query}` : ""}`);
+}
+
+export function listChannelListings(params: { item?: UUID; active?: boolean } = {}) {
+  const query = new URLSearchParams();
+  if (params.item) query.set("item", params.item);
+  if (typeof params.active === "boolean") query.set("active", params.active ? "true" : "false");
+  const suffix = query.toString();
+  return apiRequest<PaginatedResponse<ChannelListing>>(`/api/channel-listings/${suffix ? `?${suffix}` : ""}`);
+}
+
+export function createChannelListing(payload: ChannelListingPayload) {
+  return apiRequest<ChannelListing>("/api/channel-listings/", {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function markChannelListingEnded(id: UUID) {
+  return apiRequest<ChannelListing>(`/api/channel-listings/${id}/mark-ended/`, {
+    method: "POST",
+    body: {}
+  });
+}
+
+export function getChannelListingBoard() {
+  return apiRequest<ChannelListingBoard>("/api/channel-listings/board/");
+}
+
+export function seedEbayChannelListings() {
+  return apiRequest<ChannelListingSeedResult>("/api/channel-listings/seed-ebay/", {
+    method: "POST",
+    body: {}
+  });
 }
 
 export async function downloadListingZip(id: UUID) {

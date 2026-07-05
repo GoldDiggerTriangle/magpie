@@ -15,6 +15,7 @@ from apps.catalog.models import ProductCategory
 from apps.dashboard.models import KPI_TILE_CATALOG
 from apps.ebay.models import EbayOrderStaging
 from apps.inventory.models import InventoryItem
+from apps.listing.channel_listings import take_down_checklist_items
 from apps.listing.models import ListingDraft
 from apps.sales.models import SaleRecord, money
 
@@ -102,6 +103,7 @@ def build_summary(filters: AnalyticsFilters) -> dict:
     staging_count = EbayOrderStaging.objects.filter(
         status=EbayOrderStaging.Status.PENDING
     ).count()
+    take_down_count = len(take_down_checklist_items())
 
     tiles = {
         "realised_profit": tile_value(
@@ -141,6 +143,7 @@ def build_summary(filters: AnalyticsFilters) -> dict:
             "unresolved_ebay_staging": staging_count,
             "cost_basis_unknown_sales": unknown_count,
             "listing_opportunities": len(build_listing_opportunities(filters)["items"]),
+            "take_down_checklists": take_down_count,
         },
         "sample": {
             "sales": sales.count(),

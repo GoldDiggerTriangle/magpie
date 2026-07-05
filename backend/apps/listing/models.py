@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models import TimeStampedUUIDModel
 
@@ -81,3 +82,50 @@ class ListingDraft(TimeStampedUUIDModel):
 
     def __str__(self) -> str:
         return f"{self.item.sku} listing draft ({self.status})"
+
+
+class ChannelListing(TimeStampedUUIDModel):
+    class Channel(models.TextChoices):
+        EBAY = "ebay", "eBay"
+        FACEBOOK_MARKETPLACE = "facebook_marketplace", "Facebook Marketplace"
+        GUMTREE = "gumtree", "Gumtree"
+        IN_PERSON = "in_person", "In person"
+        OTHER = "other", "Other"
+
+    item = models.ForeignKey(
+        "inventory.InventoryItem",
+        on_delete=models.CASCADE,
+        related_name="channel_listings",
+    )
+    channel = models.CharField(
+        max_length=40,
+        choices=Channel.choices,
+        default=Channel.OTHER,
+    )
+    listed_at = models.DateTimeField(default=timezone.now)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    url = models.URLField(max_length=500, blank=True, default="")
+    note = models.TextField(blank=True, default="")
+    source_listing_draft = models.OneToOneField(
+        "listing.ListingDraft",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="channel_listing",
+    )
+
+    class Meta:
+        ordering = ["channel", "-listed_at"]
+        indexes = [
+            models.Index(fields=["item", "ended_at"], name="chan_list_item_active_idx"),
+            models.Index(fields=["channel", "ended_at"], name="chan_list_chan_active_idx"),
+            models.Index(fields=["listed_at"], name="channel_listing_listed_idx"),
+        ]
+
+    @property
+    def active(self) -> bool:
+        return self.ended_at is None
+
+    def __str__(self) -> str:
+        state = "active" if self.active else "ended"
+        return f"{self.item.sku} {self.get_channel_display()} listing ({state})"

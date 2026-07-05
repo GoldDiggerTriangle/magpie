@@ -41,6 +41,8 @@ from apps.intelligence.views import (
     ItemSoldSearchView,
 )
 from apps.listing.views import (
+    ChannelListingViewSet,
+    ItemCopyPackView,
     ItemListingDraftListCreateView,
     ListingBoilerplateViewSet,
     ListingDraftViewSet,
@@ -84,6 +86,7 @@ router.register("comparables", ComparableViewSet, basename="comparable")
 router.register("research-records", ResearchRecordViewSet, basename="research-record")
 router.register("fee-schedules", FeeScheduleViewSet, basename="fee-schedule")
 router.register("listing-drafts", ListingDraftViewSet, basename="listing-draft")
+router.register("channel-listings", ChannelListingViewSet, basename="channel-listing")
 router.register(
     "listing-boilerplates",
     ListingBoilerplateViewSet,
@@ -112,6 +115,11 @@ urlpatterns = [
         "items/<uuid:item_id>/listing-drafts/",
         ItemListingDraftListCreateView.as_view(),
         name="item-listing-drafts",
+    ),
+    path(
+        "items/<uuid:item_id>/copy-pack/",
+        ItemCopyPackView.as_view(),
+        name="item-copy-pack",
     ),
     path(
         "items/<uuid:item_id>/sales/",

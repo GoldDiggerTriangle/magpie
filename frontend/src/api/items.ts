@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { ApiError, apiRequest } from "./client";
 import type { InventoryItemDetail, InventoryItemList, ItemFormPayload, PaginatedResponse, PhotoAsset, UUID } from "../types";
 
 export interface ItemQuery {
@@ -69,4 +69,14 @@ export function fixupItemPhotos(id: UUID) {
     method: "POST",
     body: {}
   });
+}
+
+export async function downloadItemPhotoZip(id: UUID) {
+  const response = await fetch(`/api/items/${id}/photos/export.zip/`, {
+    credentials: "include"
+  });
+  if (!response.ok) {
+    throw new ApiError(response.status, await response.text());
+  }
+  return response.blob();
 }

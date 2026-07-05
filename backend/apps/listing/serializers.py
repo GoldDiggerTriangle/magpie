@@ -2,7 +2,8 @@ from copy import copy
 
 from rest_framework import serializers
 
-from apps.listing.models import ListingBoilerplate, ListingDraft
+from apps.listing.channel_listings import CHANNEL_LABELS, item_listing_state
+from apps.listing.models import ChannelListing, ListingBoilerplate, ListingDraft
 from apps.listing.readiness import check_readiness, readiness_summary
 
 
@@ -105,3 +106,69 @@ class ListingDraftSerializer(serializers.ModelSerializer):
         ):
             validated_data["description_edited"] = True
         return super().update(instance, validated_data)
+
+
+class ChannelListingSerializer(serializers.ModelSerializer):
+    active = serializers.BooleanField(read_only=True)
+    channel_label = serializers.SerializerMethodField()
+    item_sku = serializers.CharField(source="item.sku", read_only=True)
+    item_title = serializers.CharField(source="item.title", read_only=True)
+    days_listed = serializers.SerializerMethodField()
+    take_down_state = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChannelListing
+        fields = [
+            "id",
+            "item",
+            "item_sku",
+            "item_title",
+            "channel",
+            "channel_label",
+            "listed_at",
+            "ended_at",
+            "active",
+            "days_listed",
+            "url",
+            "note",
+            "source_listing_draft",
+            "take_down_state",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "item_sku",
+            "item_title",
+            "channel_label",
+            "active",
+            "days_listed",
+            "source_listing_draft",
+            "take_down_state",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_channel_label(self, obj):
+        return CHANNEL_LABELS.get(obj.channel, obj.get_channel_display())
+
+    def get_days_listed(self, obj):
+        end = obj.ended_at or self.context.get("now")
+        if end is None:
+            from django.utils import timezone
+
+            end = timezone.now()
+        return max((end.date() - obj.listed_at.date()).days, 0)
+
+    def get_take_down_state(self, obj):
+        item = getattr(obj, "item", None)
+        if item is None:
+            return None
+        state = item_listing_state(item)
+        return {
+            "state": state["state"],
+            "message": state["message"],
+            "quantity_sold": state["quantity_sold"],
+            "quantity_remaining": state["quantity_remaining"],
+            "quantity_total": state["quantity_total"],
+        }
