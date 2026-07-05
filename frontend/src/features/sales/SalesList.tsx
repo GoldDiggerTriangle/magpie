@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
 import { listSales } from "../../api/sales";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
 
 export function SalesList() {
@@ -85,7 +86,7 @@ export function SalesList() {
       </div>
 
       {sales.isLoading ? <EmptyState title="Loading sales" /> : null}
-      {sales.error ? <EmptyState title="Unable to load sales" detail="Check your Django admin session." /> : null}
+      {sales.error ? <AuthRequiredState detail="Sales need a Magpie session. Open the admin login, sign in, then return to Sales." /> : null}
       {sales.data && sales.data.results.length === 0 ? <EmptyState title="No sales recorded" /> : null}
     </div>
   );

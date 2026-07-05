@@ -8,6 +8,7 @@ import { listCategories } from "../../api/categories";
 import { deleteItem, getItem, reorderPhotos, updateItem, uploadItemPhoto } from "../../api/items";
 import { listLocations } from "../../api/locations";
 import { deletePhoto, updatePhoto } from "../../api/photos";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { CategorySelect } from "../../components/CategorySelect";
 import { AIResearchPanel } from "../../components/AIResearchPanel";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
@@ -160,7 +161,7 @@ export function ItemDetail() {
   }
 
   if (item.error || !item.data) {
-    return <PageFrame><EmptyState title="Unable to load item" detail="Check your Django admin session." /></PageFrame>;
+    return <PageFrame><AuthRequiredState detail="Item details need a Magpie session. Open the admin login, sign in, then return to this item." /></PageFrame>;
   }
 
   return (

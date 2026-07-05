@@ -30,6 +30,7 @@ import {
 } from "../../api/ebay";
 import { configureAICredential, disconnectAICredential, getAIStatus } from "../../api/intelligence";
 import { getProfitSettings, updateProfitSettings } from "../../api/profit";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus, ProfitSettings, RoiBasis, SellerMode } from "../../types";
@@ -182,7 +183,7 @@ export function EbaySettings() {
       </div>
 
       {status.isLoading ? <div className="mt-5"><EmptyState title="Loading eBay settings" /></div> : null}
-      {status.error ? <div className="mt-5"><EmptyState title="Sign in through Django admin" detail="The settings API needs your Django session." /></div> : null}
+      {status.error ? <div className="mt-5"><AuthRequiredState detail="Settings need a Magpie session. Open the admin login, sign in, then return to Settings." /></div> : null}
 
       <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
@@ -430,7 +431,7 @@ function ProfitSettingsPanel({
     return <section className="settings-card"><EmptyState title="Loading profit settings" /></section>;
   }
   if (!form) {
-    return <section className="settings-card"><EmptyState title="Profit settings unavailable" detail={error || "Check your Django admin session."} /></section>;
+    return <section className="settings-card"><AuthRequiredState detail={error || "Profit settings need a Magpie session. Open the admin login, sign in, then return to Settings."} /></section>;
   }
   const patch = (value: Partial<ProfitSettings>) => onChange({ ...form, ...value });
   return (

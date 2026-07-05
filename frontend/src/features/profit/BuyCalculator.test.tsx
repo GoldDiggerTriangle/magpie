@@ -116,6 +116,7 @@ test("BuyCalculator still calculates typed what-if input when authenticated look
   expect(await screen.findByText("$76.92")).toBeInTheDocument();
   expect(screen.getByText("BUY")).toBeInTheDocument();
   expect(screen.getByText(/typed what-if calculations still work/i)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Open admin login" })).toHaveAttribute("href", "/admin/login/?next=%2F");
 });
 
 test("BuyCalculator keeps unknown-basis evidence out of max-buy maths", async () => {

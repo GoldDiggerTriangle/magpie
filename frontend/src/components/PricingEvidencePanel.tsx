@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createComparable } from "../api/comparables";
 import { getPricingEvidence } from "../api/pricingEvidence";
 import type { ComparablePayload, PricingEvidence, PricingEvidenceRow, PricingGridCell, UUID } from "../types";
+import { AuthRequiredState } from "./AuthRequiredState";
 import { EmptyState } from "./EmptyState";
 
 const blankCapture = {
@@ -91,7 +92,7 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
       </div>
 
       {pricing.isLoading ? <div className="pricing-skeleton" /> : null}
-      {pricing.error ? <EmptyState title="Unable to load pricing evidence" detail="Check your Django admin session." /> : null}
+      {pricing.error ? <AuthRequiredState detail="Pricing evidence needs a Magpie session. Open the admin login, sign in, then return to this item." /> : null}
 
       {pricing.data ? (
         <>

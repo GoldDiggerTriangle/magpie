@@ -283,3 +283,48 @@ Closure status:
 
 - The Sprint 18 buy-calculator live closure bug is fixed and live-verified.
 - Saved evidence/settings endpoints remain protected by the existing session-auth policy; unauthenticated access correctly returns 403.
+
+## Auth Message Clarification Follow-Up
+
+Date: 2026-07-05
+
+Problem:
+
+- The phone dashboard could show "Sign in through Django admin" and "The analytics API needs your Django session."
+- That wording was unclear because an in-app/SPΑ navigation to `/admin/` can appear as a React route problem if it is not a full browser navigation.
+
+Route verification:
+
+- `/admin/`: 200, Django admin login HTML.
+- `/admin/login/`: 200, Django admin login HTML.
+- `/api/health/`: 200.
+
+Fix implemented:
+
+- Added a shared `AuthRequiredState` component.
+- Replaced misleading "Sign in through Django admin" / "Check your Django admin session" copy across the app with:
+  - title: `Sign in required`
+  - a normal browser `<a href="/admin/login/?next=...">Open admin login</a>` link
+  - screen-specific explanation that the protected API needs a Magpie session.
+- The link is a real document navigation, not a React Router link, so it reaches Django admin instead of the SPA router.
+- Buy Calculator evidence auth failures now point to the admin login while still allowing typed what-if calculations.
+
+Validation:
+
+- `npm run test -- Dashboard BuyCalculator`: 8 passed.
+- `npm run test`: 26 files passed, 84 tests passed.
+- `npm run typecheck`: passed.
+- `npm run build`: passed; generated `index-xQlE5Wmo.js` / `index-CGcbBg_M.css`.
+- `python manage.py collectstatic --noinput`: 7 files copied, 155 unmodified, 425 post-processed.
+- Static asset `/assets/index-xQlE5Wmo.js` returns 404 before service restart, which is expected until the Waitress/WhiteNoise process reloads its static file map.
+
+Mobile Buy Calculator proof remains the Sprint 18 closure proof:
+
+- `docs/evidence/sprint18-buy-calculator-phone-result-2.png` shows the 390px phone-width Buy Calculator result:
+  - Max Buy `$76.92`
+  - verdict `BUY`
+  - exact user-provided inputs.
+
+Operational note:
+
+- Restart `Magpie` from Administrator PowerShell to serve the latest auth-message bundle.

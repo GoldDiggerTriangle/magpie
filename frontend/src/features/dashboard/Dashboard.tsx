@@ -30,6 +30,7 @@ import {
   updateDashboardPreferences,
   type AnalyticsQuery
 } from "../../api/dashboard";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
 import type {
   AgingBucket,
@@ -147,7 +148,7 @@ export function Dashboard() {
   if (hasAuthError) {
     return (
       <DashboardFrame>
-        <EmptyState title="Sign in through Django admin" detail="The analytics API needs your Django session." />
+        <AuthRequiredState detail="The analytics API needs a Magpie session. Open the admin login, sign in, then return to the dashboard." />
       </DashboardFrame>
     );
   }

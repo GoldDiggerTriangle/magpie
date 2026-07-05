@@ -12,6 +12,7 @@ import {
   syncEbayOrders
 } from "../../api/ebay";
 import { listItems } from "../../api/items";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
 import type { EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, InventoryItemList, SaleRecord } from "../../types";
 
@@ -129,7 +130,7 @@ export function EbayOrders() {
       </div>
 
       {status.isLoading ? <div className="mt-5"><EmptyState title="Loading eBay order sync status" /></div> : null}
-      {status.error ? <div className="mt-5"><EmptyState title="Sign in through Django admin" detail="The order sync API needs your Django session." /></div> : null}
+      {status.error ? <div className="mt-5"><AuthRequiredState detail="The order sync API needs a Magpie session. Open the admin login, sign in, then return to eBay orders." /></div> : null}
       {status.data?.requires_reconsent ? (
         <div className="mt-5 rounded border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-50">
           Re-consent is required before order sync. Complete the paste-back connection flow in Settings.
@@ -159,7 +160,7 @@ export function EbayOrders() {
           </div>
 
           {staging.isLoading ? <div className="mt-4"><EmptyState title="Loading staging queue" /></div> : null}
-          {staging.error ? <div className="mt-4"><EmptyState title="Unable to load staged orders" detail="Check your Django admin session." /></div> : null}
+          {staging.error ? <div className="mt-4"><AuthRequiredState detail="Staged eBay orders need a Magpie session. Open the admin login, sign in, then return to eBay orders." /></div> : null}
           {!staging.isLoading && !staging.error && pendingRows.length === 0 ? (
             <div className="mt-4"><EmptyState title="No pending staged orders" detail="Unmatched eBay order lines will appear here after sync." /></div>
           ) : null}
@@ -185,7 +186,7 @@ export function EbayOrders() {
           <p className="mt-1 text-xs text-slate-500">Matched orders that look like an existing manual sale</p>
 
           {duplicates.isLoading ? <div className="mt-4"><EmptyState title="Loading duplicate candidates" /></div> : null}
-          {duplicates.error ? <div className="mt-4"><EmptyState title="Unable to load duplicate candidates" detail="Check your Django admin session." /></div> : null}
+          {duplicates.error ? <div className="mt-4"><AuthRequiredState detail="Duplicate candidates need a Magpie session. Open the admin login, sign in, then return to eBay orders." /></div> : null}
           {!duplicates.isLoading && !duplicates.error && duplicateRows.length === 0 ? (
             <div className="mt-4"><EmptyState title="No duplicate candidates" detail="Clean matched imports do not need review here." /></div>
           ) : null}

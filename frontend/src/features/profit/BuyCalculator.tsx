@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { listItems } from "../../api/items";
 import { getBuyCalculatorEvidence } from "../../api/profit";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
 import type { BuyCalculationPayload, BuyEvidenceOption, PriceBasis, RoiBasis, SellerMode, UUID } from "../../types";
 import { calculateLocalBuy } from "./localCalculator";
@@ -239,10 +240,7 @@ export function BuyCalculator() {
         <section className="buy-card buy-evidence">
           <h2>Evidence lookup</h2>
           {authLookupFailed ? (
-            <div className="buy-empty">
-              <CircleAlert className="h-5 w-5" aria-hidden="true" />
-              <p>{errorText(evidence.error ?? items.error)} Sign in through Django admin to use saved evidence; typed what-if calculations still work.</p>
-            </div>
+            <AuthRequiredState detail={`${errorText(evidence.error ?? items.error)} Open the admin login to use saved evidence. Typed what-if calculations still work without saved evidence.`} />
           ) : null}
           {evidence.isLoading ? <EmptyState title="Loading evidence" /> : null}
           {evidence.data?.empty ? (

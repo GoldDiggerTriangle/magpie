@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { listCategories } from "../../api/categories";
 import { createItem, uploadItemPhoto } from "../../api/items";
 import { listLocations } from "../../api/locations";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { CategorySelect } from "../../components/CategorySelect";
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
@@ -82,7 +83,7 @@ export function AddItem() {
         <PhotoUploader files={files} onFiles={setFiles} />
 
         {formError ? <EmptyState title={formError} /> : null}
-        {submit.error ? <EmptyState title="Unable to save item" detail="Check your Django admin session and try again." /> : null}
+        {submit.error ? <AuthRequiredState detail="Saving an item needs a Magpie session. Open the admin login, sign in, then try again." /> : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="label sm:col-span-2">

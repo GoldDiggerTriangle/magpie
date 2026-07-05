@@ -246,6 +246,16 @@ test("Dashboard empty states point to the next operational action", async () => 
   expect(screen.getByText("Nothing waiting to be listed.")).toBeInTheDocument();
 });
 
+test("Dashboard auth state links to the real admin login route", async () => {
+  vi.mocked(dashboardApi.getAnalyticsSummary).mockRejectedValue(new Error("Authentication credentials were not provided."));
+
+  renderDashboard();
+
+  expect(await screen.findByText("Sign in required")).toBeInTheDocument();
+  const link = screen.getByRole("link", { name: "Open admin login" });
+  expect(link).toHaveAttribute("href", "/admin/login/?next=%2F");
+});
+
 function renderDashboard() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }

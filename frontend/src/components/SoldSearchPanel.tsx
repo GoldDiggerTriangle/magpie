@@ -3,6 +3,7 @@ import { ExternalLink, Search } from "lucide-react";
 
 import { getSoldSearchLinks } from "../api/intelligence";
 import type { UUID } from "../types";
+import { AuthRequiredState } from "./AuthRequiredState";
 import { EmptyState } from "./EmptyState";
 
 export function SoldSearchPanel({ itemId }: { itemId: UUID }) {
@@ -23,7 +24,7 @@ export function SoldSearchPanel({ itemId }: { itemId: UUID }) {
       </div>
 
       {links.isLoading ? <div className="intelligence-skeleton" /> : null}
-      {links.error ? <EmptyState title="Unable to build sold-search links" detail="Check your Django admin session." /> : null}
+      {links.error ? <AuthRequiredState detail="Sold-search links need a Magpie session. Open the admin login, sign in, then return to this item." /> : null}
       {!links.isLoading && !links.error && (links.data?.links.length ?? 0) === 0 ? (
         <EmptyState title="No useful sold-search angles yet" detail="Add a title, category, or valuation and Magpie will build search links here." />
       ) : null}

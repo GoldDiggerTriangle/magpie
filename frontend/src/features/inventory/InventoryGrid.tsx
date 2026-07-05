@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { listCategories } from "../../api/categories";
 import { listItems } from "../../api/items";
+import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
 import { CategorySelect } from "../../components/CategorySelect";
 import { ItemCard } from "./ItemCard";
@@ -92,7 +93,7 @@ export function InventoryGrid() {
 
       <div className="mt-6">
         {items.isLoading ? <EmptyState title="Loading inventory" /> : null}
-        {items.error ? <EmptyState title="Unable to load inventory" detail="Check your Django admin session." /> : null}
+        {items.error ? <AuthRequiredState detail="Inventory needs a Magpie session. Open the admin login, sign in, then return to Inventory." /> : null}
         {items.data && items.data.results.length === 0 ? <EmptyState title="No items found" /> : null}
         {items.data && items.data.results.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
