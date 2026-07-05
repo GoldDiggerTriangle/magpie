@@ -201,4 +201,14 @@ Evidence caveat: the live DB had no Lot/Source rows immediately after migration,
 
 ## GitHub Validation
 
-Pending after commit/push.
+Implementation commit: `b5a593d`.
+
+Run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/28752285740
+
+Result: success.
+
+- `sqlite`: completed, success.
+- `postgres`: completed, success.
+
+This evidence file update is documentation-only and was pushed after the green implementation run.
+
