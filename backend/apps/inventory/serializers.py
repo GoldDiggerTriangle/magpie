@@ -11,6 +11,7 @@ from integrations.storage import LocalFileStorageAdapter
 
 class InventoryItemListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
+    source_name = serializers.SerializerMethodField()
     main_thumb_url = serializers.SerializerMethodField()
     quantity_sold = serializers.IntegerField(read_only=True)
     quantity_remaining = serializers.IntegerField(read_only=True)
@@ -25,6 +26,11 @@ class InventoryItemListSerializer(serializers.ModelSerializer):
             "condition",
             "category",
             "category_name",
+            "lot",
+            "source",
+            "source_name",
+            "disposition",
+            "scrapped_at",
             "quantity_total",
             "quantity_sold",
             "quantity_remaining",
@@ -37,6 +43,7 @@ class InventoryItemListSerializer(serializers.ModelSerializer):
             "id",
             "sku",
             "category_name",
+            "source_name",
             "quantity_sold",
             "quantity_remaining",
             "main_thumb_url",
@@ -50,11 +57,17 @@ class InventoryItemListSerializer(serializers.ModelSerializer):
         storage = self.context.get("storage") or LocalFileStorageAdapter()
         return storage.url(main_photo.thumb_path)
 
+    def get_source_name(self, obj):
+        source = obj.lot.source if obj.lot_id and obj.lot and obj.lot.source_id else obj.source
+        return source.name if source else None
+
 
 class InventoryItemDetailSerializer(serializers.ModelSerializer):
     photos = PhotoAssetSerializer(many=True, read_only=True)
     comps_count = serializers.SerializerMethodField()
     current_valuation = serializers.SerializerMethodField()
+    source_name = serializers.SerializerMethodField()
+    effective_source = serializers.SerializerMethodField()
     quantity_sold = serializers.IntegerField(read_only=True)
     quantity_remaining = serializers.IntegerField(read_only=True)
 
@@ -68,6 +81,8 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
             "updated_at",
             "comps_count",
             "current_valuation",
+            "source_name",
+            "effective_source",
         ]
 
     def get_comps_count(self, obj):
@@ -99,6 +114,16 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
             for key, value in report.items()
         }
 
+    def get_source_name(self, obj):
+        source = obj.lot.source if obj.lot_id and obj.lot and obj.lot.source_id else obj.source
+        return source.name if source else None
+
+    def get_effective_source(self, obj):
+        source = obj.lot.source if obj.lot_id and obj.lot and obj.lot.source_id else obj.source
+        if source is None:
+            return None
+        return {"id": str(source.id), "name": source.name, "type": source.type}
+
     def validate(self, data):
         attrs = dict(data)
         if self.instance:
@@ -110,6 +135,10 @@ class InventoryItemDetailSerializer(serializers.ModelSerializer):
                 "quantity_total",
                 "location",
                 "acquisition",
+                "lot",
+                "source",
+                "disposition",
+                "scrapped_at",
                 "acquisition_cost",
                 "refurb_cost",
                 "inbound_shipping_cost",

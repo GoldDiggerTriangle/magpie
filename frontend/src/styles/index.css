@@ -1369,6 +1369,167 @@
     background: #fffafa;
   }
 
+  .lot-page {
+    @apply min-h-screen w-full px-4 pb-6 sm:px-6 lg:px-8;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(29, 78, 216, 0.05), rgba(29, 78, 216, 0) 220px), var(--magpie-page);
+    color: var(--magpie-ink);
+  }
+
+  .lot-hero,
+  .lot-card,
+  .lot-tally {
+    @apply mx-auto w-full max-w-7xl;
+  }
+
+  .lot-hero {
+    @apply flex flex-col gap-4 border-b pb-5 md:flex-row md:items-end md:justify-between;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .lot-card,
+  .lot-tally,
+  .lot-member,
+  .lot-list-row {
+    @apply rounded border bg-white;
+    border-color: var(--magpie-border-soft);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+
+  .lot-card {
+    @apply mt-5 p-4 sm:p-5;
+  }
+
+  .lot-card h2,
+  .lot-card-title h2 {
+    @apply text-2xl font-semibold;
+    color: var(--magpie-ink);
+  }
+
+  .lot-card-title {
+    @apply mb-4 flex items-center gap-2;
+  }
+
+  .lot-form-grid {
+    @apply grid gap-3 md:grid-cols-2;
+  }
+
+  .lot-span-2 {
+    @apply md:col-span-2;
+  }
+
+  .lot-list,
+  .lot-member-list {
+    @apply mt-4 grid gap-3;
+  }
+
+  .lot-list-row {
+    @apply grid gap-3 p-4 no-underline md:grid-cols-[minmax(0,1fr)_auto];
+    color: var(--magpie-ink);
+  }
+
+  .lot-list-row strong,
+  .lot-list-row small,
+  .lot-list-row span {
+    @apply block;
+  }
+
+  .lot-list-row > span:last-child,
+  .lot-tally strong,
+  .lot-recovered {
+    @apply font-mono font-bold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lot-list-row-warning {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  .lot-tally {
+    @apply mt-5 p-4;
+    border-color: #1d4ed8;
+    background: #eff6ff;
+  }
+
+  .lot-tally strong,
+  .lot-tally span {
+    @apply block;
+  }
+
+  .lot-tally strong {
+    @apply text-xl;
+    color: var(--magpie-ink);
+  }
+
+  .lot-tally span {
+    @apply mt-2 text-sm font-semibold;
+    color: var(--magpie-ink-muted);
+  }
+
+  .lot-tally-warning {
+    border-color: #b45309;
+    background: #fffbeb;
+  }
+
+  .lot-metrics {
+    @apply grid gap-2 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .lot-metrics div {
+    @apply rounded border bg-slate-50 px-3 py-2;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .lot-metrics dt {
+    @apply block text-xs font-bold uppercase tracking-normal;
+    color: var(--magpie-ink-muted);
+  }
+
+  .lot-metrics dd {
+    @apply font-mono text-base font-bold;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lot-loss {
+    color: var(--magpie-loss) !important;
+  }
+
+  .lot-recovered {
+    @apply mt-4 rounded border px-3 py-2;
+    border-color: var(--magpie-border-soft);
+    background: #f8fafc;
+  }
+
+  .lot-actions {
+    @apply mb-4 flex flex-wrap gap-2;
+  }
+
+  .lot-member {
+    @apply grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)_auto] md:items-end;
+  }
+
+  .lot-member a {
+    @apply font-semibold no-underline;
+    color: var(--magpie-accent);
+  }
+
+  .lot-member strong,
+  .lot-member small {
+    @apply block;
+  }
+
+  .lot-member-locked {
+    background: #f8fafc;
+    border-style: dashed;
+  }
+
+  .lot-member-sold,
+  .lot-member-scrapped {
+    border-color: #94a3b8;
+  }
+
   @media (max-width: 640px) {
     html,
     body,
@@ -1539,9 +1700,18 @@
       padding-right: max(1rem, env(safe-area-inset-right));
     }
 
+    .lot-page {
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
     .profit-hero,
+    .lot-hero,
     .profit-section-header,
     .profit-controls,
+    .lot-form-grid,
+    .lot-list-row,
+    .lot-member,
     .profit-ledger-row,
     .buy-more-row {
       align-items: stretch;
@@ -1550,6 +1720,7 @@
     }
 
     .profit-summary-grid,
+    .lot-metrics,
     .cash-lock-grid,
     .profit-velocity-grid,
     .profit-ledger-row dl,

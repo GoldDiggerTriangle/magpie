@@ -64,3 +64,43 @@ class ProfitSetting(TimeStampedUUIDModel):
 
 def current_profit_setting() -> ProfitSetting:
     return ProfitSetting.objects.order_by("-updated_at").first() or ProfitSetting()
+
+
+class Source(TimeStampedUUIDModel):
+    class Type(models.TextChoices):
+        MARKET = "market", "Market"
+        ESTATE = "estate", "Estate"
+        AUCTION = "auction", "Auction"
+        OP_SHOP = "op_shop", "Op shop"
+        ONLINE = "online", "Online"
+        PRIVATE = "private", "Private"
+        OTHER = "other", "Other"
+
+    name = models.CharField(max_length=120, unique=True)
+    type = models.CharField(max_length=20, choices=Type.choices, default=Type.OTHER)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Lot(TimeStampedUUIDModel):
+    label = models.CharField(max_length=160)
+    purchase_date = models.DateField()
+    total_cost = models.DecimalField(max_digits=12, decimal_places=2)
+    source = models.ForeignKey(
+        Source,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="lots",
+    )
+    note = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-purchase_date", "label"]
+
+    def __str__(self) -> str:
+        return self.label

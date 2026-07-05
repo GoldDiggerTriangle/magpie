@@ -3,14 +3,23 @@ from decimal import Decimal
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
 from apps.inventory.models import InventoryItem
 from apps.inventory.serializers import InventoryItemDetailSerializer
 from apps.profit.ledger import ledger_csv, profit_ledger_payload
-from apps.profit.models import ProfitSetting, current_profit_setting
-from apps.profit.serializers import ProfitSettingSerializer
+from apps.profit.lots import allocate_equal, allocate_manual, allocate_proportional, lot_queryset, mark_member_scrapped
+from apps.profit.models import Lot, ProfitSetting, Source, current_profit_setting
+from apps.profit.serializers import (
+    LotManualAllocationSerializer,
+    LotScrapSerializer,
+    LotSerializer,
+    ProfitSettingSerializer,
+    SourceSerializer,
+)
 from apps.profit.services import (
     PriceBasis,
     buyer_protection_fee,
@@ -33,6 +42,43 @@ class ProfitSettingView(APIView):
         serializer.is_valid(raise_exception=True)
         preference = serializer.save()
         return Response(ProfitSettingSerializer(preference).data)
+
+
+class SourceViewSet(ModelViewSet):
+    serializer_class = SourceSerializer
+    queryset = Source.objects.all()
+    search_fields = ["name"]
+    ordering = ["name"]
+
+
+class LotViewSet(ModelViewSet):
+    serializer_class = LotSerializer
+    queryset = lot_queryset()
+    ordering = ["-purchase_date", "label"]
+
+    def get_queryset(self):
+        return lot_queryset()
+
+    @action(detail=True, methods=["post"], url_path="allocate/equal")
+    def allocate_equal(self, request, pk=None):
+        return Response(allocate_equal(self.get_object()))
+
+    @action(detail=True, methods=["post"], url_path="allocate/proportional")
+    def allocate_proportional(self, request, pk=None):
+        return Response(allocate_proportional(self.get_object()))
+
+    @action(detail=True, methods=["post"], url_path="allocate/manual")
+    def allocate_manual(self, request, pk=None):
+        serializer = LotManualAllocationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(allocate_manual(self.get_object(), serializer.validated_data["allocations"]))
+
+    @action(detail=True, methods=["post"], url_path="scrap")
+    def scrap(self, request, pk=None):
+        serializer = LotScrapSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        item = get_object_or_404(InventoryItem, pk=serializer.validated_data["item"], lot=self.get_object())
+        return Response(mark_member_scrapped(item, scrapped_at=serializer.validated_data.get("scrapped_at")))
 
 
 class EbayFeePreviewView(APIView):
@@ -109,7 +155,7 @@ class BuyCalculatorCalculateView(APIView):
         return Response(
             {
                 "max_buy": str(result.max_buy),
-                "headline": "Max Bid" if payload.get("auction_mode") else "Max Buy Price",
+                "headline": "Max Lot Buy" if payload.get("lot_mode") else ("Max Bid" if payload.get("auction_mode") else "Max Buy Price"),
                 "verdict": result.verdict,
                 "expected_profit_at_asking": str(result.expected_profit_at_asking) if result.expected_profit_at_asking is not None else None,
                 "roi_at_asking": str(result.roi_at_asking) if result.roi_at_asking is not None else None,

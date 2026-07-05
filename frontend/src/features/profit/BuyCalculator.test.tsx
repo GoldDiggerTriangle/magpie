@@ -210,6 +210,11 @@ beforeEach(() => {
     condition: "ungraded",
     category: "cat-1",
     category_name: "Stamps",
+    lot: null,
+    source: null,
+    source_name: null,
+    disposition: "for_sale",
+    scrapped_at: null,
     quantity_total: 1,
     quantity_sold: 0,
     quantity_remaining: 1,
@@ -232,6 +237,7 @@ beforeEach(() => {
     photos: [],
     comps_count: 0,
     current_valuation: null,
+    effective_source: null,
     updated_at: ""
   });
 });
@@ -338,6 +344,23 @@ test("BuyCalculator bought-it flow creates an item from calculator context", asy
     expected_sell_price: "100",
     price_basis: "seller_receives"
   });
+});
+
+test("BuyCalculator Lot mode reuses the same max-buy engine for total resale", async () => {
+  const user = userEvent.setup();
+  renderWithClient(<BuyCalculator />);
+
+  await screen.findByDisplayValue("90.00");
+  await user.click(screen.getByRole("button", { name: /Lot calculation/i }));
+  const expectedSellPrice = screen.getByLabelText(/Expected total resale for lot/i);
+  await user.clear(expectedSellPrice);
+  await user.type(expectedSellPrice, "100");
+
+  await waitFor(() => expect(screen.getByText("Max Lot Buy")).toBeInTheDocument());
+  expect(screen.getByText("$76.92")).toBeInTheDocument();
+  expect(screen.getByText(/Lot mode is one total resale number/i)).toBeInTheDocument();
+  expect(mocks.captureDescriptorComparable).not.toHaveBeenCalled();
+  expect(mocks.createBoughtItItem).not.toHaveBeenCalled();
 });
 
 test("shared Sprint 19 formula fixture matches the frontend calculator", () => {

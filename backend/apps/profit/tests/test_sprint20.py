@@ -258,6 +258,8 @@ def test_financial_year_boundary_and_csv_export(api_client, setting, category):
     assert rows[0]["fee_provenance"] == "actual_recorded"
     assert rows[0]["realised_profit"] == "28.00"
     assert "seller_mode" in rows[0]
+    assert "provenance" in rows[0]
+    assert "source_name" in rows[0]
     assert "days_held" in rows[0]
 
 

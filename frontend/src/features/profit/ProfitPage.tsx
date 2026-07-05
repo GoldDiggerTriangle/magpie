@@ -177,7 +177,7 @@ function LedgerTable({ rows }: { rows: ProfitLedgerRow[] }) {
           <div>
             <Link to={row.detail_url}>{row.item_sku}</Link>
             <strong>{row.title || "Untitled"}</strong>
-            <small>{row.category} · {channelLabel(row.channel)} · {row.sold_date}</small>
+            <small>{row.category} · {channelLabel(row.channel)} · {row.source_name} · {row.sold_date}</small>
           </div>
           <dl>
             <Metric label="Revenue" value={formatCurrency(row.revenue)} />
@@ -254,10 +254,10 @@ function BuyMoreList({ groups }: { groups: BuyMoreGroup[] }) {
   return (
     <div className="buy-more-list">
       {groups.map((group) => (
-        <article className={`buy-more-row buy-more-${group.status}`} key={`${group.category}-${group.channel}`}>
+        <article className={`buy-more-row buy-more-${group.status}`} key={`${group.category}-${group.channel}-${group.source_name}`}>
           <div>
             <strong>{group.category}</strong>
-            <small>{channelLabel(group.channel)} · n = {group.n} · newest {group.newest_sale_date}</small>
+            <small>{channelLabel(group.channel)} · {group.source_name} · n = {group.n} · newest {group.newest_sale_date}</small>
           </div>
           <div>
             <span>{group.label}</span>
@@ -318,6 +318,7 @@ function feeLabel(value: ProfitLedgerRow["fee_provenance"]) {
 function channelLabel(value: string) {
   if (value === "ebay_au") return "eBay AU";
   if (value === "manual") return "Manual";
+  if (value === "scrapped") return "Scrapped";
   return "Other";
 }
 

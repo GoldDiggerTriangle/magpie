@@ -98,7 +98,7 @@ export function calculateLocalBuy(
 
   return {
     max_buy: asMoneyString(maxBuy),
-    headline: payload.auction_mode ? "Max Bid" : "Max Buy Price",
+    headline: payload.lot_mode ? "Max Lot Buy" : (payload.auction_mode ? "Max Bid" : "Max Buy Price"),
     verdict,
     expected_profit_at_asking: expectedProfit === null ? null : asMoneyString(expectedProfit),
     roi_at_asking: roiAtAsking === null ? null : roiAtAsking.toFixed(2),

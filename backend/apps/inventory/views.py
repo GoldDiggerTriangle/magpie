@@ -24,7 +24,15 @@ from apps.sales.services import recompute_item_sale_status
 
 class InventoryItemViewSet(ModelViewSet):
     queryset = (
-        InventoryItem.objects.select_related("category", "location", "acquisition", "owner")
+        InventoryItem.objects.select_related(
+            "category",
+            "location",
+            "acquisition",
+            "owner",
+            "lot",
+            "lot__source",
+            "source",
+        )
         .prefetch_related("photos", "comparables", "valuation_reports")
         .all()
     )

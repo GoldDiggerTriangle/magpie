@@ -1,4 +1,4 @@
-import { Calculator, DownloadCloud, LayoutDashboard, PackageSearch, PlusCircle, ReceiptText, Settings, TrendingUp } from "lucide-react";
+import { Boxes, Calculator, DownloadCloud, LayoutDashboard, PackageSearch, PlusCircle, ReceiptText, Settings, TrendingUp } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 const navItems = [
@@ -6,6 +6,7 @@ const navItems = [
   { to: "/inventory", label: "Inventory", shortLabel: "Items", icon: PackageSearch },
   { to: "/sales", label: "Sales", shortLabel: "Sales", icon: ReceiptText },
   { to: "/profit", label: "Profit", shortLabel: "Profit", icon: TrendingUp },
+  { to: "/lots", label: "Lots", shortLabel: "Lots", icon: Boxes },
   { to: "/buy-calculator", label: "Buy Calculator", shortLabel: "Buy", icon: Calculator },
   { to: "/ebay/orders", label: "eBay Orders", shortLabel: "eBay", icon: DownloadCloud },
   { to: "/add", label: "Add", shortLabel: "Add", icon: PlusCircle },
@@ -32,7 +33,7 @@ export function AppShell() {
       <main className="app-main min-h-screen pb-24 md:ml-64 md:pb-0">
         <Outlet />
       </main>
-      <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 grid grid-cols-8 border-t border-[#CBD5E1] bg-white md:hidden">
+      <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 grid grid-cols-9 border-t border-[#CBD5E1] bg-white md:hidden">
         {navItems.map(({ to, shortLabel, icon: Icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `mobile-nav-link ${isActive ? "mobile-nav-link-active" : ""}`} end={to === "/"}>
             <Icon className="h-5 w-5" aria-hidden="true" />

@@ -33,6 +33,10 @@ class InventoryItem(TimeStampedUUIDModel):
         FOR_PARTS = "for_parts", "For parts / not working"
         UNGRADED = "ungraded", "Ungraded / unknown"
 
+    class Disposition(models.TextChoices):
+        FOR_SALE = "for_sale", "For sale"
+        SCRAPPED = "scrapped", "Scrapped"
+
     sku = models.CharField(max_length=40, unique=True, editable=False, db_index=True)
     title = models.CharField(max_length=200, blank=True, default="")
     category = models.ForeignKey(
@@ -67,6 +71,26 @@ class InventoryItem(TimeStampedUUIDModel):
         on_delete=models.SET_NULL,
         related_name="items",
     )
+    lot = models.ForeignKey(
+        "profit.Lot",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="items",
+    )
+    source = models.ForeignKey(
+        "profit.Source",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="single_items",
+    )
+    disposition = models.CharField(
+        max_length=20,
+        choices=Disposition.choices,
+        default=Disposition.FOR_SALE,
+    )
+    scrapped_at = models.DateField(null=True, blank=True)
 
     acquisition_cost = models.DecimalField(
         max_digits=12,

@@ -46,6 +46,7 @@ export function BuyCalculator() {
   const [refurb, setRefurb] = useState("0.00");
   const [askingPrice, setAskingPrice] = useState("");
   const [auctionMode, setAuctionMode] = useState(false);
+  const [lotMode, setLotMode] = useState(false);
   const [source, setSource] = useState<BuyEvidenceOption["source"]>("what_if");
   const [confidence, setConfidence] = useState("what-if (your estimate)");
   const [descriptorCategory, setDescriptorCategory] = useState<UUID | "">("");
@@ -104,8 +105,9 @@ export function BuyCalculator() {
     asking_price: askingPrice || undefined,
     evidence_source: source,
     confidence_label: confidence,
-    auction_mode: auctionMode
-  }), [askingPrice, auctionMode, confidence, expectedSellPrice, flatProfitTarget, packaging, postage, priceBasis, refurb, roiBasis, roiPct, sellerMode, source, targetType]);
+    auction_mode: auctionMode,
+    lot_mode: lotMode
+  }), [askingPrice, auctionMode, confidence, expectedSellPrice, flatProfitTarget, lotMode, packaging, postage, priceBasis, refurb, roiBasis, roiPct, sellerMode, source, targetType]);
 
   const calculation = useMemo(() => {
     if (!expectedSellPrice || priceBasis === "unknown") {
@@ -191,9 +193,9 @@ export function BuyCalculator() {
               <input className="field" value={descriptorTerms} onChange={(event) => setDescriptorTerms(event.target.value)} />
             </label>
             <label className="label">
-              <span>{auctionMode ? "Expected hammer / sell price" : "Expected sell price"}</span>
-              <input className="field" inputMode="decimal" value={expectedSellPrice} onChange={(event) => markWhatIf(event.target.value)} />
-            </label>
+                <span>{lotMode ? "Expected total resale for lot" : (auctionMode ? "Expected hammer / sell price" : "Expected sell price")}</span>
+                <input className="field" inputMode="decimal" value={expectedSellPrice} onChange={(event) => markWhatIf(event.target.value)} />
+              </label>
             <label className="label">
               <span>Price basis</span>
               <select className="field" value={priceBasis} onChange={(event) => setPriceBasis(event.target.value as PriceBasis)}>
@@ -231,6 +233,12 @@ export function BuyCalculator() {
                 <option value="auction">Max Bid</option>
               </select>
             </label>
+            <label className="label buy-toggle-label">
+              <span>Lot calculation</span>
+              <button className={`ledger-button ${lotMode ? "ledger-button-primary" : ""}`} type="button" onClick={() => setLotMode(!lotMode)}>
+                {lotMode ? "Lot mode on" : "Single item"}
+              </button>
+            </label>
           </div>
 
           <div className="buy-target-toggle" role="group" aria-label="Profit target">
@@ -258,13 +266,16 @@ export function BuyCalculator() {
               </label>
             )}
           </div>
-          <p className="buy-note">Current source: {confidence}. What-if inputs are calculation-only and are not persisted as valuation or evidence.</p>
+          <p className="buy-note">
+            Current source: {confidence}. {lotMode ? "Lot mode is one total resale number for the whole lot; per-item breakdown is v2. " : ""}
+            What-if inputs are calculation-only and are not persisted as valuation or evidence.
+          </p>
         </section>
 
         <section className={`buy-card buy-result buy-verdict-${(result?.verdict ?? "empty").toLowerCase().replace(/\s+/g, "-")}`}>
           <div className="buy-card-title">
             <Gauge className="h-5 w-5" aria-hidden="true" />
-            <h2>{result?.headline ?? (auctionMode ? "Max Bid" : "Max Buy Price")}</h2>
+            <h2>{result?.headline ?? (lotMode ? "Max Lot Buy" : (auctionMode ? "Max Bid" : "Max Buy Price"))}</h2>
           </div>
           {cannotCalculate ? (
             <EmptyState title="Choose a known-basis sell price" detail="Unknown-basis comps stay visible as evidence, but they are not used for precise max-buy maths." />

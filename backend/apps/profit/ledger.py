@@ -68,6 +68,7 @@ def profit_ledger_payload(params) -> dict:
         "aggregates": {
             "by_category": aggregate_rows(rows, "category"),
             "by_channel": aggregate_rows(rows, "channel"),
+            "by_source": aggregate_rows(rows, "source_name"),
         },
         "velocity": velocity_summary(rows),
         "cash_lock": cash_lock_payload(stale_days),
@@ -95,6 +96,10 @@ def ledger_csv(params) -> tuple[str, str]:
         "title",
         "category",
         "channel",
+        "provenance",
+        "lot_label",
+        "source_name",
+        "source_type",
         "seller_mode",
         "revenue",
         "fee_provenance",
@@ -124,6 +129,10 @@ def ledger_csv(params) -> tuple[str, str]:
                 "title": row["title"],
                 "category": row["category"],
                 "channel": row["channel"],
+                "provenance": row["provenance"],
+                "lot_label": row["lot_label"] or "",
+                "source_name": row["source_name"],
+                "source_type": row["source_type"],
                 "seller_mode": row["seller_mode"],
                 "revenue": row["revenue"],
                 "fee_provenance": row["fee_provenance"],
@@ -147,10 +156,17 @@ def ledger_csv(params) -> tuple[str, str]:
 def ledger_rows(setting: ProfitSetting) -> list[dict]:
     queryset = (
         SaleRecord.objects.active()
-        .select_related("item", "item__category", "item__acquisition", "listing_draft")
+        .select_related("item", "item__category", "item__acquisition", "item__lot", "item__lot__source", "item__source", "listing_draft")
         .order_by("-sale_date", "-created_at")
     )
-    return [serialize_sale_row(sale, setting) for sale in queryset]
+    rows = [serialize_sale_row(sale, setting) for sale in queryset]
+    scrapped = (
+        InventoryItem.objects.filter(disposition=InventoryItem.Disposition.SCRAPPED, scrapped_at__isnull=False)
+        .select_related("category", "acquisition", "lot", "lot__source", "source")
+        .prefetch_related("sales")
+    )
+    rows.extend(serialize_scrapped_row(item) for item in scrapped)
+    return sorted(rows, key=lambda row: (row["sold_date"], row["sale_id"]), reverse=True)
 
 
 def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
@@ -165,6 +181,7 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
     listed_on, listed_basis = listed_date_for_sale(sale)
     days_held, days_basis = days_held_for(acquired_on, sale.sale_date)
     costs, cost_state, cost_warning = cost_components_for_sale(sale)
+    source = effective_source_for_item(item)
     total_costs = sum(costs.values(), Decimal("0.00")) if cost_state == "known" else None
     realised_profit = money(revenue - fee_choice.total - total_costs) if total_costs is not None else None
     all_in_roi = ratio(realised_profit, total_costs) if realised_profit is not None and total_costs and total_costs > 0 else None
@@ -182,6 +199,12 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
         "category": item.category.name if item and item.category_id else "Uncategorised",
         "category_id": str(item.category_id) if item and item.category_id else None,
         "channel": sale.channel,
+        "provenance": sale.provenance,
+        "lot_id": str(item.lot_id) if item and item.lot_id else None,
+        "lot_label": item.lot.label if item and item.lot_id and item.lot else None,
+        "source_id": str(source.id) if source else None,
+        "source_name": source.name if source else "Unknown source",
+        "source_type": source.type if source else "unknown",
         "seller_mode": fee_choice.seller_mode,
         "seller_mode_basis": fee_choice.seller_mode_basis,
         "quantity": sale.quantity,
@@ -208,6 +231,65 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
         "annualised_all_in_roi": str(annualised_roi) if annualised_roi is not None else None,
         "velocity_state": "known" if profit_per_day is not None else ("unknown_date" if days_held is None else "unknown_cost"),
         "detail_url": f"/inventory/{item.id}" if item else "/sales",
+    }
+
+
+def serialize_scrapped_row(item: InventoryItem) -> dict:
+    acquired_on, acquired_basis = acquisition_date_for_item(item)
+    scrapped_on = item.scrapped_at
+    days_held, days_basis = days_held_for(acquired_on, scrapped_on)
+    quantity = Decimal(max(item.quantity_remaining, 1))
+    source = effective_source_for_item(item)
+    costs, cost_state, cost_warning = cost_components_for_scrapped_item(item, quantity)
+    total_costs = sum(costs.values(), Decimal("0.00")) if cost_state == "known" else None
+    realised_profit = money(Decimal("0.00") - total_costs) if total_costs is not None else None
+    profit_per_day = money(realised_profit / Decimal(days_held)) if realised_profit is not None and days_held else None
+    all_in_roi = ratio(realised_profit, total_costs) if realised_profit is not None and total_costs and total_costs > 0 else None
+    annualised_roi = (
+        (all_in_roi * Decimal("365") / Decimal(days_held)).quantize(PCT, rounding=ROUND_HALF_UP)
+        if all_in_roi is not None and days_held
+        else None
+    )
+    return {
+        "sale_id": f"scrap-{item.id}",
+        "item_id": str(item.id),
+        "item_sku": item.sku,
+        "title": item.title or "Scrapped item",
+        "category": item.category.name if item.category_id else "Uncategorised",
+        "category_id": str(item.category_id) if item.category_id else None,
+        "channel": "scrapped",
+        "provenance": "scrapped",
+        "lot_id": str(item.lot_id) if item.lot_id else None,
+        "lot_label": item.lot.label if item.lot_id and item.lot else None,
+        "source_id": str(source.id) if source else None,
+        "source_name": source.name if source else "Unknown source",
+        "source_type": source.type if source else "unknown",
+        "seller_mode": "not_applicable",
+        "seller_mode_basis": "scrapped_no_sale",
+        "quantity": int(quantity),
+        "sold_date": scrapped_on.isoformat(),
+        "acquired_date": acquired_on.isoformat() if acquired_on else None,
+        "acquisition_date_basis": acquired_basis,
+        "listed_date": None,
+        "listed_date_basis": "scrapped_no_listing",
+        "revenue": "0.00",
+        "price_basis": PriceBasis.SELLER_RECEIVES,
+        "fees": "0.00",
+        "fee_provenance": "actual_recorded",
+        "fee_breakdown": {"scrapped": "0.00"},
+        "cost_components": stringify_money_dict(costs),
+        "cost_state": cost_state,
+        "cost_warning": cost_warning,
+        "total_costs": str(money(total_costs)) if total_costs is not None else None,
+        "realised_profit": str(realised_profit) if realised_profit is not None else None,
+        "is_loss": realised_profit is not None and realised_profit < 0,
+        "all_in_roi": str(all_in_roi) if all_in_roi is not None else None,
+        "days_held": days_held,
+        "days_held_basis": days_basis,
+        "profit_per_day": str(profit_per_day) if profit_per_day is not None else None,
+        "annualised_all_in_roi": str(annualised_roi) if annualised_roi is not None else None,
+        "velocity_state": "known" if profit_per_day is not None else ("unknown_date" if days_held is None else "unknown_cost"),
+        "detail_url": f"/inventory/{item.id}",
     }
 
 
@@ -286,6 +368,21 @@ def cost_components_for_sale(sale: SaleRecord) -> tuple[dict[str, Decimal], str,
     return components, "known", ""
 
 
+def cost_components_for_scrapped_item(item: InventoryItem, quantity: Decimal) -> tuple[dict[str, Decimal], str, str]:
+    components = {
+        "acquisition": Decimal("0.00"),
+        "refurb": per_quantity(item.refurb_cost, item, quantity),
+        "inbound_shipping": per_quantity(item.inbound_shipping_cost, item, quantity),
+        "packaging": per_quantity(item.est_packaging_cost, item, quantity),
+        "postage_label": Decimal("0.00"),
+        "other_direct": Decimal("0.00"),
+    }
+    if item.acquisition_cost is None:
+        return components, "unknown", "Scrapped member has no allocated acquisition cost."
+    components["acquisition"] = per_quantity(item.acquisition_cost, item, quantity)
+    return components, "known", ""
+
+
 def cash_cost_for_item(item: InventoryItem) -> tuple[Decimal | None, list[str]]:
     if item.acquisition_cost is None:
         return None, ["acquisition/material cost basis missing"]
@@ -309,7 +406,17 @@ def per_quantity(value, item: InventoryItem, quantity: Decimal) -> Decimal:
 def acquisition_date_for_item(item: InventoryItem | None) -> tuple[date | None, str]:
     if item and item.acquisition_id and item.acquisition and item.acquisition.acquired_on:
         return item.acquisition.acquired_on, "recorded_acquisition"
+    if item and item.lot_id and item.lot and item.lot.purchase_date:
+        return item.lot.purchase_date, "lot_purchase_date"
     return None, "unknown_acquisition_date"
+
+
+def effective_source_for_item(item: InventoryItem | None):
+    if item is None:
+        return None
+    if item.lot_id and item.lot and item.lot.source_id:
+        return item.lot.source
+    return item.source
 
 
 def listed_date_for_sale(sale: SaleRecord) -> tuple[date | None, str]:
@@ -430,13 +537,13 @@ def new_cash_bucket(bucket_id: str, label: str) -> dict:
 
 
 def buy_more_payload(rows: list[dict]) -> dict:
-    grouped: dict[tuple[str, str], list[dict]] = {}
+    grouped: dict[tuple[str, str, str], list[dict]] = {}
     for row in rows:
         if row["realised_profit"] is None or row["profit_per_day"] is None:
             continue
-        grouped.setdefault((row["category"], row["channel"]), []).append(row)
+        grouped.setdefault((row["category"], row["channel"], row.get("source_name") or "Unknown source"), []).append(row)
     groups = []
-    for (category, channel), bucket in grouped.items():
+    for (category, channel, source_name), bucket in grouped.items():
         profits = [Decimal(row["realised_profit"]) for row in bucket]
         profit_days = [Decimal(row["profit_per_day"]) for row in bucket]
         days = [Decimal(row["days_held"]) for row in bucket if row["days_held"]]
@@ -459,6 +566,7 @@ def buy_more_payload(rows: list[dict]) -> dict:
             {
                 "category": category,
                 "channel": channel,
+                "source_name": source_name,
                 "n": len(bucket),
                 "median_profit": str(median_profit),
                 "median_profit_per_day": str(median_profit_per_day),

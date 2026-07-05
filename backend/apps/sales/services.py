@@ -76,6 +76,10 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
         )
 
     item = InventoryItem.objects.select_for_update().get(pk=item.pk)
+    if item.disposition == InventoryItem.Disposition.SCRAPPED:
+        raise serializers.ValidationError(
+            {"item": ["Scrapped items are locked and cannot receive new sale records."]}
+        )
 
     if corrected_from is not None:
         corrected_from = (

@@ -52,9 +52,11 @@ from apps.profit.views import (
     BuyCalculatorCalculateView,
     BuyCalculatorEvidenceView,
     EbayFeePreviewView,
+    LotViewSet,
     ProfitLedgerCsvView,
     ProfitLedgerView,
     ProfitSettingView,
+    SourceViewSet,
 )
 from apps.research.views import (
     ComparableViewSet,
@@ -96,6 +98,8 @@ router.register(
     basename="ebay-order-duplicate",
 )
 router.register("audit-log", AuditLogViewSet, basename="audit-log")
+router.register("sources", SourceViewSet, basename="source")
+router.register("lots", LotViewSet, basename="lot")
 
 urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="health"),

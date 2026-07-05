@@ -36,6 +36,11 @@ const item = {
   condition: "good",
   category: "cat-1",
   category_name: "Stamps",
+  lot: null,
+  source: null,
+  source_name: null,
+  disposition: "for_sale",
+  scrapped_at: null,
   quantity_total: 10,
   quantity_sold: 3,
   quantity_remaining: 7,
@@ -58,6 +63,7 @@ const item = {
   photos: [],
   comps_count: 0,
   current_valuation: null,
+  effective_source: null,
   updated_at: ""
 } satisfies InventoryItemDetail;
 

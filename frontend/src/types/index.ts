@@ -113,6 +113,11 @@ export interface InventoryItemList {
   condition: string;
   category: UUID | null;
   category_name: string | null;
+  lot: UUID | null;
+  source: UUID | null;
+  source_name: string | null;
+  disposition: "for_sale" | "scrapped";
+  scrapped_at: string | null;
   quantity_total: number;
   quantity_sold: number;
   quantity_remaining: number;
@@ -149,6 +154,7 @@ export interface InventoryItemDetail extends InventoryItemList {
   photos: PhotoAsset[];
   comps_count: number;
   current_valuation: CurrentValuationSummary | null;
+  effective_source: Pick<Source, "id" | "name" | "type"> | null;
   updated_at: string;
 }
 
@@ -518,6 +524,10 @@ export interface ItemFormPayload {
   status?: string;
   quantity_total?: number;
   location: UUID | null;
+  lot?: UUID | null;
+  source?: UUID | null;
+  disposition?: "for_sale" | "scrapped";
+  scrapped_at?: string | null;
   acquisition_cost: string | null;
   refurb_cost?: string | null;
   inbound_shipping_cost?: string | null;
@@ -1092,11 +1102,12 @@ export interface BuyCalculationPayload {
   evidence_source: BuyEvidenceOption["source"];
   confidence_label: string;
   auction_mode?: boolean;
+  lot_mode?: boolean;
 }
 
 export interface BuyCalculationResult {
   max_buy: string;
-  headline: "Max Buy Price" | "Max Bid";
+  headline: "Max Buy Price" | "Max Bid" | "Max Lot Buy";
   verdict: "BUY" | "MAYBE" | "PASS" | "NO ASKING PRICE";
   expected_profit_at_asking: string | null;
   roi_at_asking: string | null;
@@ -1126,8 +1137,14 @@ export interface ProfitLedgerRow {
   title: string;
   category: string;
   category_id: UUID | null;
-  channel: SaleRecord["channel"];
-  seller_mode: SellerMode;
+  channel: SaleRecord["channel"] | "scrapped";
+  provenance: SaleRecord["provenance"] | "scrapped";
+  lot_id: UUID | null;
+  lot_label: string | null;
+  source_id: UUID | null;
+  source_name: string;
+  source_type: string;
+  seller_mode: SellerMode | "not_applicable";
   seller_mode_basis: string;
   quantity: number;
   sold_date: string;
@@ -1195,7 +1212,8 @@ export interface CashLockBucket {
 
 export interface BuyMoreGroup {
   category: string;
-  channel: SaleRecord["channel"];
+  channel: SaleRecord["channel"] | "scrapped";
+  source_name: string;
   n: number;
   median_profit: string;
   median_profit_per_day: string;
@@ -1232,6 +1250,7 @@ export interface ProfitLedger {
   aggregates: {
     by_category: ProfitAggregateRow[];
     by_channel: ProfitAggregateRow[];
+    by_source: ProfitAggregateRow[];
   };
   velocity: {
     median_profit_per_day: string | null;
@@ -1260,6 +1279,58 @@ export interface ProfitLedger {
     selected: FinancialYearOption;
     summary: ProfitSummary;
   };
+}
+
+export interface Source {
+  id: UUID;
+  name: string;
+  type: "market" | "estate" | "auction" | "op_shop" | "online" | "private" | "other";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LotMember {
+  id: UUID;
+  sku: string;
+  title: string;
+  category: string;
+  state: "unsold" | "sold" | "scrapped";
+  locked: boolean;
+  quantity_sold: number;
+  acquisition_cost: string | null;
+  estimated_value: string | null;
+  scrapped_at: string | null;
+  detail_url: string;
+}
+
+export interface LotSummary {
+  id: UUID;
+  label: string;
+  purchase_date: string;
+  total_cost: string;
+  source: Pick<Source, "id" | "name" | "type"> | null;
+  note: string;
+  allocated: string;
+  unallocated: string;
+  is_partially_allocated: boolean;
+  is_over_allocated: boolean;
+  warning: string;
+  tally_label: string;
+  members: LotMember[];
+  proportional_available: boolean;
+  pnl: {
+    total_cost: string;
+    allocated: string;
+    unallocated: string;
+    realised_revenue: string;
+    realised_profit: string;
+    remaining_cost_basis: string;
+    recovered_label: string;
+    is_loss: boolean;
+    is_part_allocated: boolean;
+  };
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SaleRecordPayload {

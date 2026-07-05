@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { listCategories } from "../../api/categories";
 import { deleteItem, getItem, reorderPhotos, updateItem, uploadItemPhoto } from "../../api/items";
 import { listLocations } from "../../api/locations";
+import { listLots, listSources } from "../../api/lots";
 import { deletePhoto, updatePhoto } from "../../api/photos";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { CategorySelect } from "../../components/CategorySelect";
@@ -64,6 +65,8 @@ export function ItemDetail() {
   const item = useQuery({ queryKey: ["item", itemId], queryFn: () => getItem(itemId), enabled: Boolean(itemId) });
   const categories = useQuery({ queryKey: ["categories"], queryFn: listCategories });
   const locations = useQuery({ queryKey: ["locations"], queryFn: listLocations });
+  const lots = useQuery({ queryKey: ["lots", "item-detail"], queryFn: listLots });
+  const sources = useQuery({ queryKey: ["sources", "item-detail"], queryFn: listSources });
   const [files, setFiles] = useState<File[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<PhotoAsset | "item" | null>(null);
 
@@ -74,6 +77,10 @@ export function ItemDetail() {
     condition: "ungraded",
     quantity_total: 1,
     location: null,
+    lot: null,
+    source: null,
+    disposition: "for_sale",
+    scrapped_at: null,
     acquisition_cost: null,
     refurb_cost: null,
     inbound_shipping_cost: null,
@@ -95,6 +102,10 @@ export function ItemDetail() {
       condition: item.data.condition,
       quantity_total: item.data.quantity_total,
       location: item.data.location,
+      lot: item.data.lot,
+      source: item.data.source,
+      disposition: item.data.disposition,
+      scrapped_at: item.data.scrapped_at,
       acquisition_cost: item.data.acquisition_cost,
       refurb_cost: item.data.refurb_cost,
       inbound_shipping_cost: item.data.inbound_shipping_cost,
@@ -250,6 +261,33 @@ export function ItemDetail() {
           <label className="label">
             <span>Location</span>
             <LocationSelect locations={locations.data?.results ?? []} value={form.location} onChange={(value) => setForm({ ...form, location: value })} />
+          </label>
+          <label className="label">
+            <span>Lot</span>
+            <select className="field" value={form.lot ?? ""} onChange={(event) => setForm({ ...form, lot: event.target.value || null, source: event.target.value ? null : form.source })}>
+              <option value="">Single item / no lot</option>
+              {(lots.data?.results ?? []).map((lot) => <option key={lot.id} value={lot.id}>{lot.label}</option>)}
+            </select>
+            {form.lot ? <span className="text-xs font-normal text-slate-700">Source is inherited from the lot.</span> : null}
+          </label>
+          <label className="label">
+            <span>Source</span>
+            <select className="field" disabled={Boolean(form.lot)} value={form.source ?? ""} onChange={(event) => setForm({ ...form, source: event.target.value || null })}>
+              <option value="">No source</option>
+              {(sources.data?.results ?? []).map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}
+            </select>
+            {item.data.effective_source ? <span className="text-xs font-normal text-slate-700">Effective source: {item.data.effective_source.name}</span> : null}
+          </label>
+          <label className="label">
+            <span>Disposition</span>
+            <select className="field" value={form.disposition} onChange={(event) => setForm({ ...form, disposition: event.target.value as "for_sale" | "scrapped" })}>
+              <option value="for_sale">For sale</option>
+              <option value="scrapped">Scrapped</option>
+            </select>
+          </label>
+          <label className="label">
+            <span>Scrapped date</span>
+            <input className="field" type="date" value={form.scrapped_at ?? ""} onChange={(event) => setForm({ ...form, scrapped_at: event.target.value || null })} />
           </label>
           <label className="label">
             <span>Acquisition cost</span>
