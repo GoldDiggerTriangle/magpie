@@ -233,7 +233,7 @@ Live deployment state after fix:
   - `OpenService(): Access is denied.`
 - Administrator restart of `Magpie` is required before final live-browser proof.
 
-Remaining open closure gate:
+Historical open closure gate, now resolved:
 
 - Restart `Magpie` from Administrator PowerShell.
 - Re-check that `/assets/index-CwMlbq2l.js` returns 200.
@@ -241,7 +241,7 @@ Remaining open closure gate:
 - Confirm authenticated sessions can access `/api/profit/settings/` and `/api/buy-calculator/evidence/`.
 - Capture the required mobile proof screenshot.
 
-Sprint 18 remains not live-closed until the post-restart browser proof succeeds.
+This gate is resolved by the post-restart live proof and owner-confirmed mobile proof recorded below.
 
 ## Post-Restart Live Proof
 
@@ -327,4 +327,41 @@ Mobile Buy Calculator proof remains the Sprint 18 closure proof:
 
 Operational note:
 
-- Restart `Magpie` from Administrator PowerShell to serve the latest auth-message bundle.
+- Restart `Magpie` from Administrator PowerShell after deploying the auth-message bundle if the running app still shows old session wording.
+
+## Formal Sprint 18 Live Closure
+
+Date: 2026-07-05
+
+Owner-confirmed mobile proof:
+
+- Phone Buy Calculator screen shows:
+  - Max Buy Price: `$76.92`
+  - Verdict: `BUY`
+  - Expected profit at asking: `$40.00`
+  - ROI at asking: `66.67%`
+  - Seller fees: `$0.00`
+  - Non-buy costs: `$0.00`
+  - ROI basis: `All-in cash`
+  - Source: `what-if`
+- This matches the required Sprint 18 test case:
+  - sell price `100`
+  - price basis `seller_receives`
+  - seller mode `eBay AU free selling`
+  - asking price `60`
+  - zero costs
+  - ROI target `30`
+  - ROI basis `all-in cash`
+
+Desktop proof:
+
+- Desktop calculator proof is confirmed.
+
+Non-blocking future polish:
+
+- Phone status bar overlaps the upper field slightly in the screenshot.
+- This is logged as future mobile polish and is not a Sprint 18 closure blocker.
+
+Final status:
+
+- Sprint 18 is formally live-closed.
