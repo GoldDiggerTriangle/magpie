@@ -151,7 +151,7 @@ Restart attempt:
 - NSSM service stop was denied by Windows service permissions
 - direct kill of the port-8000 Python process was denied by Windows process permissions
 
-Open operational gate:
+Historical operational gate before the 2026-07-05 restart:
 
 - Administrator restart of `Magpie` is required.
 - After restart, verify:
@@ -162,6 +162,8 @@ Open operational gate:
   - LAN access still works
   - mobile screenshot around 390px width
   - desktop screenshot
+
+This gate is superseded by the post-restart live proof recorded below.
 
 ## Scope Guard
 
@@ -240,3 +242,44 @@ Remaining open closure gate:
 - Capture the required mobile proof screenshot.
 
 Sprint 18 remains not live-closed until the post-restart browser proof succeeds.
+
+## Post-Restart Live Proof
+
+Date: 2026-07-05
+
+Service/runtime proof after Administrator restart:
+
+- `/api/health/`: 200.
+- `/assets/index-CwMlbq2l.js`: 200.
+- `/api/profit/settings/`: active route; unauthenticated request returns `403` with `Authentication credentials were not provided.`
+- `/api/buy-calculator/evidence/`: active route; unauthenticated request returns `403` with `Authentication credentials were not provided.`
+
+Live browser calculator proof:
+
+- URL: `http://127.0.0.1:8000/buy-calculator`.
+- Input:
+  - expected sell price: `100`
+  - price basis: `seller_receives`
+  - seller mode: `free_selling`
+  - asking price: `60`
+  - postage / packaging / refurb: `0`
+  - mode: Max Buy
+  - ROI target: `30`
+  - ROI basis: all-in cash
+- Result:
+  - Max Buy: `$76.92`
+  - Verdict: `BUY`
+  - expected profit at asking: `$40.00`
+  - ROI at asking: `66.67%`
+- Evidence lookup auth failure is shown as a clear sign-in message and does not block typed what-if calculation.
+
+Screenshot evidence:
+
+- `docs/evidence/sprint18-buy-calculator-live.png` - user-provided live desktop browser proof.
+- `docs/evidence/sprint18-buy-calculator-phone-viewport.png` - 390px phone-width form fit proof.
+- `docs/evidence/sprint18-buy-calculator-phone-result-2.png` - 390px phone-width result proof showing `$76.92` and `BUY`.
+
+Closure status:
+
+- The Sprint 18 buy-calculator live closure bug is fixed and live-verified.
+- Saved evidence/settings endpoints remain protected by the existing session-auth policy; unauthenticated access correctly returns 403.
