@@ -232,4 +232,6 @@ User-supplied mobile what-if proof:
 
 Remote Validation:
 
-- Pending commit/push and GitHub `Validation` result.
+- Commit: `cc291e8e5e6fee35b0f0382624bf02a1c5e6f4ee`
+- GitHub `Validation`: success
+- Run: https://github.com/GoldDiggerTriangle/magpie/actions/runs/28736480903
