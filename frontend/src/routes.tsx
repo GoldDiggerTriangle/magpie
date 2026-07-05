@@ -7,6 +7,7 @@ import { EbayOrders } from "./features/ebay/EbayOrders";
 import { InventoryGrid } from "./features/inventory/InventoryGrid";
 import { ItemDetail } from "./features/inventory/ItemDetail";
 import { BuyCalculator } from "./features/profit/BuyCalculator";
+import { ProfitPage } from "./features/profit/ProfitPage";
 import { SalesList } from "./features/sales/SalesList";
 import { EbaySettings } from "./features/settings/EbaySettings";
 
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: "inventory", element: <InventoryGrid /> },
       { path: "inventory/:id", element: <ItemDetail /> },
       { path: "sales", element: <SalesList /> },
+      { path: "profit", element: <ProfitPage /> },
       { path: "buy-calculator", element: <BuyCalculator /> },
       { path: "ebay/orders", element: <EbayOrders /> },
       { path: "add", element: <AddItem /> },

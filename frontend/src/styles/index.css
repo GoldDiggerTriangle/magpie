@@ -1129,6 +1129,246 @@
     border-color: var(--magpie-border-soft);
   }
 
+  .profit-page {
+    @apply min-h-screen w-full px-4 pb-6 sm:px-6 lg:px-8;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(29, 78, 216, 0.05), rgba(29, 78, 216, 0) 220px), var(--magpie-page);
+    color: var(--magpie-ink);
+  }
+
+  .profit-hero {
+    @apply mx-auto flex w-full max-w-7xl flex-col gap-5 border-b pb-5 lg:flex-row lg:items-end lg:justify-between;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .profit-controls {
+    @apply grid w-full gap-3 sm:grid-cols-2 lg:max-w-md;
+  }
+
+  .profit-controls label {
+    @apply block text-sm font-semibold;
+    color: var(--magpie-ink);
+  }
+
+  .profit-controls span {
+    @apply block text-xs uppercase tracking-normal;
+    color: var(--magpie-ink-muted);
+  }
+
+  .profit-controls input,
+  .profit-controls select {
+    @apply mt-1 min-h-11 w-full rounded border bg-white px-3 py-2 outline-none focus:ring-2;
+    border-color: var(--magpie-border);
+    color: var(--magpie-ink);
+    --tw-ring-color: rgba(29, 78, 216, 0.22);
+  }
+
+  .profit-summary-grid,
+  .cash-lock-grid,
+  .profit-velocity-grid {
+    @apply mx-auto mt-5 grid w-full max-w-7xl gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  }
+
+  .profit-tile,
+  .profit-section,
+  .cash-lock-bucket,
+  .profit-ledger-row,
+  .buy-more-row {
+    @apply rounded border bg-white;
+    border-color: var(--magpie-border-soft);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  }
+
+  .profit-tile {
+    @apply min-h-32 p-4;
+  }
+
+  .profit-tile svg {
+    @apply h-5 w-5;
+    color: var(--magpie-accent);
+  }
+
+  .profit-tile span,
+  .profit-section-header p,
+  .profit-ledger-row small,
+  .cash-lock-bucket small,
+  .buy-more-row small,
+  .profit-velocity-grid small {
+    color: var(--magpie-ink-muted);
+  }
+
+  .profit-tile span {
+    @apply mt-3 block text-xs font-bold uppercase tracking-normal;
+  }
+
+  .profit-tile strong {
+    @apply mt-2 block font-mono text-3xl font-bold;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .profit-tile small {
+    @apply mt-2 block text-sm leading-5;
+  }
+
+  .profit-tile-profit strong {
+    color: var(--magpie-profit);
+  }
+
+  .profit-tile-loss strong {
+    color: var(--magpie-loss);
+  }
+
+  .profit-section {
+    @apply mx-auto mt-5 w-full max-w-7xl p-4 sm:p-5;
+  }
+
+  .profit-section-header {
+    @apply mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between;
+  }
+
+  .profit-section-header h2 {
+    @apply text-2xl font-semibold;
+    color: var(--magpie-ink);
+  }
+
+  .profit-section-header > p {
+    @apply max-w-xl text-sm leading-6;
+  }
+
+  .profit-ledger-list,
+  .buy-more-list {
+    @apply grid gap-3;
+  }
+
+  .profit-ledger-row {
+    @apply grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)];
+  }
+
+  .profit-ledger-row a {
+    @apply font-semibold no-underline;
+    color: var(--magpie-accent);
+  }
+
+  .profit-ledger-row strong {
+    @apply block;
+    color: var(--magpie-ink);
+  }
+
+  .profit-ledger-loss {
+    border-color: #fecdd3;
+    background: #fffafa;
+  }
+
+  .profit-ledger-row dl,
+  .fy-summary {
+    @apply grid gap-2 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .profit-ledger-row dl div,
+  .fy-summary div,
+  .profit-velocity-grid div {
+    @apply rounded border bg-slate-50 px-3 py-2;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .profit-ledger-row dt,
+  .fy-summary dt,
+  .profit-velocity-grid span {
+    @apply block text-xs font-bold uppercase tracking-normal;
+    color: var(--magpie-ink-muted);
+  }
+
+  .profit-ledger-row dd,
+  .fy-summary dd,
+  .profit-velocity-grid strong {
+    @apply font-mono text-base font-bold;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .profit-warning-line,
+  .profit-warning-text {
+    @apply mt-3 flex items-start gap-2 rounded border px-3 py-2 text-sm font-semibold;
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #713f12;
+  }
+
+  .profit-warning-text {
+    @apply block;
+  }
+
+  .cash-lock-bucket {
+    @apply overflow-hidden;
+  }
+
+  .cash-lock-bucket header {
+    @apply border-b p-4;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .cash-lock-bucket header span {
+    @apply text-xs font-bold uppercase tracking-normal;
+    color: var(--magpie-ink-muted);
+  }
+
+  .cash-lock-bucket header strong {
+    @apply mt-2 block font-mono text-3xl;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cash-lock-items {
+    @apply grid gap-2 p-3;
+  }
+
+  .cash-lock-item {
+    @apply grid gap-1 rounded border bg-white px-3 py-2 no-underline;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-ink);
+  }
+
+  .cash-lock-item strong,
+  .cash-lock-item small,
+  .cash-lock-item span {
+    @apply block;
+  }
+
+  .cash-lock-item > span:last-of-type {
+    @apply font-mono font-bold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .cash-lock-item em {
+    @apply text-sm not-italic;
+    color: var(--magpie-gold);
+  }
+
+  .buy-more-row {
+    @apply grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)];
+  }
+
+  .buy-more-row strong,
+  .buy-more-row span {
+    @apply block;
+  }
+
+  .buy-more-row > div:last-child strong {
+    @apply font-mono text-xl;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .buy-more-ranked {
+    border-color: #86efac;
+  }
+
+  .buy-more-loss_making {
+    border-color: #fecdd3;
+    background: #fffafa;
+  }
+
   @media (max-width: 640px) {
     html,
     body,
@@ -1290,8 +1530,40 @@
 
     .mobile-nav-link {
       min-height: 4.25rem;
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       line-height: 1.05;
+    }
+
+    .profit-page {
+      padding-left: max(1rem, env(safe-area-inset-left));
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+
+    .profit-hero,
+    .profit-section-header,
+    .profit-controls,
+    .profit-ledger-row,
+    .buy-more-row {
+      align-items: stretch;
+      grid-template-columns: minmax(0, 1fr) !important;
+      max-width: 100%;
+    }
+
+    .profit-summary-grid,
+    .cash-lock-grid,
+    .profit-velocity-grid,
+    .profit-ledger-row dl,
+    .fy-summary {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .profit-section,
+    .profit-tile,
+    .cash-lock-bucket,
+    .profit-ledger-row,
+    .buy-more-row {
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .ledger-title {

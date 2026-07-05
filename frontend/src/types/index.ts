@@ -1108,6 +1108,160 @@ export interface BuyCalculationResult {
   roi_basis: RoiBasis;
 }
 
+export interface ProfitSummary {
+  sale_count: number;
+  known_profit_sale_count: number;
+  unknown_cost_sale_count: number;
+  revenue: string;
+  fees: string;
+  total_costs: string;
+  realised_profit: string;
+  loss_sale_count: number;
+}
+
+export interface ProfitLedgerRow {
+  sale_id: UUID;
+  item_id: UUID | null;
+  item_sku: string;
+  title: string;
+  category: string;
+  category_id: UUID | null;
+  channel: SaleRecord["channel"];
+  seller_mode: SellerMode;
+  seller_mode_basis: string;
+  quantity: number;
+  sold_date: string;
+  acquired_date: string | null;
+  acquisition_date_basis: string;
+  listed_date: string | null;
+  listed_date_basis: string;
+  revenue: string;
+  price_basis: PriceBasis;
+  fees: string;
+  fee_provenance: "actual_recorded" | "schedule_derived";
+  fee_breakdown: Record<string, unknown>;
+  cost_components: {
+    acquisition: string;
+    refurb: string;
+    inbound_shipping: string;
+    packaging: string;
+    postage_label: string;
+    other_direct: string;
+  };
+  cost_state: "known" | "unknown";
+  cost_warning: string;
+  total_costs: string | null;
+  realised_profit: string | null;
+  is_loss: boolean;
+  all_in_roi: string | null;
+  days_held: number | null;
+  days_held_basis: string;
+  profit_per_day: string | null;
+  annualised_all_in_roi: string | null;
+  velocity_state: "known" | "unknown_date" | "unknown_cost";
+  detail_url: string;
+}
+
+export interface ProfitAggregateRow extends ProfitSummary {
+  label: string;
+}
+
+export interface CashLockItem {
+  item_id: UUID;
+  sku: string;
+  title: string;
+  category: string;
+  quantity_remaining: number;
+  cash_locked: string | null;
+  cost_state: "known" | "unknown_cost";
+  warnings: string[];
+  listed_date: string | null;
+  listed_age_days: number | null;
+  listed_date_basis: string;
+  nudge: string;
+  hint: string;
+  detail_url: string;
+}
+
+export interface CashLockBucket {
+  id: "unlisted" | "listed_fresh" | "listed_stale";
+  label: string;
+  cash_locked: string;
+  item_count: number;
+  quantity_remaining: number;
+  unknown_cost_item_count: number;
+  items: CashLockItem[];
+}
+
+export interface BuyMoreGroup {
+  category: string;
+  channel: SaleRecord["channel"];
+  n: number;
+  median_profit: string;
+  median_profit_per_day: string;
+  median_days_held: number | null;
+  newest_sale_date: string;
+  status: "ranked" | "insufficient_data" | "loss_making";
+  label: string;
+  recommended: boolean;
+}
+
+export interface FinancialYearOption {
+  id: string;
+  label: string;
+  start_year: number;
+  end_year: number;
+  start: string;
+  end: string;
+}
+
+export interface ProfitLedger {
+  currency: string;
+  not_tax_advice_label: string;
+  formula_tooltips: {
+    profit: string;
+    profit_per_day: string;
+    ranking: string;
+  };
+  settings: {
+    stale_days: number;
+    ranking_threshold: number;
+  };
+  summary: ProfitSummary;
+  ledger: ProfitLedgerRow[];
+  aggregates: {
+    by_category: ProfitAggregateRow[];
+    by_channel: ProfitAggregateRow[];
+  };
+  velocity: {
+    median_profit_per_day: string | null;
+    sample_size: number;
+    unknown_date_count: number;
+    unknown_cost_count: number;
+    thin: boolean;
+    tooltip: string;
+  };
+  cash_lock: {
+    stale_days: number;
+    buckets: CashLockBucket[];
+    total_known_cash_locked: string;
+    unknown_cost_item_count: number;
+    warning: string;
+  };
+  buy_more: {
+    threshold: number;
+    tooltip: string;
+    groups: BuyMoreGroup[];
+    ranked: BuyMoreGroup[];
+    empty: boolean;
+  };
+  financial_years: {
+    options: FinancialYearOption[];
+    selected: FinancialYearOption;
+    summary: ProfitSummary;
+  };
+}
+
 export interface SaleRecordPayload {
   item?: UUID;
   sale_date: string;

@@ -52,6 +52,8 @@ from apps.profit.views import (
     BuyCalculatorCalculateView,
     BuyCalculatorEvidenceView,
     EbayFeePreviewView,
+    ProfitLedgerCsvView,
+    ProfitLedgerView,
     ProfitSettingView,
 )
 from apps.research.views import (
@@ -173,6 +175,8 @@ urlpatterns = [
     ),
     path("metals/spot/", MetalsSpotView.as_view(), name="metals-spot"),
     path("profit/settings/", ProfitSettingView.as_view(), name="profit-settings"),
+    path("profit/ledger/", ProfitLedgerView.as_view(), name="profit-ledger"),
+    path("profit/ledger.csv", ProfitLedgerCsvView.as_view(), name="profit-ledger-csv"),
     path("profit/fees/preview/", EbayFeePreviewView.as_view(), name="profit-fees-preview"),
     path("buy-calculator/evidence/", BuyCalculatorEvidenceView.as_view(), name="buy-calculator-evidence"),
     path("buy-calculator/calculate/", BuyCalculatorCalculateView.as_view(), name="buy-calculator-calculate"),

@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from rest_framework.views import APIView
 
 from apps.inventory.models import InventoryItem
 from apps.inventory.serializers import InventoryItemDetailSerializer
+from apps.profit.ledger import ledger_csv, profit_ledger_payload
 from apps.profit.models import ProfitSetting, current_profit_setting
 from apps.profit.serializers import ProfitSettingSerializer
 from apps.profit.services import (
@@ -168,3 +170,16 @@ def clean_terms(value) -> list[str]:
     else:
         raw = [str(part) for part in (value or [])]
     return [term.strip() for term in raw if term and term.strip()]
+
+
+class ProfitLedgerView(APIView):
+    def get(self, request):
+        return Response(profit_ledger_payload(request.query_params))
+
+
+class ProfitLedgerCsvView(APIView):
+    def get(self, request):
+        filename, payload = ledger_csv(request.query_params)
+        response = HttpResponse(payload, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
