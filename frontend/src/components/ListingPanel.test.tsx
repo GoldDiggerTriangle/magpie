@@ -261,7 +261,7 @@ test("ListingPanel requires an override reason before staging with missing aspec
   const stageButton = await screen.findByRole("button", { name: "Stage offer" });
   expect(stageButton).toBeDisabled();
 
-  await user.click(screen.getByLabelText("Override and stage anyway"));
+  await user.click(await screen.findByLabelText("Override and stage anyway"));
   expect(stageButton).toBeDisabled();
 
   await user.type(screen.getByLabelText("Override reason"), "Known stamp provenance");
