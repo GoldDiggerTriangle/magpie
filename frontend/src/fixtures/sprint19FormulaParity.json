@@ -1,0 +1,57 @@
+{
+  "note": "Shared Sprint 19 parity fixture. Any fee or ROI formula change must update this file and keep both backend and frontend tests green.",
+  "buy_cases": [
+    {
+      "id": "free_selling_seller_receives_100_ask_60_roi_30",
+      "expected_sell_price": "100.00",
+      "price_basis": "seller_receives",
+      "seller_mode": "free_selling",
+      "target_type": "roi",
+      "flat_profit_target": "25.00",
+      "roi_pct": "30.00",
+      "roi_basis": "all_in_cash",
+      "postage": "0.00",
+      "packaging": "0.00",
+      "refurb": "0.00",
+      "asking_price": "60.00",
+      "expected": {
+        "max_buy": "76.92",
+        "verdict": "BUY",
+        "expected_profit_at_asking": "40.00",
+        "roi_at_asking": "66.67",
+        "seller_fees": "0.00",
+        "non_buy_costs": "0.00"
+      }
+    },
+    {
+      "id": "pro_starter_seller_receives_100_ask_60_roi_30",
+      "expected_sell_price": "100.00",
+      "price_basis": "seller_receives",
+      "seller_mode": "pro_starter",
+      "target_type": "roi",
+      "flat_profit_target": "25.00",
+      "roi_pct": "30.00",
+      "roi_basis": "all_in_cash",
+      "postage": "0.00",
+      "packaging": "0.00",
+      "refurb": "0.00",
+      "asking_price": "60.00",
+      "expected": {
+        "max_buy": "66.62",
+        "verdict": "BUY",
+        "expected_profit_at_asking": "26.60",
+        "roi_at_asking": "44.33",
+        "seller_fees": "13.40",
+        "non_buy_costs": "0.00"
+      }
+    }
+  ],
+  "bpf_round_trips": [
+    {
+      "id": "breakpoint_500",
+      "seller_receives": "500.00",
+      "buyer_visible_total": "530.70",
+      "buyer_protection_fee": "30.70"
+    }
+  ]
+}

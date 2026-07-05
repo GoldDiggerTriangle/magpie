@@ -1,5 +1,5 @@
 import { apiRequest } from "./client";
-import type { BuyCalculationPayload, BuyCalculationResult, BuyCalculatorEvidence, ProfitSettings, UUID } from "../types";
+import type { BoughtItPayload, BuyCalculationPayload, BuyCalculationResult, BuyCalculatorEvidence, InventoryItemDetail, ProfitSettings, UUID } from "../types";
 
 export function getProfitSettings() {
   return apiRequest<ProfitSettings>("/api/profit/settings/");
@@ -19,6 +19,13 @@ export function getBuyCalculatorEvidence(itemId?: UUID) {
 
 export function calculateBuy(payload: BuyCalculationPayload) {
   return apiRequest<BuyCalculationResult>("/api/buy-calculator/calculate/", {
+    method: "POST",
+    body: payload
+  });
+}
+
+export function createBoughtItItem(payload: BoughtItPayload) {
+  return apiRequest<InventoryItemDetail>("/api/buy-calculator/bought-it/", {
     method: "POST",
     body: payload
   });

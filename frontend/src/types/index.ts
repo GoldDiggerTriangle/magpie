@@ -535,7 +535,10 @@ export type RoiBasis = "all_in_cash" | "buy_price";
 
 export interface Comparable {
   id: UUID;
-  item: UUID;
+  item: UUID | null;
+  descriptor_category?: UUID | null;
+  descriptor_terms?: string[];
+  descriptor_attributes?: Record<string, unknown>;
   kind: ComparableKind;
   source: string;
   title: string;
@@ -557,7 +560,10 @@ export interface Comparable {
 }
 
 export interface ComparablePayload {
-  item: UUID;
+  item?: UUID | null;
+  descriptor_category?: UUID | null;
+  descriptor_terms?: string[];
+  descriptor_attributes?: Record<string, unknown>;
   kind: ComparableKind;
   source: string;
   title: string;
@@ -974,6 +980,101 @@ export interface BuyCalculatorEvidence {
   } | null;
   empty: boolean;
   price_basis_options: Array<{ id: PriceBasis; label: string }>;
+}
+
+export interface DescriptorEvidenceRow {
+  id: string;
+  record_type: "sale" | "comparable";
+  source: BuyEvidenceOption["source"];
+  source_label: string;
+  label: string;
+  rank: number;
+  match_scope: "exact" | "similar";
+  match_reason: string;
+  price: string | null;
+  price_basis: PriceBasis;
+  seller_receives: string | null;
+  basis_uncertain: boolean;
+  basis_label: string;
+  currency: string;
+  date: string | null;
+  url: string;
+  item: UUID | null;
+  item_sku: string;
+  own_sale: boolean;
+}
+
+export interface DescriptorEvidenceLookup {
+  lookup: {
+    category: UUID | null;
+    category_label: string;
+    terms: string[];
+    attributes: Record<string, unknown>;
+    transient: boolean;
+  };
+  rows: DescriptorEvidenceRow[];
+  stats: {
+    basis: PriceBasis;
+    low: string | null;
+    median: string | null;
+    high: string | null;
+    count: number;
+    unknown_basis_count: number;
+    newest_date: string | null;
+    newest_age_days: number | null;
+  };
+  strength: {
+    label: "STRONG" | "THIN";
+    known_basis_count: number;
+    newest_age_days: number | null;
+    tooltip: string;
+  };
+  empty: boolean;
+  empty_state: {
+    title: string;
+    detail: string;
+  };
+}
+
+export interface DescriptorCapturePayload {
+  item?: UUID | null;
+  category?: UUID | null;
+  terms: string;
+  attributes?: Record<string, unknown>;
+  price: string;
+  price_basis: PriceBasis;
+  source: string;
+  source_tag: string;
+  title?: string;
+  shipping?: string | null;
+  currency?: string;
+  condition?: string;
+  grade?: string;
+  sale_format?: Comparable["sale_format"];
+  match_scope?: Comparable["match_scope"];
+  match_reason?: string;
+  url?: string;
+  observed_on?: string | null;
+  notes?: string;
+}
+
+export interface DescriptorCaptureResult {
+  comparable: Comparable;
+  lookup: DescriptorEvidenceLookup;
+}
+
+export interface BoughtItPayload {
+  agreed_price: string;
+  expected_sell_price?: string;
+  price_basis?: PriceBasis;
+  category?: UUID | null;
+  terms?: string;
+  attributes?: Record<string, unknown>;
+  condition?: string;
+  quantity_total?: number;
+  postage?: string;
+  packaging?: string;
+  refurb?: string;
 }
 
 export interface BuyCalculationPayload {

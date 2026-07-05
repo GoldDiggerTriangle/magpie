@@ -9,6 +9,9 @@ class ComparableSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "item",
+            "descriptor_category",
+            "descriptor_terms",
+            "descriptor_attributes",
             "kind",
             "source",
             "title",
@@ -29,6 +32,7 @@ class ComparableSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+        extra_kwargs = {"item": {"required": False, "allow_null": True}}
 
     def validate_source_tag(self, value):
         if not value:

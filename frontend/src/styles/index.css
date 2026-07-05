@@ -870,7 +870,8 @@
   }
 
   .buy-calculator-page {
-    @apply min-h-screen w-full px-4 py-5 sm:px-6 lg:px-8;
+    @apply min-h-screen w-full px-4 pb-5 sm:px-6 lg:px-8;
+    padding-top: max(1.25rem, env(safe-area-inset-top));
     background: linear-gradient(180deg, rgba(29, 78, 216, 0.06), rgba(29, 78, 216, 0) 220px), #ffffff;
     color: var(--magpie-ink);
   }
@@ -985,6 +986,10 @@
     @apply xl:col-span-2;
   }
 
+  .buy-bought-button {
+    @apply mt-4 w-full justify-center;
+  }
+
   .buy-evidence-list {
     @apply mt-3 grid gap-2 md:grid-cols-2;
   }
@@ -1020,6 +1025,108 @@
     border-color: #b91c1c;
     background: #fff1f2;
     color: #7f1d1d;
+  }
+
+  .descriptor-evidence-panel {
+    @apply rounded border bg-white p-4 sm:p-5 xl:col-span-2;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-ink);
+  }
+
+  .descriptor-evidence-summary {
+    @apply flex min-h-12 w-full items-center justify-between gap-3 text-left;
+    color: var(--magpie-ink);
+  }
+
+  .descriptor-evidence-summary strong {
+    @apply block text-xl font-semibold;
+  }
+
+  .descriptor-evidence-body {
+    @apply mt-4 grid gap-4;
+  }
+
+  .descriptor-lookup-grid,
+  .descriptor-capture-grid {
+    @apply grid gap-3 sm:grid-cols-2;
+  }
+
+  .descriptor-span-2 {
+    @apply sm:col-span-2;
+  }
+
+  .descriptor-static-context {
+    @apply rounded border bg-slate-50 p-3;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .descriptor-static-context span,
+  .descriptor-stats span,
+  .descriptor-row small {
+    @apply block text-sm font-semibold;
+    color: var(--magpie-ink-muted);
+  }
+
+  .descriptor-static-context strong {
+    @apply block text-base;
+    color: var(--magpie-ink);
+  }
+
+  .descriptor-skeleton {
+    @apply ledger-skeleton h-20 rounded border;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .descriptor-stats {
+    @apply grid gap-3 rounded border bg-slate-50 p-3 sm:grid-cols-4;
+    border-color: var(--magpie-border-soft);
+  }
+
+  .descriptor-stats strong {
+    @apply block font-mono text-xl;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .descriptor-stats p {
+    @apply rounded border bg-white px-3 py-2 text-sm sm:col-span-4;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-ink-muted);
+  }
+
+  .descriptor-row-list {
+    @apply grid gap-2;
+  }
+
+  .descriptor-row {
+    @apply grid gap-3 rounded border bg-white p-3 md:grid-cols-[minmax(0,1fr)_auto];
+    border-color: var(--magpie-border-soft);
+  }
+
+  .descriptor-row strong {
+    @apply block;
+    color: var(--magpie-ink);
+  }
+
+  .descriptor-row-actions {
+    @apply flex flex-wrap items-center gap-2 md:justify-end;
+  }
+
+  .descriptor-row-actions > span {
+    @apply font-mono font-semibold;
+    color: var(--magpie-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .descriptor-row-actions a {
+    @apply inline-flex min-h-10 min-w-10 items-center justify-center rounded border;
+    border-color: var(--magpie-border-soft);
+    color: var(--magpie-accent);
+  }
+
+  .descriptor-capture-form {
+    @apply rounded border bg-slate-50 p-3;
+    border-color: var(--magpie-border-soft);
   }
 
   @media (max-width: 640px) {

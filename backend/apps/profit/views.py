@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.inventory.models import InventoryItem
+from apps.inventory.serializers import InventoryItemDetailSerializer
 from apps.profit.models import ProfitSetting, current_profit_setting
 from apps.profit.serializers import ProfitSettingSerializer
 from apps.profit.services import (
@@ -118,3 +119,52 @@ class BuyCalculatorCalculateView(APIView):
                 "roi_basis": result.roi_basis,
             }
         )
+
+
+class BuyCalculatorBoughtItView(APIView):
+    def post(self, request):
+        payload = request.data
+        agreed_price = payload.get("agreed_price") or payload.get("asking_price")
+        if agreed_price in {None, ""}:
+            return Response(
+                {"detail": "Bought-it needs the agreed buy price."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        terms = clean_terms(payload.get("terms") or "")
+        title = (payload.get("title") or " ".join(terms) or "Bought from calculator").strip()
+        note_parts = [
+            "Created from Buy Calculator.",
+            f"Agreed buy price: {agreed_price}.",
+        ]
+        if payload.get("expected_sell_price"):
+            note_parts.append(f"Expected sell price used: {payload.get('expected_sell_price')} ({payload.get('price_basis') or 'unknown basis'}).")
+        if terms:
+            note_parts.append("Lookup terms: " + ", ".join(terms) + ".")
+        item_data = {
+            "title": title[:200],
+            "category": payload.get("category") or None,
+            "condition": payload.get("condition") or InventoryItem.Condition.UNGRADED,
+            "status": InventoryItem.Status.CAPTURED,
+            "quantity_total": int(payload.get("quantity_total") or 1),
+            "location": None,
+            "acquisition_cost": agreed_price,
+            "refurb_cost": payload.get("refurb") or None,
+            "inbound_shipping_cost": payload.get("postage") or None,
+            "est_outbound_shipping": None,
+            "est_packaging_cost": payload.get("packaging") or None,
+            "estimated_value": payload.get("expected_sell_price") or None,
+            "notes": "\n".join(note_parts),
+            "attributes": payload.get("attributes") if isinstance(payload.get("attributes"), dict) else {},
+        }
+        serializer = InventoryItemDetailSerializer(data=item_data)
+        serializer.is_valid(raise_exception=True)
+        item = serializer.save()
+        return Response(InventoryItemDetailSerializer(item).data, status=status.HTTP_201_CREATED)
+
+
+def clean_terms(value) -> list[str]:
+    if isinstance(value, str):
+        raw = value.replace(",", " ").split()
+    else:
+        raw = [str(part) for part in (value or [])]
+    return [term.strip() for term in raw if term and term.strip()]

@@ -48,6 +48,7 @@ from apps.listing.views import (
 from apps.locations.views import StorageLocationViewSet
 from apps.photos.views import PhotoAssetViewSet
 from apps.profit.views import (
+    BuyCalculatorBoughtItView,
     BuyCalculatorCalculateView,
     BuyCalculatorEvidenceView,
     EbayFeePreviewView,
@@ -55,6 +56,8 @@ from apps.profit.views import (
 )
 from apps.research.views import (
     ComparableViewSet,
+    DescriptorComparableCaptureView,
+    DescriptorEvidenceLookupView,
     PricingEvidenceView,
     ResearchLinksView,
     ResearchRecordViewSet,
@@ -173,6 +176,9 @@ urlpatterns = [
     path("profit/fees/preview/", EbayFeePreviewView.as_view(), name="profit-fees-preview"),
     path("buy-calculator/evidence/", BuyCalculatorEvidenceView.as_view(), name="buy-calculator-evidence"),
     path("buy-calculator/calculate/", BuyCalculatorCalculateView.as_view(), name="buy-calculator-calculate"),
+    path("buy-calculator/bought-it/", BuyCalculatorBoughtItView.as_view(), name="buy-calculator-bought-it"),
+    path("evidence/lookup/", DescriptorEvidenceLookupView.as_view(), name="descriptor-evidence-lookup"),
+    path("evidence/capture/", DescriptorComparableCaptureView.as_view(), name="descriptor-evidence-capture"),
     path("ebay/connect/start/", EbayConnectStartView.as_view(), name="ebay-connect-start"),
     path(
         "ebay/connect/complete/",

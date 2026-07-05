@@ -23,19 +23,23 @@ function asMoneyString(value: number) {
   return money(value).toFixed(2);
 }
 
-function buyerProtectionFee(sellerPrice: number) {
+export function buyerProtectionFee(sellerPrice: number) {
   const first = Math.min(sellerPrice, 20);
   const second = Math.min(Math.max(sellerPrice - 20, 0), 480);
   const third = Math.min(Math.max(sellerPrice - 500, 0), 4500);
   return money(Math.min(0.3 + first * 0.08 + second * 0.06 + third * 0.04, BPF_CAP));
 }
 
-function sellerPriceFromBuyerVisible(buyerTotal: number) {
+export function sellerPriceFromBuyerVisible(buyerTotal: number) {
   if (buyerTotal <= 0.3) return 0;
   if (buyerTotal <= 21.9) return money((buyerTotal - 0.3) / 1.08);
   if (buyerTotal <= 530.7) return money((buyerTotal - 0.7) / 1.06);
   if (buyerTotal <= 5210.7) return money((buyerTotal - 10.7) / 1.04);
   return money(buyerTotal - BPF_CAP);
+}
+
+export function buyerVisibleTotal(sellerPrice: number) {
+  return money(sellerPrice + buyerProtectionFee(sellerPrice));
 }
 
 function sellerReceives(price: string, basis: BuyCalculationPayload["price_basis"]) {

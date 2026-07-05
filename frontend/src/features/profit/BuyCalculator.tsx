@@ -1,12 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
-import { Calculator, CircleAlert, Gauge, ReceiptText } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { Calculator, CircleAlert, Gauge, ReceiptText, ShoppingBag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { listCategories } from "../../api/categories";
 import { listItems } from "../../api/items";
-import { getBuyCalculatorEvidence } from "../../api/profit";
+import { createBoughtItItem, getBuyCalculatorEvidence } from "../../api/profit";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
+import { DescriptorEvidencePanel } from "../../components/DescriptorEvidencePanel";
 import { EmptyState } from "../../components/EmptyState";
-import type { BuyCalculationPayload, BuyEvidenceOption, PriceBasis, RoiBasis, SellerMode, UUID } from "../../types";
+import type { BuyCalculationPayload, BuyEvidenceOption, DescriptorEvidenceRow, PriceBasis, RoiBasis, SellerMode, UUID } from "../../types";
 import { calculateLocalBuy } from "./localCalculator";
 
 const sellerModeOptions: Array<[SellerMode, string]> = [
@@ -22,7 +25,9 @@ const roiBasisOptions: Array<[RoiBasis, string]> = [
 ];
 
 export function BuyCalculator() {
+  const navigate = useNavigate();
   const items = useQuery({ queryKey: ["items", "buy-calculator"], queryFn: () => listItems({ page: 1 }) });
+  const categories = useQuery({ queryKey: ["categories", "buy-calculator"], queryFn: () => listCategories() });
   const [itemId, setItemId] = useState<UUID>("");
   const evidence = useQuery({
     queryKey: ["buy-calculator-evidence", itemId],
@@ -43,6 +48,22 @@ export function BuyCalculator() {
   const [auctionMode, setAuctionMode] = useState(false);
   const [source, setSource] = useState<BuyEvidenceOption["source"]>("what_if");
   const [confidence, setConfidence] = useState("what-if (your estimate)");
+  const [descriptorCategory, setDescriptorCategory] = useState<UUID | "">("");
+  const [descriptorTerms, setDescriptorTerms] = useState("");
+
+  const boughtIt = useMutation({
+    mutationFn: () => createBoughtItItem({
+      agreed_price: askingPrice,
+      expected_sell_price: expectedSellPrice,
+      price_basis: priceBasis,
+      category: descriptorCategory || null,
+      terms: descriptorTerms,
+      postage,
+      packaging,
+      refurb
+    }),
+    onSuccess: (item) => navigate(`/inventory/${item.id}`)
+  });
 
   useEffect(() => {
     const settings = evidence.data?.settings;
@@ -61,6 +82,13 @@ export function BuyCalculator() {
     setSource(suggested.source);
     setConfidence(suggested.confidence_label);
   }, [evidence.data?.suggested]);
+
+  useEffect(() => {
+    const selected = (items.data?.results ?? []).find((item) => item.id === itemId);
+    if (!selected) return;
+    setDescriptorCategory(selected.category ?? "");
+    setDescriptorTerms(selected.title || selected.sku);
+  }, [itemId, items.data?.results]);
 
   const payload = useMemo<BuyCalculationPayload>(() => ({
     expected_sell_price: expectedSellPrice,
@@ -98,6 +126,16 @@ export function BuyCalculator() {
     setPriceBasis("seller_receives");
     setSource(option.source);
     setConfidence(option.confidence_label);
+  }
+
+  function useDescriptorEvidence(row: DescriptorEvidenceRow) {
+    if (!row.seller_receives || row.basis_uncertain) {
+      return;
+    }
+    setExpectedSellPrice(row.seller_receives);
+    setPriceBasis("seller_receives");
+    setSource(row.source);
+    setConfidence(`${labelSource(row.source)} · ${row.match_reason}`);
   }
 
   function markWhatIf(value: string) {
@@ -138,6 +176,19 @@ export function BuyCalculator() {
                   <option key={item.id} value={item.id}>{item.sku} - {item.title}</option>
                 ))}
               </select>
+            </label>
+            <label className="label">
+              <span>Descriptor category</span>
+              <select className="field" value={descriptorCategory} onChange={(event) => setDescriptorCategory(event.target.value)}>
+                <option value="">Any category</option>
+                {(categories.data?.results ?? []).map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="label">
+              <span>Descriptor terms</span>
+              <input className="field" value={descriptorTerms} onChange={(event) => setDescriptorTerms(event.target.value)} />
             </label>
             <label className="label">
               <span>{auctionMode ? "Expected hammer / sell price" : "Expected sell price"}</span>
@@ -230,6 +281,13 @@ export function BuyCalculator() {
                 <Row label="ROI basis" value={result.roi_basis === "all_in_cash" ? "All-in cash" : "On buy price"} />
               </dl>
               <p className="buy-note">{result.confidence_label}</p>
+              {askingPrice ? (
+                <button className="ledger-button ledger-button-primary buy-bought-button" disabled={boughtIt.isPending} type="button" onClick={() => boughtIt.mutate()}>
+                  <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+                  Bought it
+                </button>
+              ) : null}
+              {boughtIt.error ? <p className="buy-error">{errorText(boughtIt.error)}</p> : null}
             </>
           ) : (
             <EmptyState title="Enter a sell price" detail="The result updates from local calculator maths only." />
@@ -267,6 +325,16 @@ export function BuyCalculator() {
             ))}
           </div>
         </section>
+
+        <DescriptorEvidencePanel
+          categories={categories.data?.results ?? []}
+          categoryId={descriptorCategory}
+          onCategoryChange={setDescriptorCategory}
+          onTermsChange={setDescriptorTerms}
+          onUsePrice={useDescriptorEvidence}
+          terms={descriptorTerms}
+          title="Descriptor evidence"
+        />
       </main>
     </div>
   );
@@ -292,4 +360,11 @@ function currencyOrDash(value: string | null) {
 function errorText(error: unknown) {
   if (!error) return "";
   return error instanceof Error ? error.message : "Request failed.";
+}
+
+function labelSource(source: BuyEvidenceOption["source"]) {
+  if (source === "own_sale_exact") return "own sale - exact";
+  if (source === "own_sale_similar") return "own sale - similar";
+  if (source === "approved_comp") return "approved comp";
+  return "what-if (your estimate)";
 }

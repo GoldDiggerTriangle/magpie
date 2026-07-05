@@ -32,7 +32,18 @@ class Comparable(TimeStampedUUIDModel):
         "inventory.InventoryItem",
         on_delete=models.CASCADE,
         related_name="comparables",
+        null=True,
+        blank=True,
     )
+    descriptor_category = models.ForeignKey(
+        "catalog.ProductCategory",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="descriptor_comparables",
+    )
+    descriptor_terms = models.JSONField(default=list, blank=True)
+    descriptor_attributes = models.JSONField(default=dict, blank=True)
     kind = models.CharField(max_length=20, choices=Kind.choices)
     source = models.CharField(max_length=200, blank=True, default="")
     title = models.CharField(max_length=300, blank=True, default="")
@@ -71,6 +82,7 @@ class Comparable(TimeStampedUUIDModel):
             models.Index(fields=["source_tag"]),
             models.Index(fields=["sale_format"]),
             models.Index(fields=["match_scope"]),
+            models.Index(fields=["descriptor_category"]),
         ]
 
     def __str__(self) -> str:

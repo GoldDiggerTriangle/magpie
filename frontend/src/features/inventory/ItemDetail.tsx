@@ -12,6 +12,7 @@ import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { CategorySelect } from "../../components/CategorySelect";
 import { AIResearchPanel } from "../../components/AIResearchPanel";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { DescriptorEvidencePanel } from "../../components/DescriptorEvidencePanel";
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
 import { ListingPanel } from "../../components/ListingPanel";
@@ -286,6 +287,13 @@ export function ItemDetail() {
       </div>
 
       <div className="mt-8 grid gap-6">
+        <DescriptorEvidencePanel
+          attributes={item.data.attributes ?? {}}
+          categoryId={item.data.category ?? ""}
+          itemId={itemId}
+          terms={item.data.title || item.data.sku}
+          title="Item descriptor evidence"
+        />
         <PricingEvidencePanel itemId={itemId} />
         <AIResearchPanel itemId={itemId} />
         <SoldSearchPanel itemId={itemId} />
