@@ -87,6 +87,7 @@ const stagedSuggestion: FieldSuggestion = {
   source: "ai",
   confidence_band: "high",
   evidence: "Fake AI evidence.",
+  audit_metadata: "",
   status: "pending",
   resolved_value: null,
   resolved_at: null,

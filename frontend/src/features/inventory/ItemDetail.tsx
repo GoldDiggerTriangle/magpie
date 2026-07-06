@@ -186,7 +186,7 @@ export function ItemDetail() {
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["item", itemId] });
 
   const saveMutation = useMutation({
-    mutationFn: () => updateItem(itemId, { ...form, attributes: sanitizeSchemaAttributes(form.attributes ?? {}) }),
+    mutationFn: (payload: Partial<ItemFormPayload>) => updateItem(itemId, payload),
     onSuccess: refresh
   });
   const uploadMutation = useMutation({
@@ -243,6 +243,35 @@ export function ItemDetail() {
     window.setTimeout(() => {
       scrollToElement(anchorId);
     }, 0);
+  }
+
+  function coreDetailsPayload(): Partial<ItemFormPayload> {
+    return {
+      title: form.title,
+      category: form.category,
+      status: form.status,
+      condition: form.condition,
+      quantity_total: form.quantity_total,
+      location: form.location
+    };
+  }
+
+  function categorySpecificsPayload(): Partial<ItemFormPayload> {
+    return {
+      category: form.category,
+      lot: form.lot,
+      source: form.source,
+      disposition: form.disposition,
+      scrapped_at: form.scrapped_at,
+      acquisition_cost: form.acquisition_cost,
+      refurb_cost: form.refurb_cost,
+      inbound_shipping_cost: form.inbound_shipping_cost,
+      est_outbound_shipping: form.est_outbound_shipping,
+      est_packaging_cost: form.est_packaging_cost,
+      estimated_value: form.estimated_value,
+      notes: form.notes,
+      attributes: sanitizeSchemaAttributes(form.attributes ?? {})
+    };
   }
 
   if (item.isLoading) {
@@ -303,7 +332,7 @@ export function ItemDetail() {
           </ItemSection>
 
           <ItemSection id="core-details" label="Core details" open={openSections["core-details"]} onToggle={() => setSection("core-details", !openSections["core-details"])}>
-            <form className="item-detail-form-grid" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(); }}>
+            <form className="item-detail-form-grid" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(coreDetailsPayload()); }}>
               <label className="label">
                 <span>Title</span>
                 <input className="field" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} />
@@ -357,7 +386,7 @@ export function ItemDetail() {
           </ItemSection>
 
           <ItemSection id="category-specifics" label="Category specifics" open={openSections["category-specifics"]} onToggle={() => setSection("category-specifics", !openSections["category-specifics"])}>
-            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(); }}>
+            <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(categorySpecificsPayload()); }}>
               <SchemaFieldsForm
                 categoryId={form.category}
                 attributes={form.attributes ?? {}}
@@ -491,7 +520,7 @@ export function ItemDetail() {
 }
 
 function PageFrame({ children }: { children: ReactNode }) {
-  return <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>;
+  return <div className="item-page-frame mx-auto w-full max-w-7xl">{children}</div>;
 }
 
 function ItemSection({

@@ -573,7 +573,26 @@
 
   .suggestion-row-main p {
     @apply mt-1 text-sm leading-5;
-    color: #686256;
+    color: #334155;
+  }
+
+  .suggestion-row-main .suggestion-audit-metadata {
+    @apply text-xs font-semibold;
+    color: #475569;
+  }
+
+  .suggestion-raw-payload {
+    @apply mt-2 text-xs;
+    color: #334155;
+  }
+
+  .suggestion-raw-payload summary {
+    @apply cursor-pointer font-semibold;
+  }
+
+  .suggestion-raw-payload pre {
+    @apply mt-2 max-h-40 overflow-auto rounded border bg-white p-2;
+    border-color: #d5d1c5;
   }
 
   .suggestion-meta {
@@ -605,6 +624,27 @@
     @apply mt-5 flex flex-wrap gap-2;
   }
 
+  .item-page-frame {
+    padding-top: calc(1rem + env(safe-area-inset-top));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  @media (min-width: 640px) {
+    .item-page-frame {
+      padding: 1.5rem;
+      padding-top: max(1.5rem, calc(1rem + env(safe-area-inset-top)));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .item-page-frame {
+      padding: 2rem;
+      padding-top: max(2rem, calc(1rem + env(safe-area-inset-top)));
+    }
+  }
+
   .item-detail-layout {
     @apply mt-5 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)];
   }
@@ -632,11 +672,12 @@
   .item-detail-section {
     @apply min-w-0 rounded border bg-white;
     border-color: #e4e1d8;
+    scroll-margin-top: calc(4.5rem + env(safe-area-inset-top));
   }
 
   .item-detail-section-header {
     @apply sticky z-10 flex min-h-14 w-full items-center justify-between gap-3 border-b bg-white px-4 py-3 text-left text-base font-bold;
-    top: env(safe-area-inset-top);
+    top: calc(0.5rem + env(safe-area-inset-top));
     border-color: #e4e1d8;
     color: #0f172a;
   }
@@ -651,6 +692,10 @@
 
   .ai-review-stack {
     @apply grid min-w-0 gap-4;
+  }
+
+  #ai-review {
+    scroll-margin-top: calc(5rem + env(safe-area-inset-top));
   }
 
   .pricing-evidence-panel {

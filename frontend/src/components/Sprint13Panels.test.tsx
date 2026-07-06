@@ -40,6 +40,7 @@ const yearSuggestion: FieldSuggestion = {
   source: "ocr",
   confidence_band: "medium",
   evidence: "OCR text: Recognised year 1932",
+  audit_metadata: "",
   status: "pending",
   resolved_value: null,
   resolved_at: null,
@@ -65,6 +66,17 @@ const rejectedSuggestion: FieldSuggestion = {
   proposed_value: "Australia",
   confidence_band: "high",
   status: "rejected"
+};
+
+const catalogueRefSuggestion: FieldSuggestion = {
+  ...yearSuggestion,
+  id: "suggestion-4",
+  field: "ai_candidate.catalogue_refs",
+  proposed_value: [{ system: "Pick", number: "PM-40a" }],
+  source: "ai",
+  confidence_band: "candidate",
+  evidence: "Catalogue reference candidate. Human must adjudicate.",
+  audit_metadata: "AI call 11111111-1111-1111-1111-111111111111"
 };
 
 const unavailableOcr: OcrRunResult = {
@@ -189,6 +201,23 @@ test("SuggestionReviewPanel disables approve all until suggestions render", asyn
 
   expect(await screen.findByText("OCR text: Recognised year 1932")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Approve all shown" })).toBeEnabled();
+});
+
+test("SuggestionReviewPanel renders structured catalogue candidates without raw JSON primary display", async () => {
+  mocks.listFieldSuggestions.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [catalogueRefSuggestion]
+  });
+  renderWithClient(<SuggestionReviewPanel itemId="item-1" />);
+
+  const primaryValue = await screen.findByTestId("suggestion-primary-value");
+  expect(primaryValue).toHaveTextContent("Pick: PM-40a");
+  expect(primaryValue).not.toHaveTextContent("{");
+  expect(screen.getByText("Catalogue reference candidate. Human must adjudicate.")).toBeInTheDocument();
+  expect(screen.getByText("AI call 11111111-1111-1111-1111-111111111111")).toHaveClass("suggestion-audit-metadata");
+  expect(screen.getByText("Raw payload")).toBeInTheDocument();
 });
 
 function renderWithClient(ui: ReactElement) {

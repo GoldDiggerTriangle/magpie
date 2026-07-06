@@ -1,6 +1,6 @@
 # Sprint 24 Evidence - AI Review Flow and Collapsible Item Page
 
-Status: live closed. Implementation was validated locally, by GitHub dual-lane `Validation`, and on the restarted NSSM `Magpie` service on port `8000`.
+Status: reopened for Round 2. Round 1 was live-closed; Round 2 fixes are implemented and locally validated in this checkout. Formal Round 2 live closure remains pending owner proof that a full AI-approved/edited title saves and re-renders correctly from the restarted NSSM `Magpie` service.
 
 ## Scope Implemented
 
@@ -199,3 +199,109 @@ Automated frontend coverage proves the banner action itself:
   - run `28771808326`.
   - result: `success`.
 - This evidence update is documentation-only; the final closure response records the latest pushed head and latest `Validation` run.
+
+## Closure Catch-up: Sprint 23 Round 2
+
+- Final Sprint 23 Round 2 head:
+  - `b3aa7ca06e1db707ad69621a8876a79ed8ba8967`.
+- GitHub dual-lane `Validation`:
+  - run `28769192729`.
+- Real iPhone open-picker screenshots were required and captured for:
+  - Country picker open on Add Item.
+  - Denomination picker open on Add Item.
+  - Country picker open on item edit.
+  - Denomination picker open on item edit.
+- Owner note after proof:
+  - The picker worked, but country choices showing both codes and names was undesirable; the dropdown was changed to show country names only in the follow-up evidence path.
+
+## Closure Catch-up: Sprint 24 Round 1
+
+- Round 1 head commit:
+  - `b9b7d8e7171a6a0e782cf0b8623e423fb2489e35`.
+- GitHub dual-lane `Validation`:
+  - run `28771991489`.
+- Backend:
+  - `199 passed, 1 skipped`.
+- Frontend:
+  - `109 passed`.
+- Typecheck/build/collectstatic:
+  - passed.
+- Screenshot note:
+  - Screenshots were captured on temporary local Waitress port `8001` because NSSM restart required Administrator elevation.
+- Administrator live-service restart proof later confirmed:
+  - `Magpie` running on port `8000`.
+  - `/api/health/` returned `200 {"status":"ok"}`.
+  - Item detail served Sprint 24 collapsible sections and the AI review panel after hard refresh.
+
+## Round 2 Implementation
+
+- Fixed the title persistence failure by scoping item-detail saves by section:
+  - Core details submits only core fields including the full title.
+  - Category specifics submits descriptor/cost/source/notes fields and no longer sends stale core text fields.
+  - This prevents hidden stale form state from overwriting an AI-approved title with a fragment such as `Canadian $1 m`.
+- Backend full-value apply path remains explicit:
+  - Approve writes the complete staged value.
+  - Edit writes the complete human-edited value.
+- Structured suggestion values now render as human-readable text:
+  - Catalogue-ref candidate payloads render as `Pick: PM-40a`.
+  - Raw structured payloads are available only behind a `Raw payload` details toggle.
+- AI call UUIDs no longer appear in user-facing rationale text:
+  - Serializer splits the trailing `AI call <uuid>` into `audit_metadata`.
+  - The UI renders audit linkage on a quiet metadata line.
+- Safe-area spacing was added to the reorganised item page:
+  - Item page frame respects `env(safe-area-inset-top)`.
+  - Sticky item section headers use a safe-area top offset.
+  - Item section and `#ai-review` anchors use safe-area-aware scroll margins.
+- Competing catalogue candidates remain unchanged and candidate-only.
+- No schema changes.
+- No migrations.
+- No new AI paths.
+- No new network paths.
+- No scraping.
+- No new eBay API usage.
+
+## Round 2 Validation
+
+- Focused backend Sprint 24 tests:
+  - `python -m pytest apps/intelligence/tests/test_sprint24.py`
+  - Result: `7 passed`.
+  - Covers full title approve/edit round-trip and audit metadata split.
+- Full backend suite:
+  - `python -m pytest`
+  - Result: `201 passed, 1 skipped`.
+- Focused frontend tests:
+  - `npm run test -- --run src/components/Sprint13Panels.test.tsx src/features/inventory/ItemDetail.test.tsx`
+  - Result: `13 passed`.
+  - Covers structured catalogue-ref rendering, raw payload details, full title re-render after reload, and category-specific save not sending stale title fields.
+- Full frontend suite:
+  - `npm run test -- --run`
+  - Result: `112 passed`.
+- Typecheck:
+  - `npm run typecheck`
+  - Result: passed.
+- Build:
+  - `npm run build`
+  - Result: passed, with the existing Vite large-chunk warning.
+- collectstatic:
+  - `python manage.py collectstatic --noinput`
+  - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+- Migration check:
+  - `python manage.py makemigrations --check --dry-run`
+  - Result: `No changes detected`.
+- Django system check:
+  - `python manage.py check`
+  - Result: `System check identified no issues`.
+- Diff whitespace check:
+  - `git diff --check`
+  - Result: passed.
+- Built asset hardcoded-localhost check:
+  - `rg "localhost:8000|127\\.0\\.0\\.1:8000|http://localhost|https://localhost" frontend/dist backend/staticfiles`
+  - Result: no matches.
+
+## Round 2 Live Closure Status
+
+- Pending:
+  - Owner live note that a full AI-approved/edited title saves and re-renders correctly through the restarted `Magpie` service on port `8000`.
+  - Phone screenshots proving the reorganised item page and AI review controls are clear of the iOS status bar.
+  - Final Round 2 head commit hash.
+  - Final Round 2 GitHub `Validation` run ID.

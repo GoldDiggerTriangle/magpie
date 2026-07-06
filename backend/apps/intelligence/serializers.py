@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 
 from apps.intelligence.models import (
@@ -14,6 +16,8 @@ class FieldSuggestionSerializer(serializers.ModelSerializer):
     item_sku = serializers.CharField(source="item.sku", read_only=True)
     item_title = serializers.CharField(source="item.title", read_only=True)
     photo_thumb_url = serializers.SerializerMethodField()
+    evidence = serializers.SerializerMethodField()
+    audit_metadata = serializers.SerializerMethodField()
 
     class Meta:
         model = FieldSuggestion
@@ -29,6 +33,7 @@ class FieldSuggestionSerializer(serializers.ModelSerializer):
             "source",
             "confidence_band",
             "evidence",
+            "audit_metadata",
             "status",
             "resolved_value",
             "resolved_at",
@@ -43,6 +48,27 @@ class FieldSuggestionSerializer(serializers.ModelSerializer):
         from apps.photos.serializers import PhotoAssetSerializer
 
         return PhotoAssetSerializer(context=self.context).get_url(obj.photo.thumb_path)
+
+    def get_evidence(self, obj):
+        rationale, _metadata = split_ai_call_metadata(obj.evidence or "")
+        return rationale
+
+    def get_audit_metadata(self, obj):
+        _rationale, metadata = split_ai_call_metadata(obj.evidence or "")
+        return metadata
+
+
+AI_CALL_PATTERN = re.compile(
+    r"(?:\s*\|\s*)AI call ([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\s*$"
+)
+
+
+def split_ai_call_metadata(evidence: str) -> tuple[str, str]:
+    match = AI_CALL_PATTERN.search(evidence or "")
+    if not match:
+        return evidence, ""
+    rationale = evidence[:match.start()].rstrip(" |")
+    return rationale, f"AI call {match.group(1)}"
 
 
 class FieldSuggestionResolveSerializer(serializers.Serializer):

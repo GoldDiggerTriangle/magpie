@@ -347,6 +347,7 @@ export interface FieldSuggestion {
   source: SuggestionSource;
   confidence_band: SuggestionConfidenceBand;
   evidence: string;
+  audit_metadata: string;
   status: SuggestionStatus;
   resolved_value: unknown;
   resolved_at: string | null;

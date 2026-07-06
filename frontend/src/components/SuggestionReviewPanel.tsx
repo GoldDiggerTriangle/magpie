@@ -41,7 +41,7 @@ export function SuggestionReviewPanel({ itemId }: { itemId: UUID }) {
   const editMutation = useMutation({
     mutationFn: (suggestion: FieldSuggestion) => editFieldSuggestion(
       suggestion.id,
-      editValues[suggestion.id] || stringifyValue(suggestion.proposed_value)
+      editValues[suggestion.id] || editValueForSuggestion(suggestion.proposed_value)
     ),
     onSuccess: refresh
   });
@@ -197,54 +197,65 @@ function SuggestionSection({
         <h3>{title}</h3>
       </div>
       <div className="suggestion-list">
-        {rows.map((row) => (
-          <article className={lead ? "suggestion-row suggestion-row-lead" : "suggestion-row"} key={row.id}>
-            <div className="suggestion-row-main">
-              {row.photo_thumb_url ? <img src={row.photo_thumb_url} alt="" /> : null}
-              <div>
-                <div className="suggestion-meta">
-                  <span>{labelForField(row.field)}</span>
-                  <span>{sourceLabel(row.source)}</span>
-                  <span>{bandLabel(row.confidence_band)}</span>
+        {rows.map((row) => {
+          const displayValue = displaySuggestionValue(row.proposed_value);
+          const rawPayload = rawSuggestionPayload(row.proposed_value);
+          return (
+            <article className={lead ? "suggestion-row suggestion-row-lead" : "suggestion-row"} key={row.id}>
+              <div className="suggestion-row-main">
+                {row.photo_thumb_url ? <img src={row.photo_thumb_url} alt="" /> : null}
+                <div>
+                  <div className="suggestion-meta">
+                    <span>{labelForField(row.field)}</span>
+                    <span>{sourceLabel(row.source)}</span>
+                    <span>{bandLabel(row.confidence_band)}</span>
+                  </div>
+                  <strong data-testid="suggestion-primary-value">{displayValue}</strong>
+                  {row.evidence ? <p>{row.evidence}</p> : null}
+                  {row.audit_metadata ? <p className="suggestion-audit-metadata">{row.audit_metadata}</p> : null}
+                  {rawPayload ? (
+                    <details className="suggestion-raw-payload">
+                      <summary>Raw payload</summary>
+                      <pre>{rawPayload}</pre>
+                    </details>
+                  ) : null}
                 </div>
-                <strong>{stringifyValue(row.proposed_value)}</strong>
-                <p>{row.evidence}</p>
               </div>
-            </div>
-            {!isReviewOnlyField(row.field) ? (
-              <label className="suggestion-edit">
-                <span>Edit value</span>
-                <input
-                  className="field"
-                  onChange={(event) => onValueChange(row.id, event.target.value)}
-                  value={editValues[row.id] ?? stringifyValue(row.proposed_value)}
-                />
-              </label>
-            ) : null}
-            <div className="suggestion-actions">
-              <button className="ledger-button ledger-button-primary" disabled={busy} onClick={() => onApprove(row)} type="button">
-                <Check className="h-4 w-4" aria-hidden="true" />
-                {isReviewOnlyField(row.field) ? "Mark reviewed" : "Approve"}
-              </button>
               {!isReviewOnlyField(row.field) ? (
-                <button className="ledger-button" disabled={busy} onClick={() => onEdit(row)} type="button">
-                  <Pencil className="h-4 w-4" aria-hidden="true" />
-                  Edit
-                </button>
+                <label className="suggestion-edit">
+                  <span>Edit value</span>
+                  <input
+                    className="field"
+                    onChange={(event) => onValueChange(row.id, event.target.value)}
+                    value={editValues[row.id] ?? editValueForSuggestion(row.proposed_value)}
+                  />
+                </label>
               ) : null}
-              <button className="ledger-button" disabled={busy} onClick={() => onReject(row)} type="button">
-                <X className="h-4 w-4" aria-hidden="true" />
-                Reject
-              </button>
-            </div>
-          </article>
-        ))}
+              <div className="suggestion-actions">
+                <button className="ledger-button ledger-button-primary" disabled={busy} onClick={() => onApprove(row)} type="button">
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  {isReviewOnlyField(row.field) ? "Mark reviewed" : "Approve"}
+                </button>
+                {!isReviewOnlyField(row.field) ? (
+                  <button className="ledger-button" disabled={busy} onClick={() => onEdit(row)} type="button">
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                    Edit
+                  </button>
+                ) : null}
+                <button className="ledger-button" disabled={busy} onClick={() => onReject(row)} type="button">
+                  <X className="h-4 w-4" aria-hidden="true" />
+                  Reject
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function stringifyValue(value: unknown) {
+function editValueForSuggestion(value: unknown) {
   if (value === null || value === undefined) {
     return "";
   }
@@ -252,6 +263,63 @@ function stringifyValue(value: unknown) {
     return JSON.stringify(value);
   }
   return String(value);
+}
+
+function displaySuggestionValue(value: unknown) {
+  const parsed = parseStructuredPayload(value);
+  if (Array.isArray(parsed)) {
+    return parsed.map((entry) => displayStructuredEntry(entry)).filter(Boolean).join("; ") || editValueForSuggestion(value);
+  }
+  if (isRecord(parsed)) {
+    return displayStructuredEntry(parsed);
+  }
+  return editValueForSuggestion(value);
+}
+
+function rawSuggestionPayload(value: unknown) {
+  const parsed = parseStructuredPayload(value);
+  if (!Array.isArray(parsed) && !isRecord(parsed)) {
+    return "";
+  }
+  return JSON.stringify(parsed, null, 2);
+}
+
+function parseStructuredPayload(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return value;
+  }
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function displayStructuredEntry(value: unknown) {
+  if (!isRecord(value)) {
+    return editValueForSuggestion(value);
+  }
+  const system = value.system ?? value.catalogue ?? value.type ?? value.label;
+  const number = value.number ?? value.reference ?? value.value ?? value.id;
+  if (system && number) {
+    return `${editValueForSuggestion(system)}: ${editValueForSuggestion(number)}`;
+  }
+  return Object.entries(value)
+    .filter(([, entryValue]) => entryValue !== null && entryValue !== undefined && entryValue !== "")
+    .map(([key, entryValue]) => `${labelizeKey(key)}: ${editValueForSuggestion(entryValue)}`)
+    .join(", ");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function labelizeKey(key: string) {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function labelForField(field: string) {
