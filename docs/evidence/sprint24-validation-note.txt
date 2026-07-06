@@ -1,0 +1,4 @@
+Sprint 24 evidence artifact.
+
+This file exists under docs/evidence so the final pushed Sprint 24 evidence head
+is covered by the GitHub Validation workflow path filters.
