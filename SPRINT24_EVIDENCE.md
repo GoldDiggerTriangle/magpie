@@ -1,6 +1,6 @@
 # Sprint 24 Evidence - AI Review Flow and Collapsible Item Page
 
-Status: implementation validated locally and by GitHub dual-lane `Validation`. Live NSSM restart remains the Administrator-only closure gate.
+Status: live closed. Implementation was validated locally, by GitHub dual-lane `Validation`, and on the restarted NSSM `Magpie` service on port `8000`.
 
 ## Scope Implemented
 
@@ -148,6 +148,19 @@ Captured against a temporary port `8001` Waitress process from this checkout bec
 - Desktop left-hand section index:
   - `docs/evidence/sprint24-desktop-section-index.png`
 
+Final live-service screenshots captured after Administrator restart against `http://127.0.0.1:8000`:
+
+- Live phone collapsed item overview:
+  - `docs/evidence/sprint24-live-phone-collapsed-item-overview.png`
+- Live phone expanded AI review section:
+  - `docs/evidence/sprint24-live-phone-ai-review-expanded.png`
+- Live phone `Approve all shown` over visible suggestion list:
+  - `docs/evidence/sprint24-live-phone-approve-all-shown.png`
+- Live desktop left-hand section index:
+  - `docs/evidence/sprint24-live-desktop-section-index.png`
+- Temporary live screenshot-only suggestions were removed after capture:
+  - cleanup count after removal: `0`.
+
 Automated frontend coverage proves the banner action itself:
 
 - `AIResearchPanel runs identify and keeps output staged`
@@ -170,10 +183,13 @@ Automated frontend coverage proves the banner action itself:
 - Restart from this non-Administrator session was attempted and denied:
   - `nssm restart Magpie`: `nssm` not on PATH.
   - repo-local NSSM binary restart: `OpenService(): Access is denied.`
-- Required closure action:
-  - Restart `Magpie` from Administrator PowerShell after this commit is pulled/applied.
-  - Verify `/api/health/` returns `200`.
-  - Verify the item detail page serves the rebuilt collapsible UI.
+- Administrator restart completed by Regan after push.
+- Live service after Administrator restart:
+  - `Get-Service Magpie`: `Running`.
+  - `sc.exe queryex Magpie`: `RUNNING`, non-zero PID `11672`.
+  - `GET http://127.0.0.1:8000/api/health/`: `{"status":"ok"}`.
+  - Live app checked on port `8000`, not temporary port `8001`.
+  - Item detail page served Sprint 24 collapsible sections and AI review panel after hard refresh.
 
 ## Remote Validation
 
