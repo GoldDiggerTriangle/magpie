@@ -11,7 +11,9 @@ URL_TEMPLATES = {
     "google_images": "https://www.google.com/search?tbm=isch&q={query}",
     "colnect_stamps": "https://colnect.com/en/stamps/list/q/{query}",
     "colnect_coins": "https://colnect.com/en/coins/list/q/{query}",
+    "colnect_banknotes": "https://colnect.com/en/banknotes/list/q/{query}",
     "numista": "https://en.numista.com/catalogue/index.php?r={query}&ct=coin",
+    "numista_banknotes": "https://en.numista.com/catalogue/index.php?r={query}&ct=banknote",
     "pcgs_cert": "https://www.pcgs.com/cert/{cert_no}",
     "ngc_cert": "https://www.ngccoin.com/certlookup/{cert_no}/",
     "sgbaldwins": "https://sgbaldwins.com/search?searchTerm={query}",
@@ -26,7 +28,9 @@ EXPECTED_HOSTS = {
     "google_images": "www.google.com",
     "colnect_stamps": "colnect.com",
     "colnect_coins": "colnect.com",
+    "colnect_banknotes": "colnect.com",
     "numista": "en.numista.com",
+    "numista_banknotes": "en.numista.com",
     "pcgs_cert": "www.pcgs.com",
     "ngc_cert": "www.ngccoin.com",
     "sgbaldwins": "sgbaldwins.com",
@@ -195,6 +199,19 @@ def coin_links(item, attrs: dict) -> list[dict]:
     return entries
 
 
+def banknote_links(item, attrs: dict) -> list[dict]:
+    query = attr_query(item, attrs, ("country", "denomination", "series_year", "prefix_serial"))
+    return [
+        link("Colnect banknotes", build_url("colnect_banknotes", query=query), "public search"),
+        link("Numista banknotes", build_url("numista_banknotes", query=query), "public search"),
+        checklist(
+            "Check Pick / Renniks banknote references",
+            "Catalogue references are candidates only. Enter confirmed values manually.",
+            "manual checklist",
+        ),
+    ]
+
+
 def phone_links(item, attrs: dict) -> list[dict]:
     spec_query = attr_query(item, attrs, ("brand", "model"))
     variant_query = phone_variant_query(item, attrs)
@@ -208,6 +225,7 @@ def phone_links(item, attrs: dict) -> list[dict]:
 LINK_BUILDERS: dict[str, Callable[[object, dict], list[dict]]] = {
     "stamps": stamp_links,
     "coins": coin_links,
+    "banknotes": banknote_links,
     "phones": phone_links,
 }
 

@@ -328,6 +328,25 @@ class CoinSchema(DefinedFieldsSchema):
     )
 
 
+class BanknoteSchema(DefinedFieldsSchema):
+    profile_key = "banknotes"
+    FIELD_SPECS = (
+        FieldSpec("country", "Country", "str"),
+        FieldSpec("denomination", "Denomination", "str"),
+        FieldSpec("series_year", "Series/year", "str"),
+        FieldSpec("prefix_serial", "Prefix/serial", "str"),
+        FieldSpec("signature_variety", "Signature/variety", "str"),
+        FieldSpec(
+            "catalogue_refs",
+            "Catalogue refs",
+            "list[object]",
+            item_shape=catalogue_refs_shape(("Pick", "Renniks", "McDonald", "other")),
+            help_text="Candidate references only; confirm manually before relying on them.",
+        ),
+        FieldSpec("notes", "Notes", "str"),
+    )
+
+
 class PhoneSchema(DefinedFieldsSchema):
     profile_key = "phones"
     FIELD_SPECS = (
@@ -366,4 +385,5 @@ def get_schema(profile_key: str) -> AttributeSchema:
 register(PreciousMetalsSchema())
 register(StampSchema())
 register(CoinSchema())
+register(BanknoteSchema())
 register(PhoneSchema())

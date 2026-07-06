@@ -85,6 +85,11 @@ def broad_query(item: InventoryItem) -> str:
             value = attributes.get(key)
             if value:
                 tokens.append(str(value))
+    elif profile == "banknotes":
+        for key in ["country", "denomination", "series_year", "prefix_serial", "signature_variety"]:
+            value = attributes.get(key)
+            if value:
+                tokens.append(str(value))
     elif profile == "phones":
         for key in ["brand", "model", "storage_gb"]:
             value = attributes.get(key)

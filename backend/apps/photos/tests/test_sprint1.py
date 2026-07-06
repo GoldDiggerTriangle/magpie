@@ -4,6 +4,7 @@ import pytest
 from PIL import Image
 
 from apps.catalog.models import ProductCategory
+from apps.intelligence.ai_research import strip_exif_for_ai
 from apps.inventory.models import InventoryItem
 from apps.photos.models import PhotoAsset
 from apps.photos.services import MediaService
@@ -41,6 +42,17 @@ def oriented_jpeg_with_exif() -> BytesIO:
     return output
 
 
+def gps_tagged_library_jpeg() -> BytesIO:
+    image = Image.new("RGB", (160, 120), "green")
+    exif = Image.Exif()
+    exif[34853] = {1: "S", 2: (33, 51, 0), 3: "E", 4: (151, 12, 0)}
+    output = BytesIO()
+    image.save(output, format="JPEG", exif=exif.tobytes())
+    output.seek(0)
+    output.name = "library-gps.jpg"
+    return output
+
+
 @pytest.mark.django_db
 def test_image_pipeline_strips_exif_resizes_records_metadata_and_applies_orientation():
     category = ProductCategory.objects.create(name="Photos", slug="photos", sku_prefix="PHO")
@@ -75,6 +87,38 @@ def test_image_pipeline_strips_exif_resizes_records_metadata_and_applies_orienta
     assert original.getexif().get(34853) is None
     assert max(processed.size) <= 2000
     assert max(thumb.size) <= 400
+
+
+@pytest.mark.django_db
+def test_library_gps_exif_is_stripped_before_storage_and_ai_send_path():
+    category = ProductCategory.objects.create(name="Library", slug="library", sku_prefix="LIB")
+    item = InventoryItem.objects.create(title="GPS library image", category=category)
+    storage = RecordingStorage()
+    upload = gps_tagged_library_jpeg()
+    assert Image.open(BytesIO(upload.getvalue())).getexif().get(34853) is not None
+
+    photo = MediaService(storage=storage).process_upload(
+        item,
+        upload,
+        PhotoAsset.Role.FRONT,
+    )
+
+    for key in [photo.original_path, photo.processed_path, photo.thumb_path]:
+        stored = Image.open(BytesIO(storage.files[key]))
+        assert stored.getexif().get(34853) is None
+
+    prepared_from_raw = strip_exif_for_ai(
+        gps_tagged_library_jpeg().getvalue(),
+        photo_id="raw-library",
+    )
+    prepared_from_storage = strip_exif_for_ai(
+        storage.open(photo.original_path),
+        photo_id=str(photo.id),
+    )
+    for prepared in [prepared_from_raw, prepared_from_storage]:
+        prepared_image = Image.open(BytesIO(prepared.data))
+        assert prepared.exif_stripped is True
+        assert prepared_image.getexif().get(34853) is None
 
 
 @pytest.mark.django_db

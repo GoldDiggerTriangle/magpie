@@ -149,6 +149,40 @@ test("SchemaFieldsForm applies descriptor defaults for gold parity", async () =>
   });
 });
 
+test("SchemaFieldsForm renders denomination suggestions as an unrestricted combobox", async () => {
+  const user = userEvent.setup();
+  renderForm({
+    profile_key: "banknotes",
+    fields: [
+      {
+        name: "denomination",
+        label: "Denomination",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["$1", "$2", "$5", "$10", "$20", "$50", "$100"]
+      }
+    ]
+  });
+
+  const denomination = await screen.findByLabelText("Denomination");
+  const listId = denomination.getAttribute("list");
+  expect(listId).toBeTruthy();
+  const datalist = screen.getByTestId("denomination-suggestions");
+  expect(datalist).toHaveAttribute("id", listId ?? "");
+  expect(datalist.querySelector('option[value="$10"]')).not.toBeNull();
+
+  await user.clear(denomination);
+  await user.type(denomination, "Ten shillings");
+
+  await waitFor(() => {
+    expect(screen.getByTestId("attrs")).toHaveTextContent("\"denomination\":\"Ten shillings\"");
+  });
+});
+
 test("sanitizeSchemaAttributes removes blank nested rows and trims values", () => {
   expect(sanitizeSchemaAttributes({
     country: " Australia ",

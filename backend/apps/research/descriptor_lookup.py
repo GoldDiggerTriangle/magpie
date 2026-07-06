@@ -26,6 +26,7 @@ TOKEN_STOPWORDS = {
     "item",
     "coin",
     "stamp",
+    "banknote",
     "phone",
     "gold",
 }

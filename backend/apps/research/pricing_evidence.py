@@ -185,7 +185,19 @@ def simple_match_reasons(target: InventoryItem, candidate: InventoryItem) -> lis
         reasons.append("same category")
     target_attributes = target.attributes or {}
     candidate_attributes = candidate.attributes or {}
-    for key in ["country", "denomination", "year", "brand", "model", "metal", "karat", "form"]:
+    for key in [
+        "country",
+        "denomination",
+        "year",
+        "series_year",
+        "prefix_serial",
+        "signature_variety",
+        "brand",
+        "model",
+        "metal",
+        "karat",
+        "form",
+    ]:
         if target_attributes.get(key) and target_attributes.get(key) == candidate_attributes.get(key):
             reasons.append(f"same {key.replace('_', ' ')}")
     shared = sorted(title_tokens(target.title) & title_tokens(candidate.title))

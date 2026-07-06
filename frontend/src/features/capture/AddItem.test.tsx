@@ -69,7 +69,7 @@ test("AddItem submits total quantity from the item form", async () => {
 
   await user.type(screen.getByLabelText(/title/i), "Stamp lot");
   fireEvent.change(screen.getByLabelText(/total quantity/i), { target: { value: "4" } });
-  await user.upload(screen.getByLabelText(/add photos/i), new File(["photo"], "stamp.jpg", { type: "image/jpeg" }));
+  await user.upload(screen.getByLabelText(/choose from library/i), new File(["photo"], "stamp.jpg", { type: "image/jpeg" }));
   await user.click(screen.getByRole("button", { name: /save item/i }));
 
   expect(mocks.createItem).toHaveBeenCalledWith(expect.objectContaining({
@@ -154,7 +154,7 @@ test("AddItem keeps gold capture fields optional", async () => {
 
   await user.type(screen.getByLabelText(/title/i), "Gold parcel");
   await user.selectOptions(await screen.findByLabelText(/category/i), "cat-gold");
-  await user.upload(screen.getByLabelText(/add photos/i), new File(["photo"], "gold.jpg", { type: "image/jpeg" }));
+  await user.upload(screen.getByLabelText(/choose from library/i), new File(["photo"], "gold.jpg", { type: "image/jpeg" }));
   expect(screen.getByLabelText(/Weight g/)).toBeInTheDocument();
   expect(screen.getByLabelText(/Fineness/)).toBeInTheDocument();
   expect(screen.getByLabelText(/Karat/)).toBeInTheDocument();
@@ -167,4 +167,15 @@ test("AddItem keeps gold capture fields optional", async () => {
     attributes: { metal: "gold" }
   }));
   expect(mocks.uploadItemPhoto).toHaveBeenCalled();
+});
+
+test("AddItem exposes separate camera and library photo inputs", () => {
+  renderAddItem();
+
+  const takePhoto = screen.getByLabelText(/take photo/i);
+  const library = screen.getByLabelText(/choose from library/i);
+
+  expect(takePhoto).toHaveAttribute("capture", "environment");
+  expect(library).not.toHaveAttribute("capture");
+  expect(library).toHaveAttribute("multiple");
 });

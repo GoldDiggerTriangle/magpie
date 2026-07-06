@@ -102,6 +102,22 @@ CATEGORY_SOURCE_TEMPLATES = {
             note="Stamp catalogue lookup for user review; not authoritative by itself.",
         )
     ],
+    "banknotes": [
+        PricingSourceTemplate(
+            id="colnect_banknotes",
+            label="Colnect banknotes",
+            source_tag="colnect",
+            template="https://colnect.com/en/banknotes/list/q/{query_param}",
+            note="Banknote catalogue lookup for user review; not authoritative by itself.",
+        ),
+        PricingSourceTemplate(
+            id="numista_banknotes",
+            label="Numista banknotes",
+            source_tag="numista",
+            template="https://en.numista.com/catalogue/index.php?r={query_param}&ct=banknote",
+            note="Banknote catalogue lookup for user review; not authoritative by itself.",
+        ),
+    ],
 }
 
 

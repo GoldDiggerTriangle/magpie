@@ -43,6 +43,7 @@ class Command(BaseCommand):
         specs = [
             ("Stamps", "STM", "stamps"),
             ("Coins", "COIN", "coins"),
+            ("Banknotes", "NOTE", "banknotes"),
             ("Phones & Electronics", "PH", "phones"),
             ("Gold", "GOLD", "gold"),
             ("Tools", "TOOL", ""),

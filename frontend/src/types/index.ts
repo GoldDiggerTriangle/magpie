@@ -29,6 +29,7 @@ export interface FieldSpec {
   item_shape?: Record<string, FieldSpec>;
   default?: string;
   exclusive_min?: boolean;
+  suggestions?: string[];
 }
 
 export interface CategorySchema {

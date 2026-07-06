@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 
 import { getCategorySchema } from "../api/categories";
 import type { FieldSpec, UUID } from "../types";
@@ -87,6 +87,8 @@ function FieldControl({
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const datalistId = useId();
+
   if (field.type === "choice") {
     return (
       <label className="label">
@@ -216,7 +218,19 @@ function FieldControl({
   return (
     <label className="label">
       <span>{field.label}</span>
-      <input className="field" value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
+      <input
+        className="field"
+        list={field.suggestions?.length ? datalistId : undefined}
+        value={stringValue(value)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      {field.suggestions?.length ? (
+        <datalist id={datalistId} data-testid={`${field.name}-suggestions`}>
+          {field.suggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      ) : null}
       {field.help_text ? <HelpText text={field.help_text} /> : null}
     </label>
   );
