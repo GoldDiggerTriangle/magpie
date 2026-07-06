@@ -1,6 +1,6 @@
 # Sprint 24 Evidence - AI Review Flow and Collapsible Item Page
 
-Status: implementation validated locally. Live NSSM restart and remote dual-lane `Validation` are closure gates after commit/push.
+Status: implementation validated locally and by GitHub dual-lane `Validation`. Live NSSM restart remains the Administrator-only closure gate.
 
 ## Scope Implemented
 
@@ -177,4 +177,9 @@ Automated frontend coverage proves the banner action itself:
 
 ## Remote Validation
 
-- Pending until commit is pushed and GitHub dual-lane `Validation` is checked.
+- Implementation commit:
+  - `5447a66ecc54b7ba5da73d7c466ab1bf4811510e`.
+- GitHub dual-lane `Validation`:
+  - run `28771808326`.
+  - result: `success`.
+- This evidence update is documentation-only; the final closure response records the latest pushed head and latest `Validation` run.
