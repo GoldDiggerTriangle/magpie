@@ -44,7 +44,11 @@ vi.mock("../../api/photos", () => ({
   updatePhoto: vi.fn()
 }));
 
-vi.mock("../../components/AIResearchPanel", () => ({ AIResearchPanel: () => null }));
+vi.mock("../../components/AIResearchPanel", () => ({
+  AIResearchPanel: ({ onReviewSuggestions }: { onReviewSuggestions?: () => void }) => (
+    <button onClick={onReviewSuggestions} type="button">Review staged suggestions mock</button>
+  )
+}));
 vi.mock("../../components/ComparableList", () => ({ ComparableList: () => null }));
 vi.mock("../../components/CopyPackPanel", () => ({ CopyPackPanel: () => null }));
 vi.mock("../../components/DescriptorEvidencePanel", () => ({ DescriptorEvidencePanel: () => null }));
@@ -57,7 +61,7 @@ vi.mock("../../components/ResearchLinks", () => ({ ResearchLinks: () => null }))
 vi.mock("../../components/ResearchLog", () => ({ ResearchLog: () => null }));
 vi.mock("../../components/SalesPanel", () => ({ SalesPanel: () => null }));
 vi.mock("../../components/SoldSearchPanel", () => ({ SoldSearchPanel: () => null }));
-vi.mock("../../components/SuggestionReviewPanel", () => ({ SuggestionReviewPanel: () => null }));
+vi.mock("../../components/SuggestionReviewPanel", () => ({ SuggestionReviewPanel: () => <div data-testid="suggestion-review-panel">Suggestion review panel</div> }));
 vi.mock("../../components/TakeDownChecklist", () => ({ TakeDownChecklist: () => null }));
 vi.mock("../../components/ValuationPanel", () => ({ ValuationPanel: () => null }));
 
@@ -101,6 +105,7 @@ const item: InventoryItemDetail = {
 };
 
 beforeEach(() => {
+  localStorage.clear();
   mocks.getItem.mockResolvedValue(item);
   mocks.listCategories.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mocks.listLocations.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
@@ -110,14 +115,14 @@ beforeEach(() => {
   mocks.updateItem.mockResolvedValue(item);
 });
 
-function renderItemDetail() {
+function renderItemDetail(initialEntry = "/inventory/item-1") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   });
 
-  render(
+  return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/inventory/item-1"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/inventory/:id" element={<ItemDetail />} />
         </Routes>
@@ -195,4 +200,47 @@ test("ItemDetail edit saves banknote picker selections and custom country values
       }
     }));
   });
+});
+
+test("ItemDetail sections default open state, expand all, collapse all, and persisted state", async () => {
+  const user = userEvent.setup();
+  const view = renderItemDetail();
+
+  expect(await screen.findByTestId("photo-gallery")).toBeVisible();
+  expect(screen.getByLabelText("Title")).toBeVisible();
+  expect(screen.getByLabelText("Lot")).not.toBeVisible();
+
+  const categoryHeader = screen.getAllByRole("button", { name: "Category specifics" })
+    .find((button) => button.getAttribute("aria-controls") === "category-specifics-panel");
+  expect(categoryHeader).toBeDefined();
+  await user.click(categoryHeader as HTMLElement);
+  expect(screen.getByLabelText("Lot")).toBeVisible();
+  view.unmount();
+
+  renderItemDetail();
+  expect(await screen.findByLabelText("Lot")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Collapse all" }));
+  expect(screen.getByTestId("photo-gallery")).not.toBeVisible();
+  await user.click(screen.getByRole("button", { name: "Expand all" }));
+  expect(await screen.findByTestId("suggestion-review-panel")).toBeVisible();
+});
+
+test("ItemDetail desktop section index jumps and expands the AI review section", async () => {
+  const user = userEvent.setup();
+  renderItemDetail();
+
+  const aiButtons = await screen.findAllByRole("button", { name: "AI research" });
+  await user.click(aiButtons[0]);
+  expect(screen.getByTestId("suggestion-review-panel")).toBeVisible();
+
+  await user.click(screen.getByRole("button", { name: "Review staged suggestions mock" }));
+  expect(window.location.hash).toBe("#ai-review");
+  expect(screen.getByTestId("suggestion-review-panel")).toBeVisible();
+});
+
+test("ItemDetail deep link opens the AI review section", async () => {
+  renderItemDetail("/inventory/item-1#ai-review");
+
+  expect(await screen.findByTestId("suggestion-review-panel")).toBeVisible();
 });

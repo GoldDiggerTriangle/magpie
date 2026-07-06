@@ -81,7 +81,7 @@ def apply_value_to_item(suggestion: FieldSuggestion, value) -> bool:
     item = suggestion.item
     if field == "duplicate_candidate":
         return False
-    if field.startswith("ai_candidate."):
+    if field.startswith("ai_candidate.") or field.startswith("ai_observation."):
         return False
     if suggestion.source == FieldSuggestion.Source.AI and any(
         fragment in field.lower() for fragment in AI_BLOCKED_FIELD_FRAGMENTS

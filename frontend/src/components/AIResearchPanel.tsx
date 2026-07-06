@@ -12,9 +12,16 @@ import {
   runAIPriceAssist
 } from "../api/intelligence";
 import type { AIResearchRunResult, UUID } from "../types";
+import { formatUsd } from "../utils/currency";
 import { EmptyState } from "./EmptyState";
 
-export function AIResearchPanel({ itemId }: { itemId: UUID }) {
+export function AIResearchPanel({
+  itemId,
+  onReviewSuggestions
+}: {
+  itemId: UUID;
+  onReviewSuggestions?: () => void;
+}) {
   const queryClient = useQueryClient();
   const status = useQuery({ queryKey: ["ai-status"], queryFn: getAIStatus });
   const references = useQuery({
@@ -86,7 +93,7 @@ export function AIResearchPanel({ itemId }: { itemId: UUID }) {
     if (!status.data.configured) {
       return "Connect an AI provider to enable one-item-at-a-time deep-dives.";
     }
-    return `${status.data.provider} / ${status.data.model_id} · ${money(status.data.monthly_usage_usd)} used of ${money(status.data.monthly_budget_cap_usd)} monthly cap`;
+    return `${status.data.provider} / ${status.data.model_id} · ${formatUsd(status.data.monthly_usage_usd)} used of ${formatUsd(status.data.monthly_budget_cap_usd)} monthly cap`;
   }, [status.data]);
 
   function submitConfig(event: FormEvent) {
@@ -140,7 +147,7 @@ export function AIResearchPanel({ itemId }: { itemId: UUID }) {
       </div>
 
       {!enabled ? <div className="intelligence-warning">{disabledReason}</div> : null}
-      {runResult ? <RunSummary result={runResult} /> : null}
+      {runResult ? <RunSummary onReviewSuggestions={onReviewSuggestions} result={runResult} /> : null}
 
       {!status.data?.configured ? (
         <form className="ai-config-form" onSubmit={submitConfig}>
@@ -223,17 +230,27 @@ export function AIResearchPanel({ itemId }: { itemId: UUID }) {
   );
 }
 
-function RunSummary({ result }: { result: AIResearchRunResult }) {
+function RunSummary({
+  onReviewSuggestions,
+  result
+}: {
+  onReviewSuggestions?: () => void;
+  result: AIResearchRunResult;
+}) {
+  const suggestionCount = result.suggestions.length;
   return (
     <div className="intelligence-success">
-      {result.call.phase === "identify" ? "Identify & fill" : "Price-assist"} completed:
-      {" "}{result.suggestions.length} suggestions, {result.search_terms.length} search terms, {result.reference_links.length} reference links staged.
+      <span>
+        {result.call.phase === "identify" ? "Identify & fill" : "Price-assist"} completed:
+        {" "}{suggestionCount} suggestions, {result.search_terms.length} search terms, {result.reference_links.length} reference links staged.
+      </span>
+      {suggestionCount > 0 ? (
+        <button className="intelligence-inline-action" onClick={onReviewSuggestions} type="button">
+          Review {suggestionCount} staged suggestions -&gt;
+        </button>
+      ) : null}
     </div>
   );
-}
-
-function money(value: string) {
-  return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function errorText(error: unknown) {

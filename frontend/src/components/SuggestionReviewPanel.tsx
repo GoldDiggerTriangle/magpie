@@ -59,8 +59,29 @@ export function SuggestionReviewPanel({ itemId }: { itemId: UUID }) {
     () => rows.filter((row) => row.confidence_band === "low" || row.confidence_band === "candidate"),
     [rows]
   );
-  const busy = approveMutation.isPending || editMutation.isPending || rejectMutation.isPending;
-  const error = errorText(suggestions.error) || errorText(ocrMutation.error) || errorText(duplicateMutation.error) || errorText(approveMutation.error) || errorText(editMutation.error) || errorText(rejectMutation.error);
+  const renderedRows = useMemo(
+    () => [...mainRows, ...leadRows].filter((row) => row.status === "pending"),
+    [mainRows, leadRows]
+  );
+  const approveAllMutation = useMutation({
+    // Batch approve is only a convenience over the suggestions already visible to the user.
+    // Per-field approve/edit/reject remains the human sign-off spine; nothing is applied before this click.
+    mutationFn: async (shownRows: FieldSuggestion[]) => {
+      for (const row of shownRows) {
+        await approveFieldSuggestion(row.id);
+      }
+    },
+    onSuccess: refresh
+  });
+  const busy = approveMutation.isPending || editMutation.isPending || rejectMutation.isPending || approveAllMutation.isPending;
+  const listRendered = suggestions.isSuccess;
+  const error = errorText(suggestions.error)
+    || errorText(ocrMutation.error)
+    || errorText(duplicateMutation.error)
+    || errorText(approveMutation.error)
+    || errorText(editMutation.error)
+    || errorText(rejectMutation.error)
+    || errorText(approveAllMutation.error);
   const ocrUnavailable = ocrMutation.data && !ocrMutation.data.available ? ocrMutation.data.detail : "";
 
   return (
@@ -92,6 +113,15 @@ export function SuggestionReviewPanel({ itemId }: { itemId: UUID }) {
         >
           <Eye className="h-4 w-4" aria-hidden="true" />
           Scan duplicates
+        </button>
+        <button
+          className="ledger-button ledger-button-primary"
+          disabled={!listRendered || renderedRows.length === 0 || busy}
+          onClick={() => approveAllMutation.mutate(renderedRows)}
+          type="button"
+        >
+          <Check className="h-4 w-4" aria-hidden="true" />
+          Approve all shown
         </button>
       </div>
 
@@ -259,5 +289,5 @@ function errorText(error: unknown) {
 }
 
 function isReviewOnlyField(field: string) {
-  return field === "duplicate_candidate" || field.startsWith("ai_candidate.");
+  return field === "duplicate_candidate" || field.startsWith("ai_candidate.") || field.startsWith("ai_observation.");
 }

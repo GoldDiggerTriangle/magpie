@@ -26,6 +26,7 @@ from apps.intelligence.ai_adapters import (
     OpenAIAiResearchAdapter,
     PreparedImage,
 )
+from apps.intelligence.identify_scope import build_identify_scope
 from apps.intelligence.reference_sources import build_reference_source_links
 from apps.inventory.models import InventoryItem
 from integrations.storage import LocalFileStorageAdapter
@@ -297,6 +298,7 @@ def build_item_context(item: InventoryItem) -> dict:
         "condition": item.condition,
         "attributes": item.attributes or {},
         "field_schema": get_schema(profile_key).fields(),
+        "identify_scope": build_identify_scope(profile_key),
     }
 
 
@@ -354,6 +356,10 @@ def normalize_ai_field(field: str, confidence_band: str, candidate_only: bool) -
     lower = cleaned.lower()
     if not cleaned:
         return None, None
+    if lower in {"condition", "attributes.condition", "condition_observation", "ai_observation.condition"}:
+        return "ai_observation.condition", FieldSuggestion.ConfidenceBand.CANDIDATE
+    if lower in {"short_description", "description", "description_draft", "ai_candidate.short_description_draft"}:
+        return "ai_candidate.short_description_draft", FieldSuggestion.ConfidenceBand.CANDIDATE
     if candidate_only or any(fragment in lower for fragment in {"catalogue", "catalog", "grade"}):
         safe_name = lower.replace("attributes.", "").replace("ai_candidate.", "").replace(" ", "_")
         return f"ai_candidate.{safe_name}", FieldSuggestion.ConfidenceBand.CANDIDATE

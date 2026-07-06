@@ -1,0 +1,90 @@
+{
+  "banknotes": {
+    "fields": [
+      "attributes.country",
+      "attributes.denomination",
+      "attributes.series_year",
+      "attributes.prefix_serial",
+      "attributes.signature_variety"
+    ],
+    "candidate_fields": [
+      "attributes.catalogue_refs"
+    ],
+    "observation_fields": [
+      "condition"
+    ],
+    "copywriting_drafts": [
+      "title",
+      "short_description"
+    ],
+    "notes": "Banknote identify scope is factual field suggestions plus candidate catalogue references and condition observations only."
+  },
+  "coins": {
+    "fields": [
+      "attributes.country",
+      "attributes.denomination",
+      "attributes.mint_mark",
+      "attributes.ruler_or_reign",
+      "attributes.year",
+      "attributes.composition"
+    ],
+    "candidate_fields": [
+      "attributes.catalogue_refs"
+    ],
+    "observation_fields": [
+      "condition"
+    ],
+    "copywriting_drafts": [
+      "title",
+      "short_description"
+    ]
+  },
+  "stamps": {
+    "fields": [
+      "attributes.country",
+      "attributes.year",
+      "attributes.denomination",
+      "attributes.face_value_currency",
+      "attributes.topic_theme",
+      "attributes.mint_used",
+      "attributes.perforation",
+      "attributes.watermark",
+      "attributes.variety",
+      "attributes.colour"
+    ],
+    "candidate_fields": [
+      "attributes.catalogue_refs"
+    ],
+    "observation_fields": [
+      "condition"
+    ],
+    "copywriting_drafts": [
+      "title",
+      "short_description"
+    ]
+  },
+  "phones": {
+    "fields": [
+      "attributes.brand",
+      "attributes.model",
+      "attributes.colour",
+      "attributes.carrier",
+      "attributes.storage_gb",
+      "attributes.ram_gb",
+      "attributes.imei",
+      "attributes.serial_no",
+      "attributes.network_status",
+      "attributes.battery_health_pct",
+      "attributes.faults",
+      "attributes.accessories"
+    ],
+    "candidate_fields": [],
+    "observation_fields": [
+      "condition"
+    ],
+    "copywriting_drafts": [
+      "title",
+      "short_description"
+    ]
+  }
+}

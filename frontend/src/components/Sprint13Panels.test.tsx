@@ -58,6 +58,15 @@ const duplicateSuggestion: FieldSuggestion = {
   evidence: "Near-duplicate image candidate: this photo is visually close to STM-00002."
 };
 
+const rejectedSuggestion: FieldSuggestion = {
+  ...yearSuggestion,
+  id: "suggestion-3",
+  field: "attributes.country",
+  proposed_value: "Australia",
+  confidence_band: "high",
+  status: "rejected"
+};
+
 const unavailableOcr: OcrRunResult = {
   available: false,
   detail: "OCR unavailable. Install local Tesseract to use OCR on this machine.",
@@ -142,6 +151,44 @@ test("SuggestionReviewPanel requires explicit approve edit or reject actions", a
 
   await user.click(within(row as HTMLElement).getByRole("button", { name: "Reject" }));
   await waitFor(() => expect(mocks.rejectFieldSuggestion).toHaveBeenCalledWith("suggestion-1"));
+});
+
+test("SuggestionReviewPanel approve all applies exactly visible non-rejected suggestions", async () => {
+  const user = userEvent.setup();
+  mocks.listFieldSuggestions.mockResolvedValue({
+    count: 3,
+    next: null,
+    previous: null,
+    results: [yearSuggestion, duplicateSuggestion, rejectedSuggestion]
+  });
+  renderWithClient(<SuggestionReviewPanel itemId="item-1" />);
+
+  const approveAll = await screen.findByRole("button", { name: "Approve all shown" });
+  expect(mocks.approveFieldSuggestion).not.toHaveBeenCalled();
+  await user.click(approveAll);
+
+  await waitFor(() => expect(mocks.approveFieldSuggestion).toHaveBeenCalledTimes(2));
+  expect(mocks.approveFieldSuggestion).toHaveBeenNthCalledWith(1, "suggestion-1");
+  expect(mocks.approveFieldSuggestion).toHaveBeenNthCalledWith(2, "suggestion-2");
+  expect(mocks.approveFieldSuggestion).not.toHaveBeenCalledWith("suggestion-3");
+});
+
+test("SuggestionReviewPanel disables approve all until suggestions render", async () => {
+  let resolveSuggestions: (value: unknown) => void = () => undefined;
+  mocks.listFieldSuggestions.mockReturnValue(new Promise((resolve) => { resolveSuggestions = resolve; }));
+  renderWithClient(<SuggestionReviewPanel itemId="item-1" />);
+
+  expect(screen.getByRole("button", { name: "Approve all shown" })).toBeDisabled();
+
+  resolveSuggestions({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [yearSuggestion]
+  });
+
+  expect(await screen.findByText("OCR text: Recognised year 1932")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Approve all shown" })).toBeEnabled();
 });
 
 function renderWithClient(ui: ReactElement) {

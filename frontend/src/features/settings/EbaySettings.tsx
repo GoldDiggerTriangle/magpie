@@ -34,6 +34,7 @@ import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus, ProfitSettings, RoiBasis, SellerMode } from "../../types";
+import { formatUsd } from "../../utils/currency";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -848,7 +849,7 @@ function formatDate(value?: string | null) {
 }
 
 function money(value: string) {
-  return `$${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatUsd(value);
 }
 
 function errorText(error: unknown) {

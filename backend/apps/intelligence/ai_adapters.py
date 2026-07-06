@@ -67,6 +67,93 @@ class FakeAiResearchAdapter:
 
     def identify(self, *, item_context: dict, images: list[PreparedImage]) -> AIResearchResult:
         title = item_context.get("title") or "Australia 1932 Harbour Bridge 2d"
+        if item_context.get("profile_key") == "banknotes":
+            return AIResearchResult(
+                suggestions=[
+                    AISuggestionCandidate(
+                        field="title",
+                        value=f"{title} - identified banknote draft",
+                        confidence_band="medium",
+                        evidence="Fake adapter drafted an editable listing title from the banknote context.",
+                        source_basis="photo + banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="short_description",
+                        value="Short banknote description draft for human review.",
+                        confidence_band="candidate",
+                        evidence="Copywriting draft only; not authoritative item data.",
+                        source_basis="banknote identify scope",
+                        candidate_only=True,
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.country",
+                        value="Australia",
+                        confidence_band="high",
+                        evidence="Country appears in the fake banknote response.",
+                        source_basis="banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.denomination",
+                        value="$10",
+                        confidence_band="high",
+                        evidence="Denomination appears in the fake banknote response.",
+                        source_basis="banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.series_year",
+                        value="1988",
+                        confidence_band="medium",
+                        evidence="Series/year appears in the fake banknote response.",
+                        source_basis="banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.prefix_serial",
+                        value="AA 123456",
+                        confidence_band="medium",
+                        evidence="Prefix/serial appears in the fake banknote response.",
+                        source_basis="banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.signature_variety",
+                        value="Johnston/Fraser",
+                        confidence_band="medium",
+                        evidence="Signature variety appears in the fake banknote response.",
+                        source_basis="banknote identify scope",
+                    ),
+                    AISuggestionCandidate(
+                        field="attributes.catalogue_refs",
+                        value='[{"system":"Pick","number":"49"}]',
+                        confidence_band="candidate",
+                        evidence="Catalogue references are candidate leads only.",
+                        source_basis="banknote identify scope",
+                        candidate_only=True,
+                    ),
+                    AISuggestionCandidate(
+                        field="condition",
+                        value="Appears circulated with visible handling marks.",
+                        confidence_band="candidate",
+                        evidence="Condition text is an observation only.",
+                        source_basis="photo observation",
+                    ),
+                ],
+                search_terms=["Australia 1988 $10 Johnston Fraser banknote"],
+                reference_queries=[
+                    AIReferenceQuery(
+                        label="Reference image search",
+                        query="Australia 1988 $10 Johnston Fraser banknote reference image",
+                        source_basis="fake adapter reference lead",
+                    )
+                ],
+                request_metadata={
+                    "image_count": len(images),
+                    "schema": "magpie_ai_research_v1",
+                    "identify_scope": item_context.get("identify_scope", {}),
+                },
+                response_metadata={"fake": True},
+                input_tokens=100,
+                output_tokens=80,
+                estimated_cost_usd=Decimal("0.000100"),
+            )
         return AIResearchResult(
             suggestions=[
                 AISuggestionCandidate(

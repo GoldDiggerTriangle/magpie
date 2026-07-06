@@ -506,6 +506,12 @@
     @apply mt-3 rounded border px-3 py-2 text-sm;
   }
 
+  .intelligence-inline-action {
+    @apply ml-0 mt-2 inline-flex min-h-10 items-center rounded border bg-white px-3 py-2 text-sm font-semibold sm:ml-3 sm:mt-0;
+    border-color: #2e7d5b;
+    color: #245f47;
+  }
+
   .intelligence-success {
     border-color: rgba(46, 125, 91, 0.24);
     background: rgba(46, 125, 91, 0.08);
@@ -593,6 +599,58 @@
 
   .suggestion-actions {
     @apply flex flex-wrap items-start gap-2 lg:justify-end;
+  }
+
+  .item-detail-controls {
+    @apply mt-5 flex flex-wrap gap-2;
+  }
+
+  .item-detail-layout {
+    @apply mt-5 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)];
+  }
+
+  .item-section-index {
+    @apply hidden lg:sticky lg:top-6 lg:block lg:self-start rounded border bg-white p-2;
+    border-color: #e4e1d8;
+  }
+
+  .item-section-index button {
+    @apply block w-full rounded px-3 py-2 text-left text-sm font-semibold;
+    color: #0f172a;
+  }
+
+  .item-section-index button:hover,
+  .item-section-index button:focus-visible {
+    background: #eef4ff;
+    outline: 2px solid rgba(29, 78, 216, 0.24);
+  }
+
+  .item-section-stack {
+    @apply grid min-w-0 gap-4;
+  }
+
+  .item-detail-section {
+    @apply min-w-0 rounded border bg-white;
+    border-color: #e4e1d8;
+  }
+
+  .item-detail-section-header {
+    @apply sticky z-10 flex min-h-14 w-full items-center justify-between gap-3 border-b bg-white px-4 py-3 text-left text-base font-bold;
+    top: env(safe-area-inset-top);
+    border-color: #e4e1d8;
+    color: #0f172a;
+  }
+
+  .item-detail-section-body {
+    @apply min-w-0 p-4;
+  }
+
+  .item-detail-form-grid {
+    @apply grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3;
+  }
+
+  .ai-review-stack {
+    @apply grid min-w-0 gap-4;
   }
 
   .pricing-evidence-panel {

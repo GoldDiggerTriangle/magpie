@@ -169,6 +169,17 @@ test("EbaySettings renders sandbox status, readiness counts, and audit rows", as
   expect(screen.getByDisplayValue("gpt-5.4-mini")).toBeInTheDocument();
 });
 
+test("EbaySettings renders nonzero sub-cent AI usage as less than one cent", async () => {
+  mocks.getAIStatus.mockResolvedValue({
+    ...aiConnectedStatus,
+    monthly_usage_usd: "0.000100"
+  });
+
+  renderSettings();
+
+  expect(await screen.findByText("<$0.01")).toBeInTheDocument();
+});
+
 test("EbaySettings saves an encrypted AI key without displaying it", async () => {
   const user = userEvent.setup();
   renderSettings();
