@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, vi } from "vitest";
@@ -167,6 +167,71 @@ test("AddItem keeps gold capture fields optional", async () => {
     attributes: { metal: "gold" }
   }));
   expect(mocks.uploadItemPhoto).toHaveBeenCalled();
+});
+
+test("AddItem saves banknote picker selections and custom country values", async () => {
+  mocks.listCategories.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      id: "cat-banknotes",
+      name: "Banknotes",
+      slug: "banknotes",
+      parent: null,
+      sku_prefix: "NOTE",
+      profile_key: "banknotes",
+      description: ""
+    }]
+  });
+  mocks.getCategorySchema.mockResolvedValue({
+    profile_key: "banknotes",
+    fields: [
+      {
+        name: "country",
+        label: "Country",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["AU", "Australia", "Rhodesia"]
+      },
+      {
+        name: "denomination",
+        label: "Denomination",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["$1", "$2", "$5", "$10", "$20"]
+      }
+    ]
+  });
+  const user = userEvent.setup();
+  renderAddItem();
+
+  await user.type(screen.getByLabelText(/title/i), "Rhodesia note");
+  await user.selectOptions(await screen.findByLabelText(/category/i), "cat-banknotes");
+  await user.selectOptions(await screen.findByLabelText("Denomination"), "$10");
+  await user.selectOptions(screen.getByLabelText("Country"), "__custom__");
+  await user.type(screen.getByLabelText("Country custom value"), "Rhodesia");
+  await user.upload(screen.getByLabelText(/choose from library/i), new File(["photo"], "note.jpg", { type: "image/jpeg" }));
+  await user.click(screen.getByRole("button", { name: /save item/i }));
+
+  await waitFor(() => {
+    expect(mocks.createItem).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Rhodesia note",
+      category: "cat-banknotes",
+      attributes: {
+        country: "Rhodesia",
+        denomination: "$10"
+      }
+    }));
+  });
 });
 
 test("AddItem exposes separate camera and library photo inputs", () => {

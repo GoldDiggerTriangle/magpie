@@ -149,11 +149,22 @@ test("SchemaFieldsForm applies descriptor defaults for gold parity", async () =>
   });
 });
 
-test("SchemaFieldsForm renders denomination suggestions as an unrestricted combobox", async () => {
+test("SchemaFieldsForm renders field suggestions as a visible picker with unrestricted custom entry", async () => {
   const user = userEvent.setup();
   renderForm({
     profile_key: "banknotes",
     fields: [
+      {
+        name: "country",
+        label: "Country",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["AU", "Australia", "Rhodesia"]
+      },
       {
         name: "denomination",
         label: "Denomination",
@@ -168,18 +179,19 @@ test("SchemaFieldsForm renders denomination suggestions as an unrestricted combo
     ]
   });
 
-  const denomination = await screen.findByLabelText("Denomination");
-  const listId = denomination.getAttribute("list");
-  expect(listId).toBeTruthy();
-  const datalist = screen.getByTestId("denomination-suggestions");
-  expect(datalist).toHaveAttribute("id", listId ?? "");
-  expect(datalist.querySelector('option[value="$10"]')).not.toBeNull();
+  const country = await screen.findByLabelText("Country");
+  const denomination = screen.getByLabelText("Denomination");
+  expect(country.tagName).toBe("SELECT");
+  expect(denomination.tagName).toBe("SELECT");
+  expect(screen.getAllByText("Other / custom...")).toHaveLength(2);
 
-  await user.clear(denomination);
-  await user.type(denomination, "Ten shillings");
+  await user.selectOptions(denomination, "$10");
+  await user.selectOptions(country, "__custom__");
+  await user.type(screen.getByLabelText("Country custom value"), "New Hebrides");
 
   await waitFor(() => {
-    expect(screen.getByTestId("attrs")).toHaveTextContent("\"denomination\":\"Ten shillings\"");
+    expect(screen.getByTestId("attrs")).toHaveTextContent("\"denomination\":\"$10\"");
+    expect(screen.getByTestId("attrs")).toHaveTextContent("\"country\":\"New Hebrides\"");
   });
 });
 

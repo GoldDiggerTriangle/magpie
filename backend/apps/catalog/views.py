@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.catalog.models import ProductCategory
-from apps.catalog.denominations import apply_denomination_suggestions
+from apps.catalog.field_choices import apply_field_choice_suggestions
 from apps.catalog.profiles import get_schema
 from apps.catalog.serializers import ProductCategorySerializer
 
@@ -22,7 +22,7 @@ class ProductCategoryViewSet(ModelViewSet):
         return Response(
             {
                 "profile_key": schema.profile_key,
-                "fields": apply_denomination_suggestions(
+                "fields": apply_field_choice_suggestions(
                     schema.fields(),
                     category.profile_key,
                 ),

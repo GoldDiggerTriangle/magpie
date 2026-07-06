@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, vi } from "vitest";
 
@@ -9,22 +10,24 @@ import type { InventoryItemDetail } from "../../types";
 const mocks = vi.hoisted(() => ({
   getItem: vi.fn(),
   listCategories: vi.fn(),
+  getCategorySchema: vi.fn(),
   listLocations: vi.fn(),
   listLots: vi.fn(),
-  listSources: vi.fn()
+  listSources: vi.fn(),
+  updateItem: vi.fn()
 }));
 
 vi.mock("../../api/items", () => ({
   deleteItem: vi.fn(),
   getItem: (...args: unknown[]) => mocks.getItem(...args),
   reorderPhotos: vi.fn(),
-  updateItem: vi.fn(),
+  updateItem: (...args: unknown[]) => mocks.updateItem(...args),
   uploadItemPhoto: vi.fn()
 }));
 
 vi.mock("../../api/categories", () => ({
   listCategories: (...args: unknown[]) => mocks.listCategories(...args),
-  getCategorySchema: vi.fn().mockResolvedValue({ profile_key: "", fields: [] })
+  getCategorySchema: (...args: unknown[]) => mocks.getCategorySchema(...args)
 }));
 
 vi.mock("../../api/locations", () => ({
@@ -103,6 +106,8 @@ beforeEach(() => {
   mocks.listLocations.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mocks.listLots.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
   mocks.listSources.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+  mocks.getCategorySchema.mockResolvedValue({ profile_key: "", fields: [] });
+  mocks.updateItem.mockResolvedValue(item);
 });
 
 function renderItemDetail() {
@@ -130,4 +135,64 @@ test("ItemDetail edit exposes separate camera and library photo inputs", async (
   expect(takePhoto).toHaveAttribute("capture", "environment");
   expect(library).not.toHaveAttribute("capture");
   expect(library).toHaveAttribute("multiple");
+});
+
+test("ItemDetail edit saves banknote picker selections and custom country values", async () => {
+  mocks.listCategories.mockResolvedValue({
+    count: 1,
+    next: null,
+    previous: null,
+    results: [{
+      id: "cat-banknotes",
+      name: "Banknotes",
+      slug: "banknotes",
+      parent: null,
+      sku_prefix: "NOTE",
+      profile_key: "banknotes",
+      description: ""
+    }]
+  });
+  mocks.getCategorySchema.mockResolvedValue({
+    profile_key: "banknotes",
+    fields: [
+      {
+        name: "country",
+        label: "Country",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["AU", "Australia", "Rhodesia"]
+      },
+      {
+        name: "denomination",
+        label: "Denomination",
+        type: "str",
+        required: false,
+        choices: [],
+        min: null,
+        max: null,
+        help_text: "",
+        suggestions: ["$1", "$2", "$5", "$10", "$20"]
+      }
+    ]
+  });
+  const user = userEvent.setup();
+  renderItemDetail();
+
+  await user.selectOptions(await screen.findByLabelText("Denomination"), "$20");
+  await user.selectOptions(screen.getByLabelText("Country"), "__custom__");
+  await user.type(screen.getByLabelText("Country custom value"), "Rhodesia");
+  await user.click(screen.getByRole("button", { name: /^save$/i }));
+
+  await waitFor(() => {
+    expect(mocks.updateItem).toHaveBeenCalledWith("item-1", expect.objectContaining({
+      attributes: {
+        country: "Rhodesia",
+        denomination: "$20"
+      }
+    }));
+  });
 });

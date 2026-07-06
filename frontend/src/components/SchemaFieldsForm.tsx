@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useId } from "react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getCategorySchema } from "../api/categories";
 import type { FieldSpec, UUID } from "../types";
 
 type Attributes = Record<string, unknown>;
+const CUSTOM_VALUE = "__custom__";
 
 interface SchemaFieldsFormProps {
   categoryId: UUID | null;
@@ -87,8 +88,6 @@ function FieldControl({
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
-  const datalistId = useId();
-
   if (field.type === "choice") {
     return (
       <label className="label">
@@ -215,21 +214,81 @@ function FieldControl({
     );
   }
 
+  if (field.type === "str" && field.suggestions?.length) {
+    return <SuggestedTextField field={field} value={value} onChange={onChange} />;
+  }
+
   return (
     <label className="label">
       <span>{field.label}</span>
-      <input
-        className="field"
-        list={field.suggestions?.length ? datalistId : undefined}
-        value={stringValue(value)}
-        onChange={(event) => onChange(event.target.value)}
-      />
-      {field.suggestions?.length ? (
-        <datalist id={datalistId} data-testid={`${field.name}-suggestions`}>
-          {field.suggestions.map((suggestion) => (
-            <option key={suggestion} value={suggestion} />
+      <input className="field" value={stringValue(value)} onChange={(event) => onChange(event.target.value)} />
+      {field.help_text ? <HelpText text={field.help_text} /> : null}
+    </label>
+  );
+}
+
+function SuggestedTextField({
+  field,
+  value,
+  onChange
+}: {
+  field: FieldSpec;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const suggestions = useMemo(() => dedupeStrings(field.suggestions ?? []), [field.suggestions]);
+  const currentValue = stringValue(value);
+  const selectedSuggestion = suggestions.some((suggestion) => suggestion === currentValue);
+  const [customMode, setCustomMode] = useState(Boolean(currentValue && !selectedSuggestion));
+
+  useEffect(() => {
+    setCustomMode(Boolean(currentValue && !suggestions.includes(currentValue)));
+  }, [currentValue, suggestions]);
+
+  const selectValue = customMode ? CUSTOM_VALUE : selectedSuggestion ? currentValue : "";
+
+  return (
+    <label className="label">
+      <span>{field.label}</span>
+      <span className="relative block">
+        <select
+          aria-label={field.label}
+          className="field w-full appearance-none pr-11"
+          value={selectValue}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            if (nextValue === CUSTOM_VALUE) {
+              setCustomMode(true);
+              if (selectedSuggestion) {
+                onChange("");
+              }
+              return;
+            }
+            setCustomMode(false);
+            onChange(nextValue);
+          }}
+        >
+          <option value="">Unspecified</option>
+          {suggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion}>
+              {suggestion}
+            </option>
           ))}
-        </datalist>
+          <option value={CUSTOM_VALUE}>Other / custom...</option>
+        </select>
+        <ChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-700"
+        />
+      </span>
+      {customMode ? (
+        <input
+          aria-label={`${field.label} custom value`}
+          className="field mt-2"
+          placeholder={`Custom ${field.label.toLowerCase()}`}
+          value={currentValue}
+          onChange={(event) => onChange(event.target.value)}
+        />
       ) : null}
       {field.help_text ? <HelpText text={field.help_text} /> : null}
     </label>
@@ -318,4 +377,19 @@ function humanizeChoice(value: string) {
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function dedupeStrings(values: string[]) {
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const value of values) {
+    const text = String(value || "").trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    cleaned.push(text);
+  }
+  return cleaned;
 }

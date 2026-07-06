@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 from rest_framework.test import APIClient
 
-from apps.catalog.denominations import denomination_values, load_denomination_registry
+from apps.catalog.field_choices import (
+    apply_field_choice_suggestions,
+    field_choice_values,
+    load_field_choice_registry,
+)
 from apps.catalog.models import ProductCategory
 from apps.catalog.profiles import get_schema
 from apps.intelligence.ai_research import build_item_context, normalize_ai_field
@@ -77,11 +81,11 @@ def test_banknotes_category_exists_from_migration():
 
 
 @pytest.mark.django_db
-def test_banknotes_schema_and_denomination_data(api_client, banknote_category):
+def test_banknotes_schema_and_field_choice_data(api_client, banknote_category):
     InventoryItem.objects.create(
         title="Live denomination example",
         category=banknote_category,
-        attributes={"country": "Australia", "denomination": "Ten shillings"},
+        attributes={"country": "Rhodesia", "denomination": "Ten shillings"},
     )
 
     response = api_client.get(f"/api/categories/{banknote_category.id}/schema/")
@@ -97,11 +101,35 @@ def test_banknotes_schema_and_denomination_data(api_client, banknote_category):
         "catalogue_refs",
         "notes",
     } <= set(fields)
+    assert "AU" in fields["country"]["suggestions"]
+    assert "Rhodesia" in fields["country"]["suggestions"]
     assert "$10" in fields["denomination"]["suggestions"]
     assert "Ten shillings" in fields["denomination"]["suggestions"]
     catalogue_refs = fields["catalogue_refs"]
     assert "Candidate references only" in catalogue_refs["help_text"]
     assert catalogue_refs["item_shape"]["system"]["choices"] == ["Pick", "Renniks", "McDonald", "other"]
+
+
+@pytest.mark.django_db
+def test_banknote_country_and_denomination_custom_values_persist(api_client, banknote_category):
+    payload = {
+        "title": "Rhodesia ten shillings note",
+        "category": str(banknote_category.id),
+        "condition": InventoryItem.Condition.GOOD,
+        "quantity_total": 1,
+        "attributes": {
+            "country": "Rhodesia",
+            "denomination": "Ten shillings",
+            "series_year": "1964",
+        },
+    }
+
+    response = api_client.post("/api/items/", payload, format="json")
+
+    assert response.status_code == 201, response.data
+    item = InventoryItem.objects.get(id=response.data["id"])
+    assert item.attributes["country"] == "Rhodesia"
+    assert item.attributes["denomination"] == "Ten shillings"
 
 
 @pytest.mark.django_db
@@ -184,13 +212,35 @@ def test_banknotes_are_in_descriptor_evidence_lookup(banknote_category):
     assert payload["stats"]["count"] >= 2
 
 
-def test_denomination_lists_are_data_config(tmp_path):
-    registry_path = tmp_path / "denominations.json"
-    registry_path.write_text(json.dumps({"banknotes": ["$10", "$200"]}), encoding="utf-8")
+@pytest.mark.django_db
+def test_field_choice_lists_are_data_config(tmp_path):
+    registry_path = tmp_path / "field_choices.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "banknotes": {
+                    "country": ["Australia", "Rhodesia"],
+                    "denomination": ["$10", "$200"],
+                    "signature_variety": ["Johnston/Fraser"],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
 
-    registry = load_denomination_registry(registry_path)
+    registry = load_field_choice_registry(registry_path)
+    fields = {
+        field["name"]: field
+        for field in apply_field_choice_suggestions(
+            get_schema("banknotes").fields(),
+            "banknotes",
+            registry_path=registry_path,
+        )
+    }
 
-    assert registry["banknotes"] == ["$10", "$200"]
+    assert registry["banknotes"]["denomination"] == ["$10", "$200"]
+    assert fields["country"]["suggestions"] == ["Australia", "Rhodesia"]
+    assert fields["signature_variety"]["suggestions"] == ["Johnston/Fraser"]
 
 
 def test_no_new_network_or_ai_paths_for_sprint23():
@@ -206,4 +256,5 @@ def test_no_new_network_or_ai_paths_for_sprint23():
 
     schema = get_schema("banknotes").fields()
     assert any(field["name"] == "denomination" for field in schema)
-    assert denomination_values("banknotes")
+    assert field_choice_values("banknotes", "denomination")
+    assert field_choice_values("banknotes", "country")

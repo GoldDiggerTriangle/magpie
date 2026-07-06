@@ -138,3 +138,90 @@ Status: live deployment complete. Sprint 23 implementation was validated locally
   - Run `28767196470`.
   - SQLite job `85293740488`: success.
   - Postgres job `85293740499`: success.
+
+---
+
+# Round 2 Reopen Evidence - iOS Picker Closure Fix
+
+## Scope
+
+- Reopened because the live iPhone edit form showed `Denomination` as a bare text/datalist control with no visible picker affordance.
+- Round 2 replaces datalist-only behaviour with a real visible picker pattern:
+  - native select
+  - visible chevron affordance
+  - final `Other / custom...` option
+  - custom text input when needed
+  - stored value remains plain text
+- `Country` now uses the same picker/custom pattern.
+- The registry was generalized from denomination-only to per-category/per-field choice lists.
+
+## Implementation
+
+- Added data/config registry:
+  - `backend/apps/catalog/field_choices.json`
+  - `backend/apps/catalog/field_choices.py`
+- Removed the old denomination-only registry:
+  - `backend/apps/catalog/denominations.json`
+  - `backend/apps/catalog/denominations.py`
+- `GET /api/categories/{id}/schema/` now applies configured field choices for any configured category/field pair.
+- Banknotes and Coins now include configured `country` and `denomination` lists.
+- Live stored values are merged into the suggestions so existing custom data remains visible.
+- The shared `SchemaFieldsForm` now renders string fields with suggestions as a native select plus explicit custom entry.
+- Add Item and item edit both use the same control through the shared schema form.
+
+## Data/Config Proof
+
+- A test fixture edits only registry JSON to add:
+  - a new value for an existing mapped field
+  - a new field mapping (`signature_variety`)
+- The schema response receives those suggestions without UI or business-logic changes.
+- No schema migration was needed:
+  - `python manage.py makemigrations --check --dry-run`
+  - Result: `No changes detected`.
+
+## Validation
+
+- Focused backend Sprint 23 tests:
+  - `python -m pytest apps/catalog/tests/test_sprint23.py -q`
+  - Result: `8 passed`.
+- Full backend suite:
+  - `python -m pytest -q`
+  - Result: `194 passed, 1 skipped`.
+- Focused frontend picker/parity tests:
+  - `npm run test -- --run src/components/SchemaFieldsForm.test.tsx src/features/capture/AddItem.test.tsx src/features/inventory/ItemDetail.test.tsx`
+  - Result: `12 passed`.
+- Full frontend suite:
+  - `npm run test -- --run`
+  - Result: `102 passed`.
+- Typecheck:
+  - `npm run typecheck`
+  - Result: passed.
+- Build:
+  - `npm run build`
+  - Result: passed. Existing large chunk warning only.
+- collectstatic:
+  - `python manage.py collectstatic --noinput`
+  - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+
+## Round 1 Regression Coverage
+
+- Photo source choice remains split between `Take photo` and `Choose from library`.
+- Library input still has no `capture` attribute and supports `multiple`.
+- GPS EXIF stripping remains covered by backend tests.
+- Banknotes remain wired through:
+  - descriptor evidence lookup
+  - sold-search building
+  - pricing/source links
+  - copy packs
+  - AI identify curated field scope
+- Catalogue refs remain candidate/manual fields.
+
+## Remaining Live Closure Gates
+
+- Administrator restart is required before the running service can prove the new backend schema metadata and rebuilt SPA.
+- Sprint 23 Round 2 is not reclosed until real iPhone screenshots show the picker open on-device:
+  - Denomination picker open on Add Item.
+  - Denomination picker open on item edit.
+  - Country picker open on Add Item.
+  - Country picker open on item edit.
+- Selection save and custom-entry save are test-proven locally, but live iPhone proof remains pending.
