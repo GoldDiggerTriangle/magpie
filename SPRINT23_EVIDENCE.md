@@ -1,6 +1,6 @@
 # Sprint 23 Evidence - Photo Source Choice, Banknotes, and Denomination Data
 
-Status: live deployment complete pending final remote GitHub `Validation` result during closure.
+Status: live deployment complete. Sprint 23 implementation was validated locally and by GitHub dual-lane `Validation`; the final closure response records the latest pushed head and run ID.
 
 ## Scope Implemented
 
@@ -134,4 +134,7 @@ Status: live deployment complete pending final remote GitHub `Validation` result
 
 ## Remote Validation
 
-- GitHub `Validation` run: pending final closure update.
+- Remote run for implementation commit `a79177c29ad156e590f357b6708b15070c84acb1`:
+  - Run `28767196470`.
+  - SQLite job `85293740488`: success.
+  - Postgres job `85293740499`: success.
