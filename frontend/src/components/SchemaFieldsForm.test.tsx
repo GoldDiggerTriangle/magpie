@@ -163,7 +163,7 @@ test("SchemaFieldsForm renders field suggestions as a visible picker with unrest
         min: null,
         max: null,
         help_text: "",
-        suggestions: ["AU", "Australia", "Rhodesia"]
+        suggestions: ["Australia", "Canada", "Rhodesia"]
       },
       {
         name: "denomination",

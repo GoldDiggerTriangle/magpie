@@ -1,15 +1,10 @@
 {
   "banknotes": {
     "country": [
-      "AU",
       "Australia",
-      "CA",
       "Canada",
-      "US",
       "United States",
-      "GB",
       "United Kingdom",
-      "NZ",
       "New Zealand",
       "Rhodesia",
       "South Africa",
@@ -50,15 +45,10 @@
   },
   "coins": {
     "country": [
-      "AU",
       "Australia",
-      "CA",
       "Canada",
-      "US",
       "United States",
-      "GB",
       "United Kingdom",
-      "NZ",
       "New Zealand",
       "Rhodesia",
       "South Africa",

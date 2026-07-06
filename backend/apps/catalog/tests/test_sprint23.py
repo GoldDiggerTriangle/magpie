@@ -101,7 +101,8 @@ def test_banknotes_schema_and_field_choice_data(api_client, banknote_category):
         "catalogue_refs",
         "notes",
     } <= set(fields)
-    assert "AU" in fields["country"]["suggestions"]
+    assert "Australia" in fields["country"]["suggestions"]
+    assert "Canada" in fields["country"]["suggestions"]
     assert "Rhodesia" in fields["country"]["suggestions"]
     assert "$10" in fields["denomination"]["suggestions"]
     assert "Ten shillings" in fields["denomination"]["suggestions"]

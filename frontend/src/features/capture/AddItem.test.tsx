@@ -196,7 +196,7 @@ test("AddItem saves banknote picker selections and custom country values", async
         min: null,
         max: null,
         help_text: "",
-        suggestions: ["AU", "Australia", "Rhodesia"]
+        suggestions: ["Australia", "Canada", "Rhodesia"]
       },
       {
         name: "denomination",

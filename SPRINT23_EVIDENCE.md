@@ -225,3 +225,46 @@ Status: live deployment complete. Sprint 23 implementation was validated locally
   - Country picker open on Add Item.
   - Country picker open on item edit.
 - Selection save and custom-entry save are test-proven locally, but live iPhone proof remains pending.
+
+## Round 2 Live Closure Proof
+
+- Administrator restart completed after Round 2 commit `fab6a529e9c511356a087d9419439398cc2c930c`.
+- Live health check:
+  - `/api/health/` returned `200`.
+- iPhone loaded the updated app with cache-buster `?v=fab6a52`.
+- Real iPhone picker-open proof captured:
+  - Add Item, Country picker open: `evidence/sprint23/round2-add-country-picker-open.jpg`.
+  - Add Item, Denomination picker open: `evidence/sprint23/round2-add-denomination-picker-open.jpg`.
+  - Item edit, Country picker open: `evidence/sprint23/round2-edit-country-picker-open.jpg`.
+  - Item edit, Denomination picker open: `evidence/sprint23/round2-edit-denomination-picker-open.jpg`.
+- The screenshots prove the updated native picker opens on the real device for both Add Item and item edit.
+- Selection save and custom entry save remain covered by frontend tests:
+  - `AddItem saves banknote picker selections and custom country values`.
+  - `ItemDetail edit saves banknote picker selections and custom country values`.
+
+## Country List Cleanup
+
+- After the picker-open proof, Regan requested country names only in the dropdown, not duplicate code/name entries such as `CA` and `Canada`.
+- The field-choice registry was updated to remove country-code aliases from Banknotes and Coins.
+- Country values now use names such as `Australia`, `Canada`, `United States`, `United Kingdom`, and `New Zealand`.
+- Custom country entry remains available for defunct or non-standard issuers such as `Rhodesia`.
+- This was a data/config-only cleanup; no schema migration was needed.
+
+## Round 2 Remote Validation
+
+- Remote Validation run for Round 2 implementation commit `fab6a529e9c511356a087d9419439398cc2c930c`:
+  - Run `28768627315`.
+  - Postgres job: success.
+  - SQLite job: success.
+
+## Round 2 Closure Status
+
+- Sprint 23 Round 2 acceptance gate is satisfied:
+  - real iPhone Denomination picker open on Add Item: proven
+  - real iPhone Denomination picker open on item edit: proven
+  - real iPhone Country picker open on Add Item: proven
+  - real iPhone Country picker open on item edit: proven
+  - selection save: test-proven
+  - custom entry save: test-proven
+  - Round 1 regressions: test-proven
+- Sprint 23 Round 2 is formally reclosed.

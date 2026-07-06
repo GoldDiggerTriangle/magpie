@@ -164,7 +164,7 @@ test("ItemDetail edit saves banknote picker selections and custom country values
         min: null,
         max: null,
         help_text: "",
-        suggestions: ["AU", "Australia", "Rhodesia"]
+        suggestions: ["Australia", "Canada", "Rhodesia"]
       },
       {
         name: "denomination",
