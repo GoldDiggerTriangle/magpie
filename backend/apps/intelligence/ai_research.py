@@ -344,7 +344,12 @@ def stage_ai_suggestions(
     suggestions = []
     candidates = ensure_copywriting_title_candidate(item, result) if ensure_copywriting_title else list(result.suggestions)
     for candidate in candidates:
-        field, confidence = normalize_ai_field(candidate.field, candidate.confidence_band, candidate.candidate_only)
+        field, confidence = normalize_ai_field(
+            candidate.field,
+            candidate.confidence_band,
+            candidate.candidate_only,
+            item=item,
+        )
         if not field:
             continue
         suggestion = FieldSuggestion.objects.create(
@@ -386,11 +391,20 @@ def ensure_copywriting_title_candidate(item: InventoryItem, result: AIResearchRe
     return candidates
 
 
-def normalize_ai_field(field: str, confidence_band: str, candidate_only: bool) -> tuple[str, str] | tuple[None, None]:
+def normalize_ai_field(
+    field: str,
+    confidence_band: str,
+    candidate_only: bool,
+    *,
+    item: InventoryItem | None = None,
+) -> tuple[str, str] | tuple[None, None]:
     cleaned = str(field or "").strip()
     lower = cleaned.lower()
     if not cleaned:
         return None, None
+    scoped_attribute = scoped_identify_attribute(item, lower)
+    if scoped_attribute:
+        return scoped_attribute, normalize_confidence(confidence_band)
     if lower in {"condition", "attributes.condition", "condition_observation", "ai_observation.condition"}:
         return "ai_observation.condition", FieldSuggestion.ConfidenceBand.CANDIDATE
     if lower in {"short_description", "description", "description_draft", "ai_candidate.short_description_draft"}:
@@ -407,6 +421,23 @@ def normalize_ai_field(field: str, confidence_band: str, candidate_only: bool) -
         if attribute_name and not any(fragment in attribute_name.lower() for fragment in PROHIBITED_FIELD_FRAGMENTS):
             return cleaned, normalize_confidence(confidence_band)
     return None, None
+
+
+def scoped_identify_attribute(item: InventoryItem | None, lower_field: str) -> str:
+    if item is None or item.category is None:
+        return ""
+    scope = build_identify_scope(item.category.profile_key)
+    editable_fields = {str(field).lower() for field in scope.get("fields", [])}
+    field_name = lower_field
+    if field_name.startswith("ai_candidate."):
+        field_name = field_name.replace("ai_candidate.", "attributes.", 1)
+    elif not field_name.startswith("attributes.") and "." not in field_name:
+        field_name = f"attributes.{field_name}"
+    if field_name in editable_fields and not any(
+        fragment in field_name.replace("attributes.", "") for fragment in PROHIBITED_FIELD_FRAGMENTS
+    ):
+        return field_name
+    return ""
 
 
 def normalize_confidence(value: str) -> str:

@@ -136,6 +136,58 @@ def test_missing_title_draft_gets_editable_low_confidence_search_term_fallback(b
 
 
 @pytest.mark.django_db
+def test_candidate_named_identify_scope_fields_stay_editable(api_client, banknote_category):
+    item = make_banknote(banknote_category)
+    result = AIResearchResult(
+        suggestions=[
+            AISuggestionCandidate(
+                field="ai_candidate.series_year",
+                value="1954 series, modified portrait type",
+                confidence_band="candidate",
+                evidence="Series/year appears in the note design and search context.",
+                candidate_only=True,
+            ),
+            AISuggestionCandidate(
+                field="ai_candidate.prefix_serial",
+                value="F9633861",
+                confidence_band="candidate",
+                evidence="Serial is visible on the note face.",
+                candidate_only=True,
+            ),
+            AISuggestionCandidate(
+                field="ai_candidate.signature_variety",
+                value="Two-signature variety visible; exact names unclear",
+                confidence_band="candidate",
+                evidence="Two signatures are visible on the note.",
+                candidate_only=True,
+            ),
+            AISuggestionCandidate(
+                field="ai_candidate.catalogue_refs",
+                value=[{"system": "Pick", "number": "PM-40a"}],
+                confidence_band="candidate",
+                evidence="Catalogue reference remains candidate-only.",
+                candidate_only=True,
+            ),
+        ],
+    )
+
+    stage_ai_suggestions(item, result)
+
+    assert FieldSuggestion.objects.filter(item=item, field="attributes.series_year").exists()
+    assert FieldSuggestion.objects.filter(item=item, field="attributes.prefix_serial").exists()
+    assert FieldSuggestion.objects.filter(item=item, field="attributes.signature_variety").exists()
+    assert FieldSuggestion.objects.filter(item=item, field="ai_candidate.catalogue_refs").exists()
+
+    series = FieldSuggestion.objects.get(item=item, field="attributes.series_year")
+    response = api_client.post(f"/api/field-suggestions/{series.id}/approve/")
+
+    assert response.status_code == 200, response.data
+    item.refresh_from_db()
+    assert item.attributes["series_year"] == "1954 series, modified portrait type"
+    assert "catalogue_refs" not in item.attributes
+
+
+@pytest.mark.django_db
 def test_catalogue_refs_and_condition_observations_remain_review_only(api_client, banknote_category):
     item = make_banknote(banknote_category)
     run_identify_for_item(item, adapter=FakeAiResearchAdapter(), storage=None)

@@ -342,3 +342,37 @@ Automated frontend coverage proves the banner action itself:
   - collectstatic:
     - `python manage.py collectstatic --noinput`
     - Result: `7 static files copied`, `155 unmodified`, `424 post-processed`.
+
+## Round 2 Follow-up: Category Specifics Suggestions
+
+- Owner confirmed the title fill flow works and requested the same staged Approve/Edit flow for Banknotes category-specific values:
+  - Series/year
+  - Prefix/serial
+  - Signature/variety
+  - Catalogue refs
+- Live DB inspection showed recent AI responses did create these leads, but some real category fields were staged as `ai_candidate.*`:
+  - `ai_candidate.series_year`
+  - `ai_candidate.prefix_serial`
+  - `ai_candidate.signature_variety`
+- Root cause:
+  - The normaliser treated `ai_candidate.*` as review-only even when the field name was listed as an editable field in the per-category identify scope.
+- Fix:
+  - AI suggestions now use the category identify scope as the source of truth.
+  - `ai_candidate.series_year`, `ai_candidate.prefix_serial`, and `ai_candidate.signature_variety` are normalised to editable `attributes.*` suggestions for Banknotes because those fields are in the Banknotes identify scope.
+  - They still appear as low-confidence/candidate-band leads and still require explicit Approve/Edit.
+  - `ai_candidate.catalogue_refs` remains candidate-only and does not write into item data.
+- Regression coverage:
+  - `test_candidate_named_identify_scope_fields_stay_editable`
+  - Existing catalogue-ref candidate-only guard remains green.
+- Validation:
+  - Focused backend:
+    - `python -m pytest apps/intelligence/tests/test_sprint24.py apps/intelligence/tests/test_sprint15.py::test_price_assist_surfaces_no_number_as_price`
+    - Result: `10 passed`.
+  - Django system check:
+    - `python manage.py check`
+    - Result: `System check identified no issues`.
+  - Full backend:
+    - `python -m pytest`
+    - Result: `203 passed, 1 skipped`.
+- Deployment note:
+  - Backend-only change; the `Magpie` service must be restarted before the live app can stage new editable category-specific suggestions.
