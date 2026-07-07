@@ -20,6 +20,7 @@ from apps.intelligence.models import (
     FieldSuggestion,
 )
 from apps.intelligence.ai_adapters import (
+    AISuggestionCandidate,
     AIResearchResult,
     AIResearchUnavailable,
     AiResearchAdapter,
@@ -206,7 +207,12 @@ def _run_ai_phase(
         request_metadata=result.request_metadata,
         response_metadata=result.response_metadata,
     )
-    suggestions = stage_ai_suggestions(item, result, call=call)
+    suggestions = stage_ai_suggestions(
+        item,
+        result,
+        call=call,
+        ensure_copywriting_title=phase == AIResearchCall.Phase.IDENTIFY,
+    )
     terms = stage_ai_search_terms(item, result, call=call)
     links = stage_reference_links(item, result, call=call)
     call.suggestions_created = len(suggestions)
@@ -333,9 +339,11 @@ def stage_ai_suggestions(
     result: AIResearchResult,
     *,
     call: AIResearchCall | None = None,
+    ensure_copywriting_title: bool = False,
 ) -> list[FieldSuggestion]:
     suggestions = []
-    for candidate in result.suggestions:
+    candidates = ensure_copywriting_title_candidate(item, result) if ensure_copywriting_title else list(result.suggestions)
+    for candidate in candidates:
         field, confidence = normalize_ai_field(candidate.field, candidate.confidence_band, candidate.candidate_only)
         if not field:
             continue
@@ -349,6 +357,33 @@ def stage_ai_suggestions(
         )
         suggestions.append(suggestion)
     return suggestions
+
+
+def ensure_copywriting_title_candidate(item: InventoryItem, result: AIResearchResult) -> list[AISuggestionCandidate]:
+    candidates = list(result.suggestions)
+    if any(str(candidate.field or "").strip().lower() == "title" for candidate in candidates):
+        return candidates
+    category = item.category
+    profile_key = category.profile_key if category else ""
+    identify_scope = build_identify_scope(profile_key)
+    if "title" not in identify_scope.get("copywriting_drafts", []):
+        return candidates
+    fallback = next((str(term).strip() for term in result.search_terms if str(term).strip()), "")
+    if not fallback:
+        return candidates
+    candidates.append(
+        AISuggestionCandidate(
+            field="title",
+            value=fallback[:200],
+            confidence_band=FieldSuggestion.ConfidenceBand.LOW,
+            evidence=(
+                "The AI response did not include a dedicated title draft, so Magpie staged the strongest "
+                "AI search phrase as an editable title lead for human review."
+            ),
+            source_basis="AI search-term fallback",
+        )
+    )
+    return candidates
 
 
 def normalize_ai_field(field: str, confidence_band: str, candidate_only: bool) -> tuple[str, str] | tuple[None, None]:

@@ -305,3 +305,40 @@ Automated frontend coverage proves the banner action itself:
   - Phone screenshots proving the reorganised item page and AI review controls are clear of the iOS status bar.
   - Final Round 2 head commit hash.
   - Final Round 2 GitHub `Validation` run ID.
+
+## Round 2 Follow-up: Missing Title Suggestion
+
+- Owner live check found no title suggestion in the AI review panel after Identify & fill.
+- Live DB inspection confirmed the latest AI run for `GSP-00001` staged only:
+  - `notes`
+  - `ai_candidate.catalogue_refs`
+  - `ai_candidate.signature_variety`
+- Root cause:
+  - The identify scope requested copywriting drafts including `title`, but the real provider response schema only required a generic `suggestions` array, so the provider could omit `title`.
+- Fix:
+  - Identify & fill now adds a conservative, low-confidence editable `title` suggestion from the first AI search term when the provider omits a dedicated title draft.
+  - The fallback is limited to the Identify phase.
+  - Price-assist remains unable to stage title suggestions.
+  - The fallback is staged only; it still requires explicit Approve/Edit and never auto-writes item data.
+- Regression coverage:
+  - `test_missing_title_draft_gets_editable_low_confidence_search_term_fallback`
+  - `test_price_assist_surfaces_no_number_as_price`
+- Validation:
+  - Focused backend:
+    - `python -m pytest apps/intelligence/tests/test_sprint15.py::test_price_assist_surfaces_no_number_as_price apps/intelligence/tests/test_sprint24.py`
+    - Result: `9 passed`.
+  - Full backend:
+    - `python -m pytest`
+    - Result: `202 passed, 1 skipped`.
+  - Focused frontend:
+    - `npm run test -- --run src/components/Sprint13Panels.test.tsx src/features/inventory/ItemDetail.test.tsx`
+    - Result: `13 passed`.
+  - Typecheck:
+    - `npm run typecheck`
+    - Result: passed.
+  - Build:
+    - `npm run build`
+    - Result: passed, with the existing Vite large-chunk warning.
+  - collectstatic:
+    - `python manage.py collectstatic --noinput`
+    - Result: `7 static files copied`, `155 unmodified`, `424 post-processed`.

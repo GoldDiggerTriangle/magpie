@@ -9,8 +9,8 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.catalog.models import ProductCategory
-from apps.intelligence.ai_adapters import FakeAiResearchAdapter
-from apps.intelligence.ai_research import build_item_context, run_identify_for_item
+from apps.intelligence.ai_adapters import AISuggestionCandidate, AIResearchResult, FakeAiResearchAdapter
+from apps.intelligence.ai_research import build_item_context, run_identify_for_item, stage_ai_suggestions
 from apps.intelligence.identify_scope import build_identify_scope, load_identify_scope_registry
 from apps.intelligence.models import FieldSuggestion
 from apps.inventory.models import InventoryItem
@@ -107,6 +107,32 @@ def test_banknotes_fake_identify_stages_full_schema_and_drafts_without_mutating(
         "ai_candidate.short_description_draft",
     } <= fields
     assert result["call"].request_metadata["identify_scope"]["fields"]
+
+
+@pytest.mark.django_db
+def test_missing_title_draft_gets_editable_low_confidence_search_term_fallback(banknote_category):
+    item = make_banknote(banknote_category)
+    result = AIResearchResult(
+        suggestions=[
+            AISuggestionCandidate(
+                field="notes",
+                value="Front and back shown; handled note.",
+                confidence_band="high",
+                evidence="Condition details visible in photos.",
+            )
+        ],
+        search_terms=["Bank of Canada one dollar blue green note"],
+    )
+
+    staged = stage_ai_suggestions(item, result, ensure_copywriting_title=True)
+
+    item.refresh_from_db()
+    assert item.title == "Australian $10 banknote"
+    title_suggestion = FieldSuggestion.objects.get(item=item, field="title")
+    assert title_suggestion in staged
+    assert title_suggestion.proposed_value == "Bank of Canada one dollar blue green note"
+    assert title_suggestion.confidence_band == FieldSuggestion.ConfidenceBand.LOW
+    assert "AI search-term fallback" in title_suggestion.evidence
 
 
 @pytest.mark.django_db
