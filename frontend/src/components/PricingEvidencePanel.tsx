@@ -1,11 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Plus, Scale, Star } from "lucide-react";
+import { ExternalLink, FileImage, Plus, Scale, Star } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
 
 import { createComparable } from "../api/comparables";
-import { getPricingEvidence } from "../api/pricingEvidence";
-import type { ComparablePayload, PricingEvidence, PricingEvidenceRow, PricingGridCell, UUID } from "../types";
+import { getPricingEvidence, parsePricingEvidenceCaptureDraft } from "../api/pricingEvidence";
+import type {
+  ComparablePayload,
+  PricingEvidence,
+  PricingEvidenceCaptureDraft,
+  PricingEvidenceRow,
+  PricingGridCell,
+  UUID
+} from "../types";
 import { AuthRequiredState } from "./AuthRequiredState";
 import { EmptyState } from "./EmptyState";
 
@@ -33,6 +40,9 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
   });
   const [form, setForm] = useState(blankCapture);
   const [error, setError] = useState("");
+  const [draftUrl, setDraftUrl] = useState("");
+  const [draftScreenshot, setDraftScreenshot] = useState<File | null>(null);
+  const [draftMessage, setDraftMessage] = useState("");
 
   const capture = useMutation({
     mutationFn: (payload: ComparablePayload) => createComparable(payload),
@@ -40,6 +50,13 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
       setForm(blankCapture);
       queryClient.invalidateQueries({ queryKey: ["pricing-evidence", itemId] });
       queryClient.invalidateQueries({ queryKey: ["comparables", itemId] });
+    }
+  });
+  const captureDraft = useMutation({
+    mutationFn: () => parsePricingEvidenceCaptureDraft(itemId, { url: draftUrl, screenshot: draftScreenshot }),
+    onSuccess: (result) => {
+      setForm((current) => mergeDraftIntoForm(current, result.draft));
+      setDraftMessage([result.detail, ...result.warnings].filter(Boolean).join(" "));
     }
   });
 
@@ -118,6 +135,20 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
 
           <EvidenceSummary data={pricing.data} />
           <EvidenceRows rows={pricing.data.headline} />
+          <EvidenceCaptureDraftForm
+            disabled={captureDraft.isPending}
+            detail={draftMessage}
+            error={errorText(captureDraft.error)}
+            screenshot={draftScreenshot}
+            url={draftUrl}
+            onScreenshotChange={setDraftScreenshot}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setDraftMessage("");
+              captureDraft.mutate();
+            }}
+            onUrlChange={setDraftUrl}
+          />
           <CaptureForm
             disabled={capture.isPending}
             error={error || errorText(capture.error)}
@@ -134,6 +165,67 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
         </>
       ) : null}
     </section>
+  );
+}
+
+function EvidenceCaptureDraftForm({
+  detail,
+  disabled,
+  error,
+  screenshot,
+  url,
+  onScreenshotChange,
+  onSubmit,
+  onUrlChange
+}: {
+  detail: string;
+  disabled: boolean;
+  error: string;
+  screenshot: File | null;
+  url: string;
+  onScreenshotChange: (file: File | null) => void;
+  onSubmit: (event: FormEvent) => void;
+  onUrlChange: (value: string) => void;
+}) {
+  return (
+    <form className="pricing-capture-draft" onSubmit={onSubmit}>
+      <div className="pricing-capture-title">
+        <FileImage className="h-4 w-4" aria-hidden="true" />
+        <div>
+          <h3>Fill capture form from screenshot or link</h3>
+          <p>
+            Screenshots are read locally with OCR when available. Links are stored as evidence only; Magpie does not fetch marketplace pages.
+          </p>
+        </div>
+      </div>
+      {detail ? <p className="pricing-draft-detail">{detail}</p> : null}
+      {error ? <p className="pricing-error">{error}</p> : null}
+      <div className="pricing-capture-grid">
+        <label className="label pricing-span-2">
+          <span>Evidence link</span>
+          <input
+            className="field"
+            placeholder="https://ebay.io/..."
+            value={url}
+            onChange={(event) => onUrlChange(event.target.value)}
+          />
+        </label>
+        <label className="label pricing-span-2">
+          <span>Sold-result screenshot</span>
+          <input
+            accept="image/*"
+            className="field"
+            type="file"
+            onChange={(event) => onScreenshotChange(event.target.files?.[0] ?? null)}
+          />
+          {screenshot ? <small>{screenshot.name}</small> : null}
+        </label>
+      </div>
+      <button className="ledger-button" disabled={disabled || (!url.trim() && !screenshot)} type="submit">
+        <FileImage className="h-4 w-4" aria-hidden="true" />
+        Fill capture form
+      </button>
+    </form>
   );
 }
 
@@ -316,6 +408,25 @@ function CaptureForm({
       </button>
     </form>
   );
+}
+
+function mergeDraftIntoForm(current: typeof blankCapture, draft: PricingEvidenceCaptureDraft): typeof blankCapture {
+  return {
+    ...current,
+    title: draft.title || current.title,
+    price: draft.price || current.price,
+    price_basis: draft.price_basis !== "unknown" ? draft.price_basis : current.price_basis,
+    shipping: draft.shipping || current.shipping,
+    source: draft.source || current.source,
+    source_tag: draft.source_tag || current.source_tag,
+    url: draft.url || current.url,
+    observed_on: draft.observed_on || current.observed_on,
+    condition: draft.condition || current.condition,
+    grade: draft.grade || current.grade,
+    sale_format: draft.sale_format !== "unknown" ? draft.sale_format : current.sale_format,
+    match_scope: draft.match_scope || current.match_scope,
+    match_reason: draft.match_reason || current.match_reason
+  };
 }
 
 function PricingGrid({ rows, title }: { rows: PricingGridCell[]; title: string }) {

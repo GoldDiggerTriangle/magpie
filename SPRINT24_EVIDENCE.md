@@ -376,3 +376,66 @@ Automated frontend coverage proves the banner action itself:
     - Result: `203 passed, 1 skipped`.
 - Deployment note:
   - Backend-only change; the `Magpie` service must be restarted before the live app can stage new editable category-specific suggestions.
+
+## Follow-up: Pricing Evidence Screenshot / Link Capture
+
+- Owner request:
+  - From the item Pricing evidence & comps section, paste an eBay link or upload a sold-result screenshot and have Magpie fill the comparable capture fields.
+- Implementation:
+  - Added `/api/items/<item_id>/pricing-evidence/capture-draft/`.
+  - Added a "Fill capture form from screenshot or link" helper above the existing "Capture verified comp" form.
+  - Added local OCR parsing for uploaded screenshots when local Tesseract is available.
+  - The parser fills a draft only; it does not create a `Comparable`.
+  - The existing explicit `Add to grid` action remains the save/approval step.
+- Marketplace safety:
+  - Link-only capture records the source and URL but does not fetch the marketplace page.
+  - Link-only capture does not invent price, title, date, shipping, condition, grade, or sale format.
+  - Screenshot OCR can prefill visible values such as sold price, shipping, sold date, title, price basis, and sale format for human review.
+  - Magpie still does not scrape, fetch, cache, summarise, or warehouse marketplace result pages.
+- Test case covered:
+  - eBay sold screenshot text shaped like the owner example:
+    - `SOLD 14 JUN 2026`
+    - sold price `AU $11.13`
+    - shipping `+AU $24.29 delivery`
+    - eBay short link `https://ebay.io/m/gPzKet`
+  - Resulting draft:
+    - source `eBay sold`
+    - source tag `ebay_sold`
+    - price basis `buyer_visible`
+    - price `11.13`
+    - shipping `24.29`
+    - observed date `2026-06-14`
+- Validation:
+  - Focused backend:
+    - `python -m pytest apps/research/tests/test_comparable_capture.py apps/research/tests/test_sprint14.py -q`
+    - Result: `10 passed`.
+  - Focused frontend:
+    - `npm run test -- PricingEvidencePanel.test.tsx`
+    - Result: `4 passed`.
+  - Django system check:
+    - `python manage.py check`
+    - Result: `System check identified no issues`.
+  - Migration check:
+    - `python manage.py makemigrations --check --dry-run`
+    - Result: `No changes detected`.
+  - Typecheck:
+    - `npm run typecheck`
+    - Result: passed.
+  - Build:
+    - `npm run build`
+    - Result: passed, with the existing Vite large-chunk warning.
+  - collectstatic:
+    - `python manage.py collectstatic --noinput`
+    - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+  - Full frontend:
+    - `npm run test`
+    - Result: `113 passed`.
+  - Full backend:
+    - `python -m pytest -q`
+    - Result: `207 passed`, `1 skipped`.
+  - No-fetch guard:
+    - `rg "requests|httpx|urlopen|urllib\\.request|fetch\\(" backend/apps/research/comparable_capture.py frontend/src/components/PricingEvidencePanel.tsx frontend/src/api/pricingEvidence.ts`
+    - Result: no matches.
+- Live deployment note:
+  - Frontend assets have been built and collected.
+  - The `Magpie` service must be restarted before the live port `8000` serves the new backend endpoint and SPA bundle.

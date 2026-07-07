@@ -7,6 +7,11 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.inventory.models import InventoryItem
 from apps.research.filters import ComparableFilter, ResearchRecordFilter
+from apps.research.comparable_capture import (
+    ComparableCaptureOcrUnavailable,
+    comparable_capture_draft,
+    ocr_uploaded_screenshot,
+)
 from apps.research.descriptor_lookup import descriptor_lookup_payload, parse_terms
 from apps.research.links import research_links
 from apps.research.models import Comparable, ResearchRecord
@@ -54,6 +59,39 @@ class PricingEvidenceView(APIView):
             pk=item_id,
         )
         return Response(pricing_evidence_payload(item))
+
+
+class PricingEvidenceCaptureDraftView(APIView):
+    def post(self, request, item_id):
+        get_object_or_404(InventoryItem, pk=item_id)
+        url = request.data.get("url") or ""
+        screenshot = request.FILES.get("screenshot")
+        ocr_text = ""
+        ocr_available = True
+        warnings = []
+
+        if screenshot:
+            try:
+                ocr_text = ocr_uploaded_screenshot(screenshot)
+            except ComparableCaptureOcrUnavailable as exc:
+                ocr_available = False
+                warnings.append(str(exc))
+
+        result = comparable_capture_draft(
+            url=url,
+            ocr_text=ocr_text,
+            ocr_available=ocr_available,
+        )
+        return Response(
+            {
+                "available": result.available,
+                "ocr_available": result.ocr_available,
+                "detail": result.detail,
+                "draft": result.draft,
+                "parsed_from": result.parsed_from,
+                "warnings": [*result.warnings, *warnings],
+            }
+        )
 
 
 class DescriptorEvidenceLookupView(APIView):

@@ -8,7 +8,8 @@ import type { PricingEvidence } from "../types";
 
 const mocks = vi.hoisted(() => ({
   createComparable: vi.fn(),
-  getPricingEvidence: vi.fn()
+  getPricingEvidence: vi.fn(),
+  parsePricingEvidenceCaptureDraft: vi.fn()
 }));
 
 vi.mock("../api/comparables", () => ({
@@ -16,7 +17,8 @@ vi.mock("../api/comparables", () => ({
 }));
 
 vi.mock("../api/pricingEvidence", () => ({
-  getPricingEvidence: (...args: unknown[]) => mocks.getPricingEvidence(...args)
+  getPricingEvidence: (...args: unknown[]) => mocks.getPricingEvidence(...args),
+  parsePricingEvidenceCaptureDraft: (...args: unknown[]) => mocks.parsePricingEvidenceCaptureDraft(...args)
 }));
 
 const pricingEvidence: PricingEvidence = {
@@ -130,6 +132,28 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getPricingEvidence.mockResolvedValue(pricingEvidence);
   mocks.createComparable.mockResolvedValue({ id: "comp-1" });
+  mocks.parsePricingEvidenceCaptureDraft.mockResolvedValue({
+    available: true,
+    ocr_available: true,
+    detail: "Capture form filled from your screenshot. Review it, then press Add to grid to save evidence.",
+    draft: {
+      title: "1954 *M/Y ASTERISK $1.00 BC-37bA * SCARCE Elizabeth II Bank of Canada",
+      price: "11.13",
+      price_basis: "buyer_visible",
+      shipping: "24.29",
+      source: "eBay sold",
+      source_tag: "ebay_sold",
+      url: "https://ebay.io/m/gPzKet",
+      observed_on: "2026-06-14",
+      condition: "",
+      grade: "",
+      sale_format: "fixed_price",
+      match_scope: "exact",
+      match_reason: "user-selected sold-result screenshot; review exactness"
+    },
+    parsed_from: ["link", "screenshot"],
+    warnings: []
+  });
 });
 
 test("PricingEvidencePanel renders outbound source links and own-sales-first rows", async () => {
@@ -177,6 +201,44 @@ test("PricingEvidencePanel captures a source-tagged comparable into the grid", a
     match_reason: "same category; same denomination; same year",
     price_basis: "seller_receives",
     price: "65"
+  })));
+});
+
+test("PricingEvidencePanel fills the comparable form from a user screenshot and link", async () => {
+  renderWithClient(<PricingEvidencePanel itemId="item-1" />);
+
+  await screen.findByText("Fill capture form from screenshot or link");
+  fireEvent.change(screen.getByLabelText("Evidence link"), { target: { value: "https://ebay.io/m/gPzKet" } });
+  fireEvent.change(screen.getByLabelText("Sold-result screenshot"), {
+    target: { files: [new File(["fake screenshot"], "ebay-sold.png", { type: "image/png" })] }
+  });
+  fireEvent.click(screen.getByRole("button", { name: /Fill capture form/i }));
+
+  await waitFor(() => expect(mocks.parsePricingEvidenceCaptureDraft).toHaveBeenCalledWith("item-1", expect.objectContaining({
+    url: "https://ebay.io/m/gPzKet",
+    screenshot: expect.any(File)
+  })));
+  expect(await screen.findByText(/Capture form filled from your screenshot/i)).toBeInTheDocument();
+  expect(screen.getByLabelText("Source label")).toHaveValue("eBay sold");
+  expect(screen.getByLabelText("Sold price")).toHaveValue("11.13");
+  expect(screen.getByLabelText("Price basis")).toHaveValue("buyer_visible");
+  expect(screen.getByLabelText("Shipping")).toHaveValue("24.29");
+  expect(screen.getByLabelText("Observed on")).toHaveValue("2026-06-14");
+  expect(screen.getByLabelText("Evidence URL")).toHaveValue("https://ebay.io/m/gPzKet");
+  expect(screen.getByLabelText("Title")).toHaveValue("1954 *M/Y ASTERISK $1.00 BC-37bA * SCARCE Elizabeth II Bank of Canada");
+
+  fireEvent.click(screen.getByRole("button", { name: /Add to grid/i }));
+
+  await waitFor(() => expect(mocks.createComparable).toHaveBeenCalledWith(expect.objectContaining({
+    item: "item-1",
+    source: "eBay sold",
+    source_tag: "ebay_sold",
+    title: "1954 *M/Y ASTERISK $1.00 BC-37bA * SCARCE Elizabeth II Bank of Canada",
+    price: "11.13",
+    price_basis: "buyer_visible",
+    shipping: "24.29",
+    observed_on: "2026-06-14",
+    url: "https://ebay.io/m/gPzKet"
   })));
 });
 

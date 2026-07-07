@@ -440,6 +440,31 @@ export interface PricingEvidence {
   };
 }
 
+export interface PricingEvidenceCaptureDraft {
+  title: string;
+  price: string;
+  price_basis: PriceBasis;
+  shipping: string;
+  source: string;
+  source_tag: string;
+  url: string;
+  observed_on: string;
+  condition: string;
+  grade: string;
+  sale_format: Comparable["sale_format"];
+  match_scope: Comparable["match_scope"];
+  match_reason: string;
+}
+
+export interface PricingEvidenceCaptureDraftResult {
+  available: boolean;
+  ocr_available: boolean;
+  detail: string;
+  draft: PricingEvidenceCaptureDraft;
+  parsed_from: string[];
+  warnings: string[];
+}
+
 export interface OcrRunResult {
   available: boolean;
   detail: string;

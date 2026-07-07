@@ -834,9 +834,19 @@
     color: #7a611f;
   }
 
-  .pricing-capture-form {
+  .pricing-capture-form,
+  .pricing-capture-draft {
     @apply mt-4 grid gap-4 rounded border bg-white p-4;
     border-color: #e4e1d8;
+  }
+
+  .pricing-capture-title > div {
+    @apply grid gap-1;
+  }
+
+  .pricing-capture-title p {
+    @apply m-0 text-sm;
+    color: #334155;
   }
 
   .pricing-capture-grid {
@@ -852,6 +862,13 @@
     background: rgba(176, 65, 62, 0.08);
     border-color: rgba(176, 65, 62, 0.24);
     color: #b0413e;
+  }
+
+  .pricing-draft-detail {
+    @apply m-0 rounded border px-3 py-2 text-sm;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
   }
 
   .pricing-grid-layout {
