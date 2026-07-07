@@ -42,6 +42,7 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
   const [error, setError] = useState("");
   const [draftUrl, setDraftUrl] = useState("");
   const [draftScreenshot, setDraftScreenshot] = useState<File | null>(null);
+  const [draftScreenshotText, setDraftScreenshotText] = useState("");
   const [draftMessage, setDraftMessage] = useState("");
 
   const capture = useMutation({
@@ -53,7 +54,11 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
     }
   });
   const captureDraft = useMutation({
-    mutationFn: () => parsePricingEvidenceCaptureDraft(itemId, { url: draftUrl, screenshot: draftScreenshot }),
+    mutationFn: () => parsePricingEvidenceCaptureDraft(itemId, {
+      url: draftUrl,
+      screenshot: draftScreenshot,
+      screenshotText: draftScreenshotText
+    }),
     onSuccess: (result) => {
       setForm((current) => mergeDraftIntoForm(current, result.draft));
       setDraftMessage([result.detail, ...result.warnings].filter(Boolean).join(" "));
@@ -140,8 +145,10 @@ export function PricingEvidencePanel({ itemId }: { itemId: UUID }) {
             detail={draftMessage}
             error={errorText(captureDraft.error)}
             screenshot={draftScreenshot}
+            screenshotText={draftScreenshotText}
             url={draftUrl}
             onScreenshotChange={setDraftScreenshot}
+            onScreenshotTextChange={setDraftScreenshotText}
             onSubmit={(event) => {
               event.preventDefault();
               setDraftMessage("");
@@ -173,8 +180,10 @@ function EvidenceCaptureDraftForm({
   disabled,
   error,
   screenshot,
+  screenshotText,
   url,
   onScreenshotChange,
+  onScreenshotTextChange,
   onSubmit,
   onUrlChange
 }: {
@@ -182,8 +191,10 @@ function EvidenceCaptureDraftForm({
   disabled: boolean;
   error: string;
   screenshot: File | null;
+  screenshotText: string;
   url: string;
   onScreenshotChange: (file: File | null) => void;
+  onScreenshotTextChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   onUrlChange: (value: string) => void;
 }) {
@@ -220,8 +231,18 @@ function EvidenceCaptureDraftForm({
           />
           {screenshot ? <small>{screenshot.name}</small> : null}
         </label>
+        <label className="label pricing-span-2">
+          <span>Text copied from screenshot</span>
+          <textarea
+            className="field"
+            placeholder="Paste iPhone Live Text or copied sold-result text here if OCR is unavailable."
+            rows={5}
+            value={screenshotText}
+            onChange={(event) => onScreenshotTextChange(event.target.value)}
+          />
+        </label>
       </div>
-      <button className="ledger-button" disabled={disabled || (!url.trim() && !screenshot)} type="submit">
+      <button className="ledger-button" disabled={disabled || (!url.trim() && !screenshot && !screenshotText.trim())} type="submit">
         <FileImage className="h-4 w-4" aria-hidden="true" />
         Fill capture form
       </button>

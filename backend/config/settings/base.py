@@ -172,6 +172,7 @@ EBAY_CLIENT_SECRET = os.getenv("EBAY_CLIENT_SECRET", "").strip()
 EBAY_RU_NAME = os.getenv("EBAY_RU_NAME", "").strip()
 EBAY_HTTP_TIMEOUT_SECONDS = int(os.getenv("EBAY_HTTP_TIMEOUT_SECONDS", "20"))
 MAGPIE_TOKEN_ENCRYPTION_KEY = os.getenv("MAGPIE_TOKEN_ENCRYPTION_KEY", "").strip()
+MAGPIE_TESSERACT_PATH = os.getenv("MAGPIE_TESSERACT_PATH", "").strip()
 
 LOGGING = {
     "version": 1,

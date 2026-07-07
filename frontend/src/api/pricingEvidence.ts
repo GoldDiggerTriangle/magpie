@@ -7,11 +7,14 @@ export function getPricingEvidence(itemId: UUID) {
 
 export function parsePricingEvidenceCaptureDraft(
   itemId: UUID,
-  payload: { url?: string; screenshot?: File | null }
+  payload: { url?: string; screenshot?: File | null; screenshotText?: string }
 ) {
   const body = new FormData();
   if (payload.url?.trim()) {
     body.set("url", payload.url.trim());
+  }
+  if (payload.screenshotText?.trim()) {
+    body.set("screenshot_text", payload.screenshotText.trim());
   }
   if (payload.screenshot) {
     body.set("screenshot", payload.screenshot);

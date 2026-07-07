@@ -65,22 +65,26 @@ class PricingEvidenceCaptureDraftView(APIView):
     def post(self, request, item_id):
         get_object_or_404(InventoryItem, pk=item_id)
         url = request.data.get("url") or ""
+        pasted_text = request.data.get("screenshot_text") or ""
         screenshot = request.FILES.get("screenshot")
         ocr_text = ""
         ocr_available = True
-        warnings = []
+        ocr_warning = ""
 
         if screenshot:
             try:
                 ocr_text = ocr_uploaded_screenshot(screenshot)
             except ComparableCaptureOcrUnavailable as exc:
                 ocr_available = False
-                warnings.append(str(exc))
+                ocr_warning = str(exc)
+        if pasted_text:
+            ocr_text = "\n".join(part for part in [ocr_text, pasted_text] if part)
 
         result = comparable_capture_draft(
             url=url,
             ocr_text=ocr_text,
             ocr_available=ocr_available,
+            ocr_warning=ocr_warning,
         )
         return Response(
             {
@@ -89,7 +93,7 @@ class PricingEvidenceCaptureDraftView(APIView):
                 "detail": result.detail,
                 "draft": result.draft,
                 "parsed_from": result.parsed_from,
-                "warnings": [*result.warnings, *warnings],
+                "warnings": result.warnings,
             }
         )
 

@@ -73,7 +73,7 @@ def blank_comparable_draft() -> dict:
 
 
 def ocr_uploaded_screenshot(uploaded, *, binary: str | None = None) -> str:
-    tesseract = binary or shutil.which("tesseract")
+    tesseract = binary or configured_tesseract_path()
     if not tesseract:
         raise ComparableCaptureOcrUnavailable(
             "Screenshot OCR is unavailable on this machine. Install local Tesseract, or type the sold result into the capture form."
@@ -104,7 +104,13 @@ def ocr_uploaded_screenshot(uploaded, *, binary: str | None = None) -> str:
     return result.stdout.strip()
 
 
-def comparable_capture_draft(*, url: str = "", ocr_text: str = "", ocr_available: bool = True) -> ComparableCaptureResult:
+def comparable_capture_draft(
+    *,
+    url: str = "",
+    ocr_text: str = "",
+    ocr_available: bool = True,
+    ocr_warning: str = "",
+) -> ComparableCaptureResult:
     draft = blank_comparable_draft()
     warnings: list[str] = []
     parsed_from: list[str] = []
@@ -129,7 +135,10 @@ def comparable_capture_draft(*, url: str = "", ocr_text: str = "", ocr_available
             draft["source"] = "eBay sold"
 
     if not ocr_available:
-        warnings.append("Screenshot OCR was unavailable; link values were not fetched or inferred.")
+        warnings.append(
+            ocr_warning
+            or "Screenshot OCR was unavailable; link values were not fetched or inferred."
+        )
 
     if url and not text and not draft["price"]:
         detail = "Link recorded. Magpie did not fetch the marketplace page; add a screenshot or type the sold price before saving evidence."
@@ -147,6 +156,20 @@ def comparable_capture_draft(*, url: str = "", ocr_text: str = "", ocr_available
         warnings=warnings,
         ocr_available=ocr_available,
     )
+
+
+def configured_tesseract_path() -> str | None:
+    configured = getattr(settings, "MAGPIE_TESSERACT_PATH", "") or ""
+    candidates = [
+        configured,
+        shutil.which("tesseract") or "",
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return None
 
 
 def apply_ocr_text_to_draft(draft: dict, text: str) -> None:

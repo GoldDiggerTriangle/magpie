@@ -212,11 +212,15 @@ test("PricingEvidencePanel fills the comparable form from a user screenshot and 
   fireEvent.change(screen.getByLabelText("Sold-result screenshot"), {
     target: { files: [new File(["fake screenshot"], "ebay-sold.png", { type: "image/png" })] }
   });
+  fireEvent.change(screen.getByLabelText("Text copied from screenshot"), {
+    target: { value: "SOLD 14 JUN 2026 1954 note AU $11.13 +AU $24.29 delivery" }
+  });
   fireEvent.click(screen.getByRole("button", { name: /Fill capture form/i }));
 
   await waitFor(() => expect(mocks.parsePricingEvidenceCaptureDraft).toHaveBeenCalledWith("item-1", expect.objectContaining({
     url: "https://ebay.io/m/gPzKet",
-    screenshot: expect.any(File)
+    screenshot: expect.any(File),
+    screenshotText: "SOLD 14 JUN 2026 1954 note AU $11.13 +AU $24.29 delivery"
   })));
   expect(await screen.findByText(/Capture form filled from your screenshot/i)).toBeInTheDocument();
   expect(screen.getByLabelText("Source label")).toHaveValue("eBay sold");

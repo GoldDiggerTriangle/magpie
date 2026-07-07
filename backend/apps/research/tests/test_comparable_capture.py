@@ -94,6 +94,25 @@ def test_capture_draft_endpoint_does_not_create_comparable(api_client, banknote)
     assert Comparable.objects.count() == 0
 
 
+@pytest.mark.django_db
+def test_capture_draft_endpoint_parses_pasted_screenshot_text(api_client, banknote):
+    response = api_client.post(
+        f"/api/items/{banknote.id}/pricing-evidence/capture-draft/",
+        {
+            "url": "https://ebay.io/m/gPzKet",
+            "screenshot_text": "SOLD 14 JUN 2026 1954 *M/Y ASTERISK $1.00 BC-37bA AU $11.13 or Best Offer +AU $24.29 delivery",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 200, response.data
+    assert response.data["draft"]["price"] == "11.13"
+    assert response.data["draft"]["shipping"] == "24.29"
+    assert response.data["draft"]["observed_on"] == "2026-06-14"
+    assert response.data["draft"]["price_basis"] == Comparable.PriceBasis.BUYER_VISIBLE
+    assert Comparable.objects.count() == 0
+
+
 def test_comparable_capture_parser_has_no_marketplace_fetch_imports():
     import apps.research.comparable_capture as comparable_capture
 

@@ -439,3 +439,49 @@ Automated frontend coverage proves the banner action itself:
 - Live deployment note:
   - Frontend assets have been built and collected.
   - The `Magpie` service must be restarted before the live port `8000` serves the new backend endpoint and SPA bundle.
+
+## Follow-up: Screenshot OCR Unavailable Fallback
+
+- Owner live check:
+  - The pricing evidence helper accepted an eBay link and screenshot, but the live service showed:
+    - `Screenshot OCR is unavailable on this machine. Install local Tesseract, or type the sold result into the capture form.`
+- Findings:
+  - `tesseract.exe` was not on PATH.
+  - Common Windows install locations were not present.
+  - `winget` and Chocolatey are installed, but a non-admin `winget install UB-Mannheim.TesseractOCR` did not complete from this shell and was stopped.
+- Fix:
+  - Added `MAGPIE_TESSERACT_PATH` support so the service can use a pinned local Tesseract path even when the NSSM service PATH does not include it.
+  - Added common Windows Tesseract path detection.
+  - Added a `Text copied from screenshot` field as a no-install fallback.
+  - Pasted eBay sold-result text uses the same parser as screenshot OCR and fills the same comparable capture draft fields.
+  - Duplicate OCR-unavailable warning text was removed.
+- Safety:
+  - Links still are not fetched.
+  - Screenshot text/OCR still only fills a draft.
+  - The existing `Add to grid` button remains the explicit save step.
+  - No new marketplace network path was added.
+- Validation:
+  - Focused backend:
+    - `python -m pytest apps/research/tests/test_comparable_capture.py -q`
+    - Result: `5 passed`.
+  - Focused frontend:
+    - `npm run test -- PricingEvidencePanel.test.tsx`
+    - Result: `4 passed`.
+  - Django system check:
+    - `python manage.py check`
+    - Result: `System check identified no issues`.
+  - Migration check:
+    - `python manage.py makemigrations --check --dry-run`
+    - Result: `No changes detected`.
+  - Typecheck:
+    - `npm run typecheck`
+    - Result: passed.
+  - Build:
+    - `npm run build`
+    - Result: passed, with the existing Vite large-chunk warning.
+  - collectstatic:
+    - `python manage.py collectstatic --noinput`
+    - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+  - No-fetch guard:
+    - `rg "requests|httpx|urlopen|urllib\\.request|fetch\\(" backend/apps/research/comparable_capture.py frontend/src/components/PricingEvidencePanel.tsx frontend/src/api/pricingEvidence.ts`
+    - Result: no matches.
