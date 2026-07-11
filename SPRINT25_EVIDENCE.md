@@ -94,6 +94,11 @@ Confirmed by Regan before implementation:
   - Cause: Sprint 25 introduced legitimate view-only eBay listing URLs in the quick-publish UI and backend ChannelListing URL path, but the CI guard had not yet allow-listed those URL-only files.
   - Fix: moved backend public eBay item URLs into `backend/apps/listing/public_urls.py` and added only that helper plus `frontend/src/components/QuickPublishPanel.tsx` to the URL-only allow-list.
   - Local rerun of the guard after the fix: `Marketplace URL-only confinement passed.`
+- Remote dual-lane GitHub Validation after the guard fix:
+  - Head: `e559cfae3b010ecbd69d6ad0d039e76f9471974e`.
+  - Run: `29167780890`.
+  - SQLite: success.
+  - Postgres: success.
 - NSSM restart attempt from this non-Administrator shell:
   - Command: `nssm restart Magpie`
   - Result: blocked by Windows with `OpenService(): Access is denied.`
