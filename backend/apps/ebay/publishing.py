@@ -15,6 +15,7 @@ from apps.ebay.constants import (
 from apps.ebay.services import get_access_token
 from apps.inventory.models import InventoryItem
 from apps.listing.models import ChannelListing, ListingDraft
+from apps.listing.public_urls import ebay_listing_url
 
 
 def staged_review(draft: ListingDraft, *, actor=None) -> dict:
@@ -127,7 +128,7 @@ def publish_draft(draft: ListingDraft, *, confirm_sku: str, actor=None) -> Listi
                     "channel": ChannelListing.Channel.EBAY,
                     "listed_at": now_dt,
                     "ended_at": None,
-                    "url": f"https://www.ebay.com.au/itm/{listing_id}",
+                    "url": ebay_listing_url(listing_id),
                     "note": "Created from Magpie eBay publish pipeline.",
                 },
             )

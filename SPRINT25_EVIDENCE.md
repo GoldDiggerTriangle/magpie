@@ -89,6 +89,11 @@ Confirmed by Regan before implementation:
 - Built asset hardcoded-localhost check:
   - Command: `rg "localhost:8000|127\\.0\\.0\\.1:8000|http://localhost|http://127\\.0\\.0\\.1" frontend/dist backend/staticfiles`
   - Result: no matches.
+- Marketplace URL-only confinement guard:
+  - First remote Validation run `29167656530` failed in the SQLite lane at `Assert marketplace URL-only confinement`.
+  - Cause: Sprint 25 introduced legitimate view-only eBay listing URLs in the quick-publish UI and backend ChannelListing URL path, but the CI guard had not yet allow-listed those URL-only files.
+  - Fix: moved backend public eBay item URLs into `backend/apps/listing/public_urls.py` and added only that helper plus `frontend/src/components/QuickPublishPanel.tsx` to the URL-only allow-list.
+  - Local rerun of the guard after the fix: `Marketplace URL-only confinement passed.`
 - NSSM restart attempt from this non-Administrator shell:
   - Command: `nssm restart Magpie`
   - Result: blocked by Windows with `OpenService(): Access is denied.`

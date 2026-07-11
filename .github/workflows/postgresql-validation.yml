@@ -126,9 +126,11 @@ jobs:
               Path("backend/apps/intelligence/reference_sources.py"),
               Path("backend/apps/research/links.py"),
               Path("backend/apps/research/pricing_sources.py"),
+              Path("backend/apps/listing/public_urls.py"),
           }
           frontend_view_only_url_files = {
               Path("frontend/src/components/PublishPanel.tsx"),
+              Path("frontend/src/components/QuickPublishPanel.tsx"),
           }
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
           network_imports = {"requests", "httpx", "aiohttp"}
