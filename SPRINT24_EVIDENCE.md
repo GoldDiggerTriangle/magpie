@@ -512,7 +512,7 @@ Automated frontend coverage proves the banner action itself:
   - Wired the denylist into `VitePWA({ workbox.navigateFallbackDenylist })`.
   - Added backend routing regression tests proving `/admin/` and `/admin/login/` are not served by the SPA fallback.
   - Added frontend PWA routing tests proving `/admin` and `/admin/login/?next=%2F` are denied from service-worker SPA fallback handling.
-  - Hardened the backend regression to assert URL resolution (`admin:login`, `admin:index`) plus login form fields, avoiding environment-specific admin branding text.
+  - Hardened the backend regression to assert URL resolution (`admin:login`, `admin:index`) plus login form fields, avoiding environment-specific admin branding text and redirect-location format.
 - Built output proof:
   - `frontend/dist/sw.js` contains:
     - `denylist:[/^\/api(?:\/|$)/,/^\/admin(?:\/|$)/,/^\/media(?:\/|$)/,/^\/static(?:\/|$)/]`
