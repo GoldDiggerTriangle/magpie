@@ -52,7 +52,7 @@ export function CopyPackPanel({ item }: { item: InventoryItemDetail }) {
           <h2>Ready-to-paste ad copy</h2>
           <p>Local deterministic templates only. Gaps stay visible; prices come only from an item asking/listed price or a human-picked evidence figure.</p>
         </div>
-        <button className="btn-secondary gap-2" disabled={photoExport.isPending} onClick={() => photoExport.mutate()} type="button">
+        <button className="btn-secondary gap-2 whitespace-nowrap shrink-0" disabled={photoExport.isPending} onClick={() => photoExport.mutate()} type="button">
           <Download className="h-4 w-4" aria-hidden="true" />
           Photo zip
         </button>

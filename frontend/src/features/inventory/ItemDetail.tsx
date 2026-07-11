@@ -24,6 +24,7 @@ import { ComparableList } from "../../components/ComparableList";
 import { CopyPackPanel } from "../../components/CopyPackPanel";
 import { PricingEvidencePanel } from "../../components/PricingEvidencePanel";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
+import { QuickPublishPanel } from "../../components/QuickPublishPanel";
 import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
 import { SalesPanel } from "../../components/SalesPanel";
@@ -488,6 +489,7 @@ export function ItemDetail() {
             <div className="grid gap-6">
               <TakeDownChecklist item={item.data} />
               <CopyPackPanel item={item.data} />
+              <QuickPublishPanel item={item.data} />
               <ListingPanel item={item.data} />
             </div>
           </ItemSection>

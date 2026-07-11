@@ -14,7 +14,7 @@ from apps.ebay.constants import (
 )
 from apps.ebay.services import get_access_token
 from apps.inventory.models import InventoryItem
-from apps.listing.models import ListingDraft
+from apps.listing.models import ChannelListing, ListingDraft
 
 
 def staged_review(draft: ListingDraft, *, actor=None) -> dict:
@@ -106,7 +106,8 @@ def publish_draft(draft: ListingDraft, *, confirm_sku: str, actor=None) -> Listi
             )
             failure = exc
         else:
-            now = timezone.now().isoformat()
+            now_dt = timezone.now()
+            now = now_dt.isoformat()
             channel_data.update(
                 {
                     "listing_id": listing_id,
@@ -119,6 +120,17 @@ def publish_draft(draft: ListingDraft, *, confirm_sku: str, actor=None) -> Listi
             draft.item.status = InventoryItem.Status.LISTED
             draft.item.save(update_fields=["status", "updated_at"])
             draft.save(update_fields=["channel_data", "status", "updated_at"])
+            ChannelListing.objects.update_or_create(
+                source_listing_draft=draft,
+                defaults={
+                    "item": draft.item,
+                    "channel": ChannelListing.Channel.EBAY,
+                    "listed_at": now_dt,
+                    "ended_at": None,
+                    "url": f"https://www.ebay.com.au/itm/{listing_id}",
+                    "note": "Created from Magpie eBay publish pipeline.",
+                },
+            )
             record(
                 actor=actor,
                 action=AUDIT_PUBLISH_SUCCEEDED,

@@ -113,6 +113,12 @@ test("CopyPackPanel sends human-picked evidence price without persisting it", as
   });
 });
 
+test("CopyPackPanel keeps the photo zip action as a single phone tap target", async () => {
+  renderPanel();
+
+  expect(await screen.findByRole("button", { name: /photo zip/i })).toHaveClass("whitespace-nowrap", "shrink-0");
+});
+
 function renderPanel() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }

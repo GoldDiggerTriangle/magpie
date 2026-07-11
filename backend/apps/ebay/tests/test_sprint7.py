@@ -40,7 +40,7 @@ from apps.ebay.services import create_merchant_location, get_app_access_token
 from apps.ebay.staging import _inventory_item_payload, stage_draft, withdraw_staged
 from apps.inventory.models import InventoryItem
 from apps.catalog.models import ProductCategory
-from apps.listing.models import ListingDraft
+from apps.listing.models import ChannelListing, ListingDraft
 from apps.photos.models import PhotoAsset
 
 
@@ -353,6 +353,7 @@ def test_publish_gate_success_failure_and_restage(item, credential, merchant_loc
     draft.refresh_from_db()
     assert draft.status == ListingDraft.Status.PUBLISH_FAILED
     assert draft.channel_data["last_ebay_error"]
+    assert ChannelListing.objects.count() == 0
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_FAILED).exists()
 
     ebay_integration.FakeEbayInventoryAdapter.publish_should_fail = False
@@ -362,6 +363,11 @@ def test_publish_gate_success_failure_and_restage(item, credential, merchant_loc
     assert published.status == ListingDraft.Status.PUBLISHED
     assert published.channel_data["listing_id"].startswith("fake-listing-")
     assert published.item.status == InventoryItem.Status.LISTED
+    channel_listing = ChannelListing.objects.get(source_listing_draft=published)
+    assert channel_listing.channel == ChannelListing.Channel.EBAY
+    assert channel_listing.item == published.item
+    assert channel_listing.url == f"https://www.ebay.com.au/itm/{published.channel_data['listing_id']}"
+    assert channel_listing.ended_at is None
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).count() == 2
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_SUCCEEDED).count() == 1
 
@@ -374,6 +380,7 @@ def test_publish_refuses_second_publish_without_calling_ebay(item, credential, m
     assert published.status == ListingDraft.Status.PUBLISHED
     assert published.channel_data["listing_id"]
     assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 1
+    assert ChannelListing.objects.filter(source_listing_draft=published).count() == 1
 
     with pytest.raises(Exception, match="published eBay listing"):
         publish_draft(published, confirm_sku=item.sku)
@@ -382,6 +389,7 @@ def test_publish_refuses_second_publish_without_calling_ebay(item, credential, m
     published.item.refresh_from_db()
     assert published.status == ListingDraft.Status.PUBLISHED
     assert published.item.status == InventoryItem.Status.LISTED
+    assert ChannelListing.objects.filter(source_listing_draft=published).count() == 1
     assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 1
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).count() == 1
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_SUCCEEDED).count() == 1
