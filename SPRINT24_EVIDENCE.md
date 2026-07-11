@@ -494,8 +494,9 @@ Automated frontend coverage proves the banner action itself:
   - This made the `AuthRequiredState` link unusable even though it pointed at the intended Django admin login route.
 - Live service reproduction from this run:
   - Direct HTTP against actual NSSM/Waitress service on port `8000`:
-    - `/admin/` returned `200`, `Log in | Django site admin`, no React 404.
+    - `/admin/` returned Django admin's unauthenticated redirect to `/admin/login/?next=/admin/`, no React 404.
     - `/admin/login/?next=%2F` returned `200`, `Log in | Django site admin`, no React 404.
+    - After the recovery build/collectstatic, `/admin/login/?next=%2F` still returns the Django login form with username/password fields.
   - In-app browser against actual service on port `8000`:
     - `/admin/login/?next=%2F` returned the React SPA 404.
 - Root cause:
@@ -510,12 +511,20 @@ Automated frontend coverage proves the banner action itself:
     - `/media`
     - `/static`
   - Wired the denylist into `VitePWA({ workbox.navigateFallbackDenylist })`.
+  - Added a narrow React fallback route for stale already-installed service workers:
+    - `/admin/*` now renders an `AdminRouteRecovery` component only if a stale worker has already served the SPA for an admin URL.
+    - The recovery component unregisters the stale service worker and reloads the same URL so Django admin can answer.
+    - This does not add a Magpie login flow; it only repairs existing browsers that were already controlled by the bad worker.
   - Added backend routing regression tests proving `/admin/` and `/admin/login/` are not served by the SPA fallback.
   - Added frontend PWA routing tests proving `/admin` and `/admin/login/?next=%2F` are denied from service-worker SPA fallback handling.
+  - Added frontend regression coverage proving the stale-worker recovery helper unregisters existing service workers before the browser reloads Django admin.
   - Hardened the backend regression to assert URL resolution (`admin:login`, `admin:index`) plus login form fields, avoiding environment-specific admin branding text and redirect-location format.
 - Built output proof:
   - `frontend/dist/sw.js` contains:
     - `denylist:[/^\/api(?:\/|$)/,/^\/admin(?:\/|$)/,/^\/media(?:\/|$)/,/^\/static(?:\/|$)/]`
+  - `frontend/dist/assets/index-*.js` contains the recovery text:
+    - `Opening Django admin`
+    - `Removed stale app cache. Opening Django admin...`
 - Validation:
   - Focused backend:
     - `python -m pytest apps/core/tests/test_admin_routing.py -q`
@@ -525,10 +534,10 @@ Automated frontend coverage proves the banner action itself:
     - Result: `210 passed`, `1 skipped`.
   - Focused frontend:
     - `npm run test -- pwaRouting.test.ts`
-    - Result: `2 passed`.
+    - Result: `3 passed`.
   - Full frontend:
     - `npm run test`
-    - Result: `115 passed`.
+    - Result after stale-worker recovery addition: `116 passed`.
   - Django system check:
     - `python manage.py check`
     - Result: `System check identified no issues`.
@@ -540,13 +549,15 @@ Automated frontend coverage proves the banner action itself:
     - Result: passed.
   - Build:
     - `npm run build`
-    - Result: passed, with existing Vite large-chunk warning.
+    - Result after stale-worker recovery addition: passed, with existing Vite large-chunk warning.
   - collectstatic:
     - `python manage.py collectstatic --noinput`
-    - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+    - Result after stale-worker recovery addition: `7 static files copied`, `155 unmodified`, `425 post-processed`.
 - Live closure status:
   - Not live-closed yet.
-  - The current browser session still has the stale service worker active and continues to show the React 404 until the service/browser receives the rebuilt worker.
+  - Direct HTTP against the live NSSM/Waitress service already proves Django receives `/admin/login/?next=%2F`.
+  - The current in-app browser session still has the stale service worker active and continues to show the React 404 until that browser accepts or clears the rebuilt worker.
+  - The production build now includes both the permanent denylist and a stale-worker recovery route for `/admin/*` once the rebuilt SPA bundle is served.
   - Required next proof after Administrator restart of `Magpie`:
     - Browser `/admin/` renders Django admin login HTML.
     - Browser `/admin/login/?next=%2F` renders Django admin login HTML.
