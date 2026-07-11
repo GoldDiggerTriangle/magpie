@@ -558,6 +558,7 @@ Automated frontend coverage proves the banner action itself:
   - Direct HTTP against the live NSSM/Waitress service already proves Django receives `/admin/login/?next=%2F`.
   - The current in-app browser session still has the stale service worker active and continues to show the React 404 until that browser accepts or clears the rebuilt worker.
   - The production build now includes both the permanent denylist and a stale-worker recovery route for `/admin/*` once the rebuilt SPA bundle is served.
+  - Before the next Administrator restart, the live root HTML already references the rebuilt `index-BdRWVgaS.js`, but the running WhiteNoise process has not refreshed its static file map for that asset yet; restart is required for final browser proof on port `8000`.
   - Required next proof after Administrator restart of `Magpie`:
     - Browser `/admin/` renders Django admin login HTML.
     - Browser `/admin/login/?next=%2F` renders Django admin login HTML.
