@@ -485,3 +485,62 @@ Automated frontend coverage proves the banner action itself:
   - No-fetch guard:
     - `rg "requests|httpx|urlopen|urllib\\.request|fetch\\(" backend/apps/research/comparable_capture.py frontend/src/components/PricingEvidencePanel.tsx frontend/src/api/pricingEvidence.ts`
     - Result: no matches.
+
+## Round 2 Live Closure Defect: Admin Login Route Swallowed By PWA Service Worker
+
+- Owner live reproduction:
+  - `http://127.0.0.1:8000/admin/login/?next=%2F`
+  - Browser result: React SPA error page, `Unexpected Application Error! 404 Not Found`.
+  - This made the `AuthRequiredState` link unusable even though it pointed at the intended Django admin login route.
+- Live service reproduction from this run:
+  - Direct HTTP against actual NSSM/Waitress service on port `8000`:
+    - `/admin/` returned `200`, `Log in | Django site admin`, no React 404.
+    - `/admin/login/?next=%2F` returned `200`, `Log in | Django site admin`, no React 404.
+  - In-app browser against actual service on port `8000`:
+    - `/admin/login/?next=%2F` returned the React SPA 404.
+- Root cause:
+  - Django URL ordering was already correct:
+    - `path("admin/", admin.site.urls)` before API and before the SPA fallback.
+    - SPA fallback excludes `admin/`.
+  - The deployed browser failure was caused by the generated PWA service worker navigation fallback, which could intercept `/admin/login/` and serve `index.html` before Django handled the request.
+- Fix:
+  - Added a shared PWA navigation fallback denylist:
+    - `/api`
+    - `/admin`
+    - `/media`
+    - `/static`
+  - Wired the denylist into `VitePWA({ workbox.navigateFallbackDenylist })`.
+  - Added backend routing regression tests proving `/admin/` and `/admin/login/` are not served by the SPA fallback.
+  - Added frontend PWA routing tests proving `/admin` and `/admin/login/?next=%2F` are denied from service-worker SPA fallback handling.
+- Built output proof:
+  - `frontend/dist/sw.js` contains:
+    - `denylist:[/^\/api(?:\/|$)/,/^\/admin(?:\/|$)/,/^\/media(?:\/|$)/,/^\/static(?:\/|$)/]`
+- Validation:
+  - Focused backend:
+    - `python -m pytest apps/core/tests/test_admin_routing.py -q`
+    - Result: `2 passed`.
+  - Focused frontend:
+    - `npm run test -- pwaRouting.test.ts`
+    - Result: `2 passed`.
+  - Django system check:
+    - `python manage.py check`
+    - Result: `System check identified no issues`.
+  - Migration check:
+    - `python manage.py makemigrations --check --dry-run`
+    - Result: `No changes detected`.
+  - Typecheck:
+    - `npm run typecheck`
+    - Result: passed.
+  - Build:
+    - `npm run build`
+    - Result: passed, with existing Vite large-chunk warning.
+  - collectstatic:
+    - `python manage.py collectstatic --noinput`
+    - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+- Live closure status:
+  - Not live-closed yet.
+  - The current browser session still has the stale service worker active and continues to show the React 404 until the service/browser receives the rebuilt worker.
+  - Required next proof after Administrator restart of `Magpie`:
+    - Browser `/admin/` renders Django admin login HTML.
+    - Browser `/admin/login/?next=%2F` renders Django admin login HTML.
+    - Neither route shows `Unexpected Application Error`.

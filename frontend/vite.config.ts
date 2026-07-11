@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+import { PWA_NAVIGATION_FALLBACK_DENYLIST } from "./src/pwaRouting";
+
 export default defineConfig({
   base: "/",
   plugins: [
@@ -23,7 +25,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        navigateFallbackDenylist: PWA_NAVIGATION_FALLBACK_DENYLIST
       }
     })
   ],
