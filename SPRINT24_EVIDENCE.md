@@ -512,16 +512,23 @@ Automated frontend coverage proves the banner action itself:
   - Wired the denylist into `VitePWA({ workbox.navigateFallbackDenylist })`.
   - Added backend routing regression tests proving `/admin/` and `/admin/login/` are not served by the SPA fallback.
   - Added frontend PWA routing tests proving `/admin` and `/admin/login/?next=%2F` are denied from service-worker SPA fallback handling.
+  - Hardened the backend regression to assert URL resolution (`admin:login`, `admin:index`) plus login form fields, avoiding environment-specific admin branding text.
 - Built output proof:
   - `frontend/dist/sw.js` contains:
     - `denylist:[/^\/api(?:\/|$)/,/^\/admin(?:\/|$)/,/^\/media(?:\/|$)/,/^\/static(?:\/|$)/]`
 - Validation:
   - Focused backend:
     - `python -m pytest apps/core/tests/test_admin_routing.py -q`
-    - Result: `2 passed`.
+    - Result: `3 passed`.
+  - Fresh CI-like SQLite backend:
+    - migrate + seed + `python -m pytest -q`
+    - Result: `210 passed`, `1 skipped`.
   - Focused frontend:
     - `npm run test -- pwaRouting.test.ts`
     - Result: `2 passed`.
+  - Full frontend:
+    - `npm run test`
+    - Result: `115 passed`.
   - Django system check:
     - `python manage.py check`
     - Result: `System check identified no issues`.
