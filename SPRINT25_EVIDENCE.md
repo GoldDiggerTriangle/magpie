@@ -130,6 +130,56 @@ Confirmed by Regan before implementation:
 - Photo zip mobile wrap:
   - The copy-pack `Photo zip` button includes `whitespace-nowrap` and `shrink-0`.
 
+## Live UI Defect Fix - eBay Category Mapping
+
+Regan reported that the quick eBay preview blocked on `[Category mapping not set]`, but the item `Listings / channels` section did not expose a visible way to set the eBay category mapping.
+
+Fix implemented:
+
+- Added a clearly labelled `eBay category mapping` control directly inside `Listings / channels`, adjacent to the quick publish panel.
+- Reused the existing Phase-4 category suggestion and `ListingDraft.channel_data` mapping path:
+  - `category_id`
+  - `category_tree_id`
+  - `category_name`
+- Category selection remains human-confirmed:
+  - Magpie searches suggestions.
+  - The user explicitly selects a leaf eBay category.
+  - Magpie does not silently auto-apply a category.
+- The quick preview now treats missing eBay category as a hard blocker.
+- The blocker includes a `Set eBay category` action that closes the preview and focuses the category mapping control.
+- Saving a selected mapping updates the draft immediately; reopening preview shows the selected category and clears the category blocker.
+- Audited the other blockers:
+  - Price: visible human evidence price field in the preview, with `Enter evidence price` action.
+  - Postage / pickup: visible `eBay postage / pickup` control in `Listings / channels`, with `Set postage / pickup` action.
+  - Condition: blocker links to the existing `Core details` section.
+  - Photos: blocker links to the existing `Photos` section.
+
+Validation for this defect fix:
+
+- Focused frontend test:
+  - Command: `npm run test -- QuickPublishPanel.test.tsx`
+  - Result: `6 passed`.
+- Full frontend suite:
+  - Command: `npm run test`
+  - Result: `123 passed`.
+- Typecheck:
+  - Command: `npm run typecheck`
+  - Result: passed.
+- Build:
+  - Command: `npm run build`
+  - Result: passed; existing Vite large chunk warning only.
+- collectstatic:
+  - Command: `python manage.py collectstatic --noinput`
+  - Result: `7 static files copied`, `155 unmodified`, `425 post-processed`.
+
+Regression coverage added:
+
+- Missing category shows the `eBay category required` blocker.
+- The `Set eBay category` action reaches and focuses the category mapping control.
+- A selected category mapping persists through `updateListingDraft`.
+- The preview displays the selected category as `Australian Stamps (105848)`.
+- `Post live to eBay` remains disabled while required blockers are incomplete.
+
 ## Live Closure Gates
 
 Open until Regan is present for the real publish:

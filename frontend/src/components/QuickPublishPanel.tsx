@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Send, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { getEbayStatus } from "../api/ebay";
+import { getEbayCategorySuggestions, getEbayStatus } from "../api/ebay";
 import {
   createItemListingDraft,
   getItemCopyPack,
@@ -12,7 +12,7 @@ import {
   stageListingDraft,
   updateListingDraft
 } from "../api/listing";
-import type { EbayStatus, InventoryItemDetail, ListingDraft } from "../types";
+import type { EbayCategorySuggestion, EbayCategorySuggestionsResponse, EbayStatus, InventoryItemDetail, ListingDraft } from "../types";
 
 type PriceChoice =
   | { status: "ready"; value: string; label: string; basis: "item_asking_or_listed_price" | "human_picked_evidence" }
@@ -22,7 +22,7 @@ interface Blocker {
   key: string;
   label: string;
   detail: string;
-  href: string;
+  actionLabel: string;
 }
 
 export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
@@ -39,6 +39,9 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
   const [previewDraft, setPreviewDraft] = useState<ListingDraft | null>(null);
   const [humanEvidencePrice, setHumanEvidencePrice] = useState("");
   const [humanEvidenceLabel, setHumanEvidenceLabel] = useState("");
+  const [categorySearch, setCategorySearch] = useState("");
+  const [categoryResult, setCategoryResult] = useState<EbayCategorySuggestionsResponse | null>(null);
+  const [shippingNoteDraft, setShippingNoteDraft] = useState("");
   const [publishResult, setPublishResult] = useState<{ listingId: string; url: string } | null>(null);
   const [previewError, setPreviewError] = useState("");
 
@@ -62,10 +65,23 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
     [currentDraft, ebayStatus.data, ebayStatus.isLoading, item, priceChoice]
   );
 
+  useEffect(() => {
+    setShippingNoteDraft(currentDraft?.est_shipping_note || fallbackShippingNote(item));
+  }, [currentDraft?.est_shipping_note, item.currency, item.est_packaging_cost, item.est_outbound_shipping]);
+
+  async function ensureDraft() {
+    if (currentDraft) {
+      return currentDraft;
+    }
+    const draft = await createItemListingDraft(item.id);
+    setPreviewDraft(draft);
+    queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
+    return draft;
+  }
+
   const openPreview = useMutation({
     mutationFn: async () => {
-      const draft = drafts.data?.results?.[0] ?? await createItemListingDraft(item.id);
-      return draft;
+      return ensureDraft();
     },
     onSuccess: (draft) => {
       setPreviewDraft(draft);
@@ -123,6 +139,69 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
     }
   });
 
+  const categorySearchMutation = useMutation({
+    mutationFn: () => getEbayCategorySuggestions(categorySearch.trim()),
+    onSuccess: setCategoryResult
+  });
+  const categorySelectMutation = useMutation({
+    mutationFn: async (category: EbayCategorySuggestion) => {
+      if (category.is_leaf !== true) {
+        throw new Error("Select a leaf eBay category before saving.");
+      }
+      const draft = await ensureDraft();
+      const channelData = {
+        ...draft.channel_data,
+        category_id: category.category_id,
+        category_tree_id: category.category_tree_id,
+        category_name: categoryLabel(category),
+        last_ebay_error: ""
+      };
+      return updateListingDraft(draft.id, { channel_data: channelData });
+    },
+    onSuccess: (draft) => {
+      setPreviewDraft(draft);
+      setCategorySearch(categorySummary(draft));
+      setCategoryResult(null);
+      queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
+    }
+  });
+  const shippingNoteMutation = useMutation({
+    mutationFn: async () => {
+      const draft = await ensureDraft();
+      return updateListingDraft(draft.id, { est_shipping_note: shippingNoteDraft.trim() });
+    },
+    onSuccess: (draft) => {
+      setPreviewDraft(draft);
+      queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
+    }
+  });
+
+  function handleBlockerAction(key: string) {
+    if (key === "price") {
+      focusElement("quick-human-evidence-price");
+      return;
+    }
+    if (key === "category") {
+      setPreviewOpen(false);
+      focusElement("quick-ebay-category-search");
+      return;
+    }
+    if (key === "postage") {
+      setPreviewOpen(false);
+      focusElement("quick-shipping-note");
+      return;
+    }
+    if (key === "condition") {
+      setPreviewOpen(false);
+      jumpToItemSection("core-details");
+      return;
+    }
+    if (key === "photos") {
+      setPreviewOpen(false);
+      jumpToItemSection("photos");
+    }
+  }
+
   return (
     <section className="intelligence-panel quick-publish-panel">
       <div className="intelligence-panel-header">
@@ -140,6 +219,38 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
       <p className="mt-3 text-sm text-slate-700">
         Uses the existing eBay draft, stage, and publish pipeline. A ChannelListing is written only after eBay returns a live listing ID.
       </p>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <EbayCategoryMappingControl
+          categoryResult={categoryResult}
+          currentDraft={currentDraft}
+          error={categorySearchMutation.error}
+          onSearch={() => categorySearchMutation.mutate()}
+          onSearchChange={setCategorySearch}
+          onSelect={(category) => categorySelectMutation.mutate(category)}
+          pending={categorySearchMutation.isPending}
+          search={categorySearch}
+          selectError={categorySelectMutation.error}
+          selecting={categorySelectMutation.isPending}
+        />
+        <div className="rounded border border-slate-300 bg-white p-3">
+          <h3 className="text-base font-semibold text-slate-950">eBay postage / pickup</h3>
+          <p className="mt-1 text-sm text-slate-700">Save the note Magpie will carry into the listing draft. A typed but unsaved what-if note does not clear the preview gate.</p>
+          <label className="label mt-3 text-slate-950">
+            <span>Postage / pickup note</span>
+            <input
+              className="field"
+              id="quick-shipping-note"
+              placeholder="e.g. Tracked postage or local pickup"
+              value={shippingNoteDraft}
+              onChange={(event) => setShippingNoteDraft(event.target.value)}
+            />
+          </label>
+          <button className="btn-secondary mt-3 gap-2" disabled={!shippingNoteDraft.trim() || shippingNoteMutation.isPending} onClick={() => shippingNoteMutation.mutate()} type="button">
+            Save postage / pickup
+          </button>
+          {shippingNoteMutation.error ? <p className="mt-2 text-sm font-semibold text-rose-700">{errorText(shippingNoteMutation.error)}</p> : null}
+        </div>
+      </div>
 
       {previewOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-3 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="eBay quick publish preview">
@@ -173,7 +284,7 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
                   <p className="mt-1 text-sm text-slate-700">Optional. Use only when you have deliberately chosen an evidence figure. This does not create or persist evidence.</p>
                   <label className="label mt-3 text-slate-950">
                     <span>Evidence price</span>
-                    <input className="field" inputMode="decimal" placeholder="e.g. 125.00" value={humanEvidencePrice} onChange={(event) => setHumanEvidencePrice(event.target.value)} />
+                    <input className="field" id="quick-human-evidence-price" inputMode="decimal" placeholder="e.g. 125.00" value={humanEvidencePrice} onChange={(event) => setHumanEvidencePrice(event.target.value)} />
                   </label>
                   <label className="label mt-3 text-slate-950">
                     <span>Source label</span>
@@ -189,10 +300,10 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
                         <li key={blocker.key} className="rounded border border-rose-300 bg-rose-50 p-3 text-sm text-rose-950">
                           <strong>{blocker.label}</strong>
                           <p>{blocker.detail}</p>
-                          {blocker.href.startsWith("/") ? (
-                            <Link className="mt-2 inline-flex font-semibold underline" to={blocker.href}>Fix this</Link>
+                          {blocker.key === "ebay" ? (
+                            <Link className="mt-2 inline-flex font-semibold underline" to="/settings">Reconnect eBay</Link>
                           ) : (
-                            <a className="mt-2 inline-flex font-semibold underline" href={blocker.href}>Fix this</a>
+                            <button className="mt-2 inline-flex font-semibold underline" onClick={() => handleBlockerAction(blocker.key)} type="button">{blocker.actionLabel}</button>
                           )}
                         </li>
                       ))}
@@ -278,7 +389,7 @@ export function quickPublishBlockers(
       key: "price",
       label: "Price source required",
       detail: "Set the item's asking price, manually edit a draft price, or enter a human-picked evidence price in this preview.",
-      href: "#category-specifics"
+      actionLabel: "Enter evidence price"
     });
   }
   const photoCount = draft?.photo_ids.length || item.photos.length;
@@ -287,7 +398,7 @@ export function quickPublishBlockers(
       key: "photos",
       label: "At least one photo required",
       detail: "Add an own photo before posting live.",
-      href: "#photos"
+      actionLabel: "Add photos"
     });
   }
   if (!draft?.est_shipping_note && !fallbackShippingNote(item)) {
@@ -295,7 +406,7 @@ export function quickPublishBlockers(
       key: "postage",
       label: "Postage or pickup required",
       detail: "Set a postage, packaging, or pickup note so the listing is not ambiguous.",
-      href: "#category-specifics"
+      actionLabel: "Set postage / pickup"
     });
   }
   if (!item.condition || item.condition === "ungraded") {
@@ -303,7 +414,15 @@ export function quickPublishBlockers(
       key: "condition",
       label: "Condition required",
       detail: "Choose a condition before posting live.",
-      href: "#core-details"
+      actionLabel: "Set condition"
+    });
+  }
+  if (!draft?.channel_data?.category_id) {
+    blockers.push({
+      key: "category",
+      label: "eBay category required",
+      detail: "Select and save the eBay category mapping before posting live.",
+      actionLabel: "Set eBay category"
     });
   }
   if (ebayStatusLoading || !ebayStatus?.connected) {
@@ -311,10 +430,83 @@ export function quickPublishBlockers(
       key: "ebay",
       label: "eBay connection required",
       detail: ebayStatusLoading ? "Magpie is checking the eBay connection." : "Reconnect eBay before posting.",
-      href: "/settings"
+      actionLabel: "Reconnect eBay"
     });
   }
   return blockers;
+}
+
+function EbayCategoryMappingControl({
+  categoryResult,
+  currentDraft,
+  error,
+  onSearch,
+  onSearchChange,
+  onSelect,
+  pending,
+  search,
+  selectError,
+  selecting
+}: {
+  categoryResult: EbayCategorySuggestionsResponse | null;
+  currentDraft: ListingDraft | null;
+  error: unknown;
+  onSearch: () => void;
+  onSearchChange: (value: string) => void;
+  onSelect: (category: EbayCategorySuggestion) => void;
+  pending: boolean;
+  search: string;
+  selectError: unknown;
+  selecting: boolean;
+}) {
+  const selected = categorySummary(currentDraft);
+  return (
+    <div className="rounded border border-slate-300 bg-white p-3">
+      <h3 className="text-base font-semibold text-slate-950">eBay category mapping</h3>
+      <p className="mt-1 text-sm text-slate-700">Search eBay categories and choose the leaf category yourself. Magpie never silently applies a category.</p>
+      <p className="mt-2 rounded border border-slate-200 bg-slate-50 p-2 text-sm font-semibold text-slate-950">
+        Current: {selected}
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="label min-w-56 flex-1 text-slate-950">
+          <span>eBay category</span>
+          <input
+            className="field"
+            id="quick-ebay-category-search"
+            placeholder="Search eBay category"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </label>
+        <button className="btn-secondary gap-2" disabled={!search.trim() || pending} onClick={onSearch} type="button">
+          Search
+        </button>
+      </div>
+      {categoryResult?.supported === false ? <p className="mt-2 text-sm font-semibold text-amber-700">{categoryResult.detail}</p> : null}
+      {categoryResult?.suggestions.length ? (
+        <div className="mt-3 grid gap-2">
+          {categoryResult.suggestions.map((category) => (
+            <button
+              aria-label={`Select eBay category ${categoryLabel(category)} ${category.category_id}`}
+              className="row-link w-full items-start"
+              disabled={category.is_leaf !== true || selecting}
+              key={category.category_id}
+              onClick={() => onSelect(category)}
+              type="button"
+            >
+              <span className="min-w-0">
+                <span className="block font-semibold text-slate-950">{categoryLabel(category)}</span>
+                <span className="mt-1 block text-xs text-slate-700">{categoryPath(category)}</span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-slate-700">ID {category.category_id}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {error ? <p className="mt-2 text-sm font-semibold text-rose-700">{errorText(error)}</p> : null}
+      {selectError ? <p className="mt-2 text-sm font-semibold text-rose-700">{errorText(selectError)}</p> : null}
+    </div>
+  );
 }
 
 function PreviewRow({ label, value, note, large = false }: { label: string; value: string; note?: string; large?: boolean }) {
@@ -366,6 +558,15 @@ function categorySummary(draft: ListingDraft | null) {
   return name || id || "[category mapping not set]";
 }
 
+function categoryLabel(category: EbayCategorySuggestion) {
+  return category.category_name || category.name || "-";
+}
+
+function categoryPath(category: EbayCategorySuggestion) {
+  const path = category.category_path?.filter(Boolean) ?? [];
+  return path.length ? path.join(" > ") : categoryLabel(category);
+}
+
 function conditionLabel(condition: string) {
   return condition && condition !== "ungraded" ? condition.replace(/_/g, " ") : "[condition not set]";
 }
@@ -396,4 +597,19 @@ function stringValue(value: unknown) {
 
 function ebayListingUrl(listingId: string) {
   return `https://www.ebay.com.au/itm/${encodeURIComponent(listingId)}`;
+}
+
+function errorText(error: unknown) {
+  return error instanceof Error ? error.message : error ? "Request failed." : "";
+}
+
+function focusElement(id: string) {
+  window.setTimeout(() => {
+    document.getElementById(id)?.focus();
+  }, 0);
+}
+
+function jumpToItemSection(sectionId: string) {
+  window.location.hash = sectionId;
+  focusElement(sectionId);
 }

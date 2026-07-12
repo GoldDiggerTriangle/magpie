@@ -9,6 +9,7 @@ import type { InventoryItemDetail, ListingDraft } from "../types";
 
 const mocks = vi.hoisted(() => ({
   createItemListingDraft: vi.fn(),
+  getEbayCategorySuggestions: vi.fn(),
   getEbayStatus: vi.fn(),
   getItemCopyPack: vi.fn(),
   listItemListingDrafts: vi.fn(),
@@ -27,6 +28,7 @@ vi.mock("../api/listing", () => ({
 }));
 
 vi.mock("../api/ebay", () => ({
+  getEbayCategorySuggestions: (...args: unknown[]) => mocks.getEbayCategorySuggestions(...args),
   getEbayStatus: (...args: unknown[]) => mocks.getEbayStatus(...args)
 }));
 
@@ -126,6 +128,16 @@ const baseDraft: ListingDraft = {
   updated_at: ""
 };
 
+const categorySuggestion = {
+  category_id: "105848",
+  category_tree_id: "15",
+  category_name: "Australian Stamps",
+  name: "Australian Stamps",
+  category_path: ["Stamps", "Australia", "Australian Stamps"],
+  is_leaf: true,
+  child_count: 0
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getEbayStatus.mockResolvedValue({
@@ -140,6 +152,10 @@ beforeEach(() => {
     refresh_token_expires_at: null,
     last_refresh_error: "",
     snapshot: { opted_in: true, policy_counts: { payment: 1, fulfillment: 1, return: 1 }, fetched_at: null }
+  });
+  mocks.getEbayCategorySuggestions.mockResolvedValue({
+    supported: true,
+    suggestions: [categorySuggestion]
   });
   mocks.listItemListingDrafts.mockResolvedValue({ count: 1, next: null, previous: null, results: [baseDraft] });
   mocks.createItemListingDraft.mockResolvedValue(baseDraft);
@@ -224,6 +240,75 @@ test("QuickPublishPanel blocks missing price photo postage condition and eBay co
   expect(screen.getByText("eBay connection required")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Post live to eBay" })).toBeDisabled();
   expect(mocks.publishListingDraft).not.toHaveBeenCalled();
+});
+
+test("QuickPublishPanel blocks missing category and links to the category mapping control", async () => {
+  const user = userEvent.setup();
+  const missingCategoryDraft = {
+    ...baseDraft,
+    channel_data: {
+      ...baseDraft.channel_data,
+      category_id: "",
+      category_name: "",
+      category_tree_id: ""
+    }
+  };
+  mocks.listItemListingDrafts.mockResolvedValue({ count: 1, next: null, previous: null, results: [missingCategoryDraft] });
+  renderPanel();
+
+  await user.click(await screen.findByRole("button", { name: "Post to eBay" }));
+
+  expect(await screen.findByText("eBay category required")).toBeInTheDocument();
+  expect(screen.getByText("[category mapping not set]")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Post live to eBay" })).toBeDisabled();
+
+  await user.click(screen.getByRole("button", { name: "Set eBay category" }));
+
+  await waitFor(() => expect(screen.queryByText("eBay live listing preview")).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.getByLabelText("eBay category")).toHaveFocus());
+});
+
+test("QuickPublishPanel persists a selected category and previews it before posting", async () => {
+  const user = userEvent.setup();
+  const missingCategoryDraft = {
+    ...baseDraft,
+    channel_data: {
+      ...baseDraft.channel_data,
+      category_id: "",
+      category_name: "",
+      category_tree_id: ""
+    }
+  };
+  mocks.listItemListingDrafts.mockResolvedValue({ count: 1, next: null, previous: null, results: [missingCategoryDraft] });
+  mocks.updateListingDraft.mockImplementation(async (_id: string, payload: Partial<ListingDraft>) => ({
+    ...missingCategoryDraft,
+    ...payload,
+    channel_data: {
+      ...missingCategoryDraft.channel_data,
+      ...(payload.channel_data ?? {})
+    }
+  }));
+  renderPanel();
+
+  await user.type(await screen.findByLabelText("eBay category"), "Australian stamps");
+  await user.click(screen.getByRole("button", { name: "Search" }));
+  await user.click(await screen.findByRole("button", { name: "Select eBay category Australian Stamps 105848" }));
+
+  await waitFor(() => expect(mocks.updateListingDraft).toHaveBeenCalledWith("draft-1", expect.objectContaining({
+    channel_data: expect.objectContaining({
+      category_id: "105848",
+      category_name: "Australian Stamps",
+      category_tree_id: "15"
+    })
+  })));
+  expect(await screen.findByText("Current: Australian Stamps (105848)")).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Post to eBay" }));
+
+  expect(await screen.findByText("eBay live listing preview")).toBeInTheDocument();
+  expect(screen.getByText("Australian Stamps (105848)")).toBeInTheDocument();
+  expect(screen.queryByText("eBay category required")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Post live to eBay" })).not.toBeDisabled();
 });
 
 test("QuickPublishPanel ignores generated draft prices but accepts human-picked evidence", async () => {
