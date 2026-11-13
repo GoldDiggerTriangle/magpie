@@ -5,7 +5,8 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from apps.core.models import TimeStampedUUIDModel
-from apps.listing.draft_status import IN_FLIGHT_DRAFT_STATUSES, read_only_draft_filter
+from apps.listing.canonical_check import CONSTRAINT_NAME
+from apps.listing.draft_status import IN_FLIGHT_DRAFT_STATUSES, active_draft_filter, read_only_draft_filter
 
 
 class ListingBoilerplate(TimeStampedUUIDModel):
@@ -99,6 +100,12 @@ class ListingDraft(TimeStampedUUIDModel):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item", "channel"], condition=active_draft_filter(),
+                name=CONSTRAINT_NAME,
+            ),
+        ]
         indexes = [
             models.Index(fields=["item"]),
             models.Index(fields=["status"]),

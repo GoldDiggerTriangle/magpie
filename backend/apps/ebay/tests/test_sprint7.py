@@ -8,12 +8,14 @@ from pathlib import Path
 import pytest
 from django.conf import settings
 from django.core.management import call_command
+from django.db import connection, transaction
 from django.urls import resolve
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 import integrations.ebay as ebay_integration
 from apps.audit.models import AuditLog
+from apps.listing.canonical_check import CONSTRAINT_NAME
 from apps.core.backup_ops import DB_SNAPSHOT_NAME
 from apps.core.tests.backup_helpers import (
     load_backup_manifest,
@@ -427,11 +429,18 @@ def test_stage_guards_zero_photo_many_photos_missing_fields_and_conflict(item, c
         stage_draft(missing)
 
     missing.delete()
-    staged = make_draft(item, status=ListingDraft.Status.STAGED, channel_data={"offer_id": "existing"})
-    conflict = make_draft(item)
-    with pytest.raises(Exception, match="unresolved eBay state"):
-        stage_draft(conflict)
-    staged.delete()
+    # Preserve the pre-B legacy-collision guard test. B now rejects this state
+    # at insertion; the constraint is restored by rolling back this savepoint.
+    with transaction.atomic():
+        constraint = next(row for row in ListingDraft._meta.constraints if row.name == CONSTRAINT_NAME)
+        with connection.cursor() as cursor:
+            cursor.execute(str(constraint.remove_sql(ListingDraft, connection.schema_editor())))
+        staged = make_draft(item, status=ListingDraft.Status.STAGED, channel_data={"offer_id": "existing"})
+        conflict = make_draft(item)
+        with pytest.raises(Exception, match="unresolved eBay state"):
+            stage_draft(conflict)
+        staged.delete()
+        transaction.set_rollback(True)
 
 
 @pytest.mark.django_db

@@ -7,7 +7,7 @@ from uuid import UUID
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.management import call_command, CommandError
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -21,9 +21,21 @@ from apps.listing.canonical import (
 )
 from apps.listing.draft_status import DRAFT_STATUS_CLASSIFICATION, active_draft_filter, classify_draft_status
 from apps.listing.models import ChannelListing, ListingDraft
+from apps.listing.canonical_check import CONSTRAINT_NAME
 
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def before_migration_b(db):
+    # These are Migration A/legacy-duplicate tests, before B is installed.
+    # Dropping this index inside the test transaction rolls back at teardown;
+    # separate Migration B tests exercise the installed constraint on both lanes.
+    assert connection.in_atomic_block
+    constraint = next(row for row in ListingDraft._meta.constraints if row.name == CONSTRAINT_NAME)
+    with connection.cursor() as cursor:
+        cursor.execute(str(constraint.remove_sql(ListingDraft, connection.schema_editor())))
 
 
 @pytest.fixture

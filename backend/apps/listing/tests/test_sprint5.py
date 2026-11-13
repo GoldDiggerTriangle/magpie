@@ -374,17 +374,20 @@ def test_readiness_failures_warnings_and_ready_gate(api_client, categories, boil
     assert "readiness" in blocked.data
 
     photo = create_photo(item, processed_path="processed/valid.jpg")
-    ready = ListingDraft.objects.create(
-        item=item,
-        title="Ready title",
-        description_html="<h2>What's included</h2><p>$45 postage is fine.</p>",
-        price=Decimal("120.00"),
-        quantity=1,
-        item_specifics=[{"name": "Brand", "value": "Samsung"}],
-        photo_ids=[str(photo.id)],
-        boilerplate=boilerplate,
-        generated_meta={"price_source": {"value": "120.00"}},
-    )
+    # Repair the same canonical draft rather than creating a second active one.
+    ready = draft
+    for field, value in {
+        "title": "Ready title",
+        "description_html": "<h2>What's included</h2><p>$45 postage is fine.</p>",
+        "price": Decimal("120.00"),
+        "quantity": 1,
+        "item_specifics": [{"name": "Brand", "value": "Samsung"}],
+        "photo_ids": [str(photo.id)],
+        "boilerplate": boilerplate,
+        "generated_meta": {"price_source": {"value": "120.00"}},
+    }.items():
+        setattr(ready, field, value)
+    ready.save()
     response = api_client.patch(
         f"/api/listing-drafts/{ready.id}/",
         {"status": "ready"},
