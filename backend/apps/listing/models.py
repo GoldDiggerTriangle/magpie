@@ -1,7 +1,11 @@
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.utils import timezone
 
 from apps.core.models import TimeStampedUUIDModel
+from apps.listing.draft_status import IN_FLIGHT_DRAFT_STATUSES, read_only_draft_filter
 
 
 class ListingBoilerplate(TimeStampedUUIDModel):
@@ -19,6 +23,21 @@ class ListingBoilerplate(TimeStampedUUIDModel):
         return f"{self.channel}: {self.name} ({state})"
 
 
+class ListingDraftQuerySet(models.QuerySet):
+    def assert_mutable(self):
+        if self.filter(read_only_draft_filter()).exists():
+            raise ValidationError("Published and archived drafts are read-only; create a relisting draft instead.")
+
+    def update(self, **kwargs):
+        self.assert_mutable()
+        return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        objs = tuple(objs)
+        self.filter(pk__in=[obj.pk for obj in objs]).assert_mutable()
+        return super().bulk_update(objs, fields, batch_size=batch_size)
+
+
 class ListingDraft(TimeStampedUUIDModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
@@ -27,6 +46,9 @@ class ListingDraft(TimeStampedUUIDModel):
         STAGED = "staged", "Staged"
         PUBLISHED = "published", "Published"
         PUBLISH_FAILED = "publish_failed", "Publish failed"
+        ARCHIVED = "archived", "Archived"
+        PUBLISHING = "publishing", "Publishing"
+        PUBLISH_UNKNOWN = "publish_unknown", "Publish outcome unknown"
 
     class Format(models.TextChoices):
         FIXED = "fixed", "Fixed price"
@@ -73,6 +95,8 @@ class ListingDraft(TimeStampedUUIDModel):
     generated_meta = models.JSONField(default=dict, blank=True)
     exported_at = models.DateTimeField(null=True, blank=True)
 
+    objects = ListingDraftQuerySet.as_manager()
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -82,6 +106,27 @@ class ListingDraft(TimeStampedUUIDModel):
 
     def __str__(self) -> str:
         return f"{self.item.sku} listing draft ({self.status})"
+
+    @property
+    def is_read_only(self):
+        return type(self).objects.using(self._state.db).filter(pk=self.pk).filter(read_only_draft_filter()).exists()
+
+    def assert_editable(self):
+        if self.is_read_only:
+            raise ValidationError("Published and archived drafts are read-only; create a relisting draft instead.")
+        if self.status in IN_FLIGHT_DRAFT_STATUSES:
+            raise ValidationError("Reconcile the publish outcome before editing this draft.")
+
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or self._state.db
+        type(self).objects.using(using).filter(pk=self.pk).assert_mutable()
+        return super().save(*args, **kwargs)
+
+
+@receiver(pre_delete, sender=ListingDraft)
+def protect_listing_history(sender, instance, using, **kwargs):
+    # The signal also covers queryset deletes and an inventory-item cascade.
+    sender.objects.using(using).filter(pk=instance.pk).assert_mutable()
 
 
 class ChannelListing(TimeStampedUUIDModel):

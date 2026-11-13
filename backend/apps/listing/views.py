@@ -1,10 +1,12 @@
 from django.db import transaction
+from django.db.models import Case, IntegerField, Value, When
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as ApiValidationError
 from rest_framework.generics import ListCreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,6 +24,7 @@ from apps.listing.channel_listings import (
     take_down_checklist_items,
 )
 from apps.listing.copy_packs import render_copy_pack
+from apps.listing.canonical import get_or_create_canonical_draft, plan_group
 from apps.listing.export import build_export_bundle
 from apps.listing.generators import generated_meta, generator_for
 from apps.listing.context import safe_context
@@ -156,7 +159,7 @@ class ChannelListingViewSet(ModelViewSet):
 
 class ItemListingDraftListCreateView(ListCreateAPIView):
     serializer_class = ListingDraftSerializer
-    ordering = ["-created_at"]
+    ordering = None
 
     def get_item(self):
         return get_object_or_404(
@@ -168,18 +171,36 @@ class ItemListingDraftListCreateView(ListCreateAPIView):
         )
 
     def get_queryset(self):
-        return (
+        queryset = (
             ListingDraft.objects.select_related("item", "item__category", "boilerplate")
             .filter(item=self.get_item())
             .prefetch_related("item__photos", "item__valuation_reports")
         )
+        ebay_drafts = list(queryset.filter(channel="ebay_au"))
+        group = plan_group(ebay_drafts) if ebay_drafts else None
+        if group and group["keeper"]:
+            return queryset.annotate(
+                canonical_order=Case(
+                    When(pk=group["keeper"]["draft_id"], then=Value(0)),
+                    default=Value(1), output_field=IntegerField(),
+                )
+            ).order_by("canonical_order", "-created_at")
+        return queryset
 
     def create(self, request, *args, **kwargs):
         item = self.get_item()
-        with transaction.atomic():
-            draft = create_generated_draft(item)
+        channel = request.data.get("channel", "ebay_au")
+        if not isinstance(channel, str) or not channel.strip() or len(channel) > 30:
+            return Response({"channel": "Provide a channel name of at most 30 characters."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            draft, created = get_or_create_canonical_draft(
+                item, channel=channel,
+                create_new=lambda: create_generated_draft(item, channel=channel),
+            )
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(draft)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class ListingDraftViewSet(ModelViewSet):
@@ -191,9 +212,27 @@ class ListingDraftViewSet(ModelViewSet):
     serializer_class = ListingDraftSerializer
     http_method_names = ["get", "patch", "delete", "post", "head", "options"]
 
+    def create(self, request, *args, **kwargs):
+        return Response({"detail": "Create or open drafts through the item's listing-drafts endpoint."}, status=status.HTTP_400_BAD_REQUEST)
+
+    def mutable_draft(self):
+        draft = self.get_object()
+        try:
+            draft.assert_editable()
+        except ValidationError as exc:
+            raise ApiValidationError(_validation_payload(exc)) from None
+        return draft
+
+    def perform_destroy(self, instance):
+        try:
+            instance.assert_editable()
+            instance.delete()
+        except ValidationError as exc:
+            raise ApiValidationError(_validation_payload(exc)) from None
+
     @action(detail=True, methods=["post"], url_path="generate")
     def generate(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         fields = request.data.get("fields") or []
         if not isinstance(fields, list) or not fields:
             return Response(
@@ -244,9 +283,11 @@ class ListingDraftViewSet(ModelViewSet):
     @action(detail=True, methods=["get"], url_path="export")
     def export(self, request, pk=None):
         draft = self.get_object()
-        draft.status = ListingDraft.Status.EXPORTED
-        draft.exported_at = timezone.now()
-        draft.save(update_fields=["status", "exported_at", "updated_at"])
+        if not draft.is_read_only:
+            draft.assert_editable()
+            draft.status = ListingDraft.Status.EXPORTED
+            draft.exported_at = timezone.now()
+            draft.save(update_fields=["status", "exported_at", "updated_at"])
         payload, _meta = build_export_bundle(draft)
         response = HttpResponse(payload, content_type="application/zip")
         response["Content-Disposition"] = (
@@ -256,7 +297,7 @@ class ListingDraftViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="stage")
     def stage(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         try:
             staged = ebay_staging.stage_draft(
                 draft,
@@ -272,7 +313,7 @@ class ListingDraftViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="withdraw")
     def withdraw(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         try:
             withdrawn = ebay_staging.withdraw_staged(draft, actor=request.user)
         except ValidationError as exc:
@@ -283,7 +324,7 @@ class ListingDraftViewSet(ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="aspects-check")
     def aspects_check(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         try:
             return Response(ebay_aspects.check_aspects(draft, actor=request.user))
         except EbayUnavailable as exc:
@@ -291,7 +332,7 @@ class ListingDraftViewSet(ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="staged-review")
     def staged_review(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         try:
             return Response(ebay_publishing.staged_review(draft, actor=request.user))
         except ValidationError as exc:
@@ -301,7 +342,7 @@ class ListingDraftViewSet(ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="publish")
     def publish(self, request, pk=None):
-        draft = self.get_object()
+        draft = self.mutable_draft()
         try:
             published = ebay_publishing.publish_draft(
                 draft,
@@ -315,7 +356,7 @@ class ListingDraftViewSet(ModelViewSet):
         return Response(self.get_serializer(published).data)
 
 
-def create_generated_draft(item) -> ListingDraft:
+def create_generated_draft(item, *, channel="ebay_au") -> ListingDraft:
     ctx = safe_context(item)
     generator = generator_for(item)
     specifics = build_specifics_from_context(ctx)
@@ -354,6 +395,7 @@ def create_generated_draft(item) -> ListingDraft:
     ]
     return ListingDraft.objects.create(
         item=item,
+        channel=channel,
         title=title,
         description_html=description,
         item_specifics=specifics,

@@ -516,7 +516,9 @@ def _mark_local_listing_synced(sale: SaleRecord) -> None:
         .order_by("-created_at")
         .first()
     )
-    if draft is None:
+    # Order identifiers already live on SaleRecord. Never rewrite the original
+    # published/archived listing snapshot just to attach sync metadata.
+    if draft is None or draft.is_read_only:
         return
     channel_data = dict(draft.channel_data or {})
     channel_data.update(

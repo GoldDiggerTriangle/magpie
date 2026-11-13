@@ -1,5 +1,6 @@
 from copy import copy
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.listing.channel_listings import CHANNEL_LABELS, item_listing_state
@@ -70,6 +71,11 @@ class ListingDraftSerializer(serializers.ModelSerializer):
         return readiness_summary(obj)
 
     def validate(self, data):
+        if self.instance is not None:
+            try:
+                self.instance.assert_editable()
+            except DjangoValidationError as exc:
+                raise serializers.ValidationError({"detail": exc.messages}) from None
         quantity = data.get(
             "quantity",
             self.instance.quantity if self.instance else ListingDraft._meta.get_field("quantity").default,
@@ -105,7 +111,10 @@ class ListingDraftSerializer(serializers.ModelSerializer):
             and validated_data["description_html"] != instance.description_html
         ):
             validated_data["description_edited"] = True
-        return super().update(instance, validated_data)
+        try:
+            return super().update(instance, validated_data)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"detail": exc.messages}) from None
 
 
 class ChannelListingSerializer(serializers.ModelSerializer):

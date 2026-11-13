@@ -34,6 +34,7 @@ def stage_draft(
     actor=None,
 ) -> ListingDraft:
     draft = _locked_draft(draft.pk)
+    draft.assert_editable()
     original_status = draft.status
     channel_data = dict(draft.channel_data or {})
     try:
@@ -146,6 +147,7 @@ def stage_draft(
 
 def withdraw_staged(draft: ListingDraft, *, actor=None) -> ListingDraft:
     draft = _locked_draft(draft.pk)
+    draft.assert_editable()
     if draft.status not in {ListingDraft.Status.STAGED, ListingDraft.Status.PUBLISH_FAILED}:
         raise ValidationError("Only staged or publish-failed drafts can be withdrawn.")
     channel_data = dict(draft.channel_data or {})

@@ -155,11 +155,13 @@ def fake_finance(
     }
 
 
+@pytest.mark.parametrize("draft_status", ["published", "archived", "draft"])
 @pytest.mark.django_db
 def test_fake_sync_matched_partial_sale_idempotency_snapshots_and_local_listing_state(
     credential,
     category,
     fee_schedule,
+    draft_status,
 ):
     item = make_item(category)
     ValuationReport.objects.create(
@@ -171,11 +173,12 @@ def test_fake_sync_matched_partial_sale_idempotency_snapshots_and_local_listing_
     )
     draft = ListingDraft.objects.create(
         item=item,
-        status=ListingDraft.Status.PUBLISHED,
-        channel_data={"listing_id": "listing-1", "inventory_item_sku": item.sku},
+        status=draft_status,
+        channel_data={"inventory_item_sku": item.sku, **({"listing_id": "listing-1"} if draft_status == "published" else {})},
         title="Published sync lot",
         price=Decimal("100.00"),
     )
+    original_draft = ListingDraft.objects.values().get(pk=draft.pk)
     ebay_adapters.FakeEbayOrderAdapter.orders = [fake_order(sku=item.sku)]
     ebay_adapters.FakeEbayFinancesAdapter.transactions = [fake_finance()]
 
@@ -199,8 +202,11 @@ def test_fake_sync_matched_partial_sale_idempotency_snapshots_and_local_listing_
     assert item.quantity_remaining == 7
     assert item.status == InventoryItem.Status.PARTIALLY_SOLD
     draft.refresh_from_db()
-    assert draft.channel_data["last_ebay_order_id"] == "ORDER-1"
-    assert draft.channel_data["last_ebay_line_item_id"] == "LINE-1"
+    if draft_status in {"published", "archived"}:
+        assert ListingDraft.objects.values().get(pk=draft.pk) == original_draft
+    else:
+        assert draft.channel_data["last_ebay_order_id"] == "ORDER-1"
+        assert draft.channel_data["last_ebay_line_item_id"] == "LINE-1"
 
     rerun = sync_orders(actor="pytest")
     assert rerun["counts"]["skipped"] == 1
