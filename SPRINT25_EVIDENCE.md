@@ -1346,3 +1346,49 @@ Restart-Service -Name Magpie -ErrorAction Stop
 After his confirmation, verify a new service/listener start, `/api/health/` HTTP 200, and that the process uses this checkout containing `1564d321` or later. Check GOLD-00002's existing canonical draft via the read-only local draft routes, with no saves or eBay preflight/read-back calls; it must resolve to `af013dd9`. Do not navigate a page that automatically performs remote eBay lookups merely to prove the route. These post-restart results will be recorded separately once actually observed.
 
 No code/settings/.env/credential/dependency/UI change, real eBay/AI call, staging/publishing/withdrawal or service restart was performed by Codex. Published history remains unchanged. **Stop for Regan's restart; do not begin Phase 3.**
+
+## 2026-11-14: Migration B Post-Restart Verification Passed
+
+**The preceding pending-restart state is resolved.** Regan reported "Restarted"; Codex then checked the actual NSSM/Waitress service on port 8000 using read-only local requests. Migration B installation, backup/restore and the requested post-restart checks are complete. This is not Sprint 25 closure and does not authorise Phase 3.
+
+### Service Restart And Serving-Version Proof
+
+| Check | Observed result |
+| --- | --- |
+| NSSM service | Running, PID **22824**, changed from 26960 |
+| Actual port-8000 Python listener | PID **19772**, changed from 4764 |
+| Listener start | **2026-11-13 23:38:59.426633 UTC** (14 November Australia/Sydney), after the requested restart handoff and implementation commit |
+| Process chain | NSSM 22824 -> venv launcher 16480 -> listener 19772 |
+| NSSM AppDirectory | `D:\Magpie\app\backend` |
+| NSSM application | `D:\Magpie\app\backend\.venv\Scripts\python.exe` |
+| Entrypoint | `D:\Magpie\app\backend\serve.py`; imports Waitress and `django.core.wsgi` |
+| Health | GET `http://127.0.0.1:8000/api/health/` -> **200**, status `ok` |
+| Checked checkout HEAD | **`ef2b0ee1a63bab1d347827876aad2c9f8f3813ba`**, descendant of **`1564d32127d2553585b2f291792b371cce78e836`** |
+| Runtime source check | Entrypoint, WSGI and canonical/model/view/check/migration files match that checked HEAD; no application-code diff |
+
+The new start time, live-checkout entrypoint/venv, source match and live canonical API response jointly verify the restarted service is using the implementation containing **1564d321 or later**. This is recorded as runtime-path/source/behaviour evidence, not a claim that an unimplemented version endpoint returned a Git hash.
+
+### Canonical Draft Opens Read-Only
+
+Only these authenticated local draft requests were made:
+
+| Method / route | HTTP | Result |
+| --- | --- | --- |
+| GET `/api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/listing-drafts/` | **200** | Five GOLD-00002 drafts; first result is **`af013dd9-0611-431c-be4a-223c44ec4e06`**, staged, offer `356038014011`; four remaining rows are archived |
+| GET `/api/listing-drafts/af013dd9-0611-431c-be4a-223c44ec4e06/` | **200** | The same canonical draft and unchanged local staged offer |
+
+Source trace: `listItemListingDrafts` in `frontend/src/api/listing.ts` uses the first route; both `ListingPanel` and `QuickPublishPanel` use that shared function and default to the first result when no explicit selection/preview is active. This verifies the existing draft-opening resolution without clicking a create/save/publish action. No claim is made that the future Phase 3 "List on eBay" UI has been implemented. The item page was deliberately not mounted, because its eBay panels can trigger additional preflight/read-back queries.
+
+The existing authenticated session was used in memory only; no session token, credential or raw response payload was printed or saved. The checker blocked outbound connects except to local port 8000, allowed no redirects, and performed no POST/PATCH/DELETE, save, draft creation, stage, publish, withdraw, eBay metadata/preflight or AI operation.
+
+### Data And Constraint Remain Correct
+
+- **8 drafts**, GOLD-00002 **1 active / 4 archived**, keeper `af013dd9`, local offer `356038014011` unchanged.
+- **155 audit rows**, **1 ChannelListing**, **53 migration records**.
+- Schema-only inspection still shows `listing_one_active_draft` as **unique and partial**, columns `item_id, channel`; no test rows inserted.
+- Query-only `check_canonical_drafts`: **zero violations, constraint_installed true**. MigrationExecutor's read-only plan reports **zero pending migrations**.
+- Full ordered-row digests for every table were equal before and after the GET checks. No data, historical record or session row was changed by validation.
+
+At the checked runtime HEAD, [Validation 43528199055](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43528199055) is **green on both lanes** (SQLite job `132239066750`, PostgreSQL job `132239067137`). The unchanged implementation's previously recorded results remain 264 passed / 1 skipped SQLite, 252 passed / 13 skipped PostgreSQL, and 123 frontend tests plus typecheck/build/collectstatic/smoke. No new application code, settings, credentials or schema change was needed for this verification.
+
+**Stop and report:** the approved Migration B installation/restart sequence is verified. Phase 3 requires a separate instruction. Sprint 25 remains open; live publishing remains unproven.
