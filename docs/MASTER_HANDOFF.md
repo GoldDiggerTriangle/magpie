@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| Version | v4.63 |
+| Version | v4.64 |
 | Last updated | 2026-11-13 |
-| Updated by | Claude (rebuilt from the v4.62 PDF; merged the 2026-09-27 and 2026-11-13 updates; D-141) |
-| Project status | ✅ Original roadmap COMPLETE. ✅ PROFIT-ENGINE CHAPTER COMPLETE (D-128…D-131). Sprints 18–22 CLOSED + LIVE; Sprints 23R2 + 24 deployed but UNCLOSED (Sprint 24 round 2 + the closure evidence for 23R2 and 24R1 still owed). **Sprint 25 (v3.3 LOCKED, “eBay listing, end to end”) is at Gate 0, which is OPEN:** `SECRET_KEY` + `MAGPIE_TOKEN_ENCRYPTION_KEY` rotated and verified 2026-11-13; backup passphrase settled by D-139; eBay Cert ID kept by D-140; remaining: one read-only call per eBay scope + the June operational-backup check. Runtime on `D:\Magpie\app` (D-138); live code `main` @ `afe9b351`. Canonical handoff: `docs/MASTER_HANDOFF.md` on GitHub (D-141). |
+| Updated by | Codex (applying Claude's Gate 0 update, 2026-11-13) |
+| Project status | ✅ Original roadmap COMPLETE. ✅ PROFIT-ENGINE CHAPTER COMPLETE (D-128…D-131). Sprints 18–22 CLOSED + LIVE; Sprints 23R2 + 24 deployed but UNCLOSED (Sprint 24 round 2 + the closure evidence for 23R2 and 24R1 still owed). **Sprint 25 (v3.3 LOCKED, “eBay listing, end to end”): Gate 0 CLOSED 2026-11-13** (rotation per D-139 and D-140; all four eBay scopes verified; evidence `SPRINT25_EVIDENCE.md` @ `859f2974`). **Phase 0 awaits Regan’s go-ahead and his choice of item.** Runtime on `D:\Magpie\app` (D-138); live code `main` @ `afe9b351`. Canonical handoff: `docs/MASTER_HANDOFF.md` on GitHub (D-141). |
 | Owner / decision-maker | Regan (final say on all decisions) |
 
 *v4.63 was rebuilt on 2026-11-13 from the v4.62 PDF export, because no markdown source survived. The wording is carried over unchanged; table layout and emphasis are approximated, and a few emoji may be missing.*
@@ -60,11 +60,11 @@ This is the handoff between sessions and between AIs (Claude ⇄ ChatGPT). The r
 
 ✅ **The entire original Magpie roadmap is complete; the post-roadmap profit-engine chapter is underway (D-128…D-131).** All six phases + hardening are built, closed, and live — inventory + photos, research + valuation, listing drafts, eBay OAuth + human-confirmed publish, sales + order-sync + dashboards, encrypted/offsite backups with tested restore, and Phase 5’s AI/photo intelligence — a finished, self-hosted system delivering its core value with **zero external API dependency**. ✅ **Profit-engine chapter COMPLETE (all five sprints closed + live):** Sprint 18 (fee engine 2026 + buy calculator, `f4deee3`) · 19 (evidence bank, `cc291e8` / `bf2c17d`) · 20 (profit intelligence v1 — head `4881958`, code `6a79fdd`, run `28738942557`) · 21 (lot manager + source ROI — head `8e57dce`, impl `b5a593d`, run `28752285740`) · **22 (multi-channel copy pack + sold-everywhere board — head** `39ad524` **, run** `28755278337` **, both lanes green: Postgres** `85261225059` **, SQLite** `85261225071` **)**. Sprint 22 delivered: deterministic channel copy packs (real fields only, prices never generated), the photo-set zip export, the `ChannelListing` board (`/listings` live; eBay rows from local records only — no API), and the **sale → take-down checklist** (the double-sell guard); backup/restore completed; evidence committed; **the Validation workflow’s path filter was also fixed to consistently cover Sprint 17–22 evidence files**. **The loop is live end-to-end:** phone at a market → calculator + owned evidence → Bought-it → lot allocation → photo fix-up → copy packs across channels → sale → take-down checklist → ledger + FY export → source ROI feeding the next buy. **No sprint is in progress; next work is Regan’s call** (deferred backlog in §7.1) — or simply operate it. Standing opens: eBay plan check (F-20) + the secret rotation (§7.2–7.3); soft follow-up: the first real lot purchase live-validates Sprint 21’s tally + sold-lock. **Post-chapter field polish: Sprint 23 ☑ CLOSED + LIVE** (head `ddca2c8`, Validation `28767335505`, both lanes; 193 backend + 100 frontend) — **photo library + camera choice** on all photo inputs, the **Banknotes category** with its curated schema (restore-verified end to end), and **data-driven denomination comboboxes** with custom entry. Surfaced by Regan’s first field session — the operate-first loop working. **Regan’s to do whenever (not blocking): triage the 4 real staged eBay orders** at `/ebay/orders` (all four are old `$1.50 Concession` stamp sales → likely **Mark external**, cost blank = `cost_basis_unknown`). Resolving the first one also confirms the staged-row → real-sale path live on real data (the one thing the UI close proved via tests + a live-reachable screen rather than a live real resolution — correct, since real rows aren’t burned in validation). These become the first real sales feeding the dashboards. **Infrastructure complete + trustworthy.**
 
-**Sprint 25 status:** Sprint 25 (v3.3 LOCKED) is at **Gate 0, which is OPEN**. The 2026-09-27 “rotation done” entries were wrong (see §8). On 2026-11-13 `SECRET_KEY` and `MAGPIE_TOKEN_ENCRYPTION_KEY` were rotated and verified, eBay was reconnected and the AI key re-entered. D-139 settles the backup passphrase and D-140 keeps the eBay Cert ID. Remaining Gate 0 checks: one read-only call per eBay scope, and confirmation that the one unopenable June operational backup is superseded.
+**Sprint 25 status:** Sprint 25 (v3.3 LOCKED): **Gate 0 CLOSED 2026-11-13.** Every spec §1 item passed, item 1 by D-140 and item 3 as replaced by D-139: eBay was reconnected after the rotation; automatic refresh returned HTTP 200; one read-only call per scope returned HTTP 200 for all four scopes (account policies 2 records, inventory locations 1, orders 0, finances transactions 1); the policy snapshot was refreshed (`fetched_at` 2026-11-12 10:58:01 UTC); B restores archives across the whole history, and a backup without B refuses. The one unopenable June operational backup (`20260613-120743`) is superseded by `20260613-232008`, which restores with B and matches 8 items, 2 photos, 5 valuations, 2 drafts, 1 credential and 6 media files. Evidence: `SPRINT25_EVIDENCE.md` (commit `859f2974`). **Next: Phase 0, on Regan’s go-ahead, on an item he picks.**
 
 **Runtime (2026-11-13):** `D:\Magpie\app` (NSSM service `Magpie`, D-138). Latest backup restore: 46 tables, 713 rows, 64 media files.
 
-**Blocked:** Sprint 25 Phase 0 waits for Gate 0 to close (§7 item 1).
+**Blocked:** nothing technical. Phase 0 waits only for Regan’s go-ahead and his choice of item (§7 item 1).
 
 **Artifact index** *(work only from these versions)*:
 
@@ -105,11 +105,12 @@ This is the handoff between sessions and between AIs (Claude ⇄ ChatGPT). The r
 | Sprint 16 spec (Settings completion + mobile fit) | `SPRINT_16_SPEC.md` | v1.1 | **☑ CLOSED** (`3268da3`, Validation `27608719841`) — credential form + bright high-contrast mobile readability pass (D-126); Regan signed off (“so much better to read mobile now”); no overflow at 390px; working tree clean |
 | Post-roadmap upgrade brief | `MAGPIE_UPGRADE_BRIEF.md` | v1.0 | **Closed** — cross-validated with ChatGPT; resolved into D-128…D-131 + F-19/F-20 |
 | Codebase (Sprint 0–23; 24 deployed, unclosed) | *(in repo,* `main` *@* `afe9b351` *; live* `afe9b351` *on* `D:\Magpie\app`*)* | **Sprint 0–23 ☑** | **Roadmap + chapter + field polish closed + live.** Sprint 23: Validation `28767335505` (SQLite `85294116054` + Postgres `85294116059`); 193 backend + 100 frontend; Banknotes restore-verified; worktree clean. Sprint 25 baseline: `afe9b351` (structural audit, 2026-09-24). |
-| Sprint 25 spec (eBay listing, end to end) | `SPRINT_25_SPEC.md` *(*`docs/specs/`*)* | **v3.3 LOCKED** | **LOCKED 2026-09-27** (supersedes v2.1) — one canonical draft, one editor, one preview; strict order Gate 0 → Phase 0 → Phase 1 → build phases; **Gate 0 in progress** (§2, §7) |
+| Sprint 25 spec (eBay listing, end to end) | `SPRINT_25_SPEC.md` *(*`docs/specs/`*)* | **v3.3 LOCKED** | **LOCKED 2026-09-27** (supersedes v2.1) — one canonical draft, one editor, one preview; strict order Gate 0 → Phase 0 → Phase 1 → build phases; **Gate 0 CLOSED 2026-11-13; Phase 0 next** (§2, §7) |
 | Sprint 25 kickoff note | `SPRINT_25_KICKOFF.md` *(*`docs/specs/`*)* | **v3.3** | **Ready** — Codex works Gate 0 → Phase 0 → Phase 1 in strict order, with stop-and-report points (§0 rule 10) |
 | Structural audit | `CLAUDE_STRUCTURAL_AUDIT.md` *(in repo, untracked)* | — | Codex audit at `afe9b351`, 2026-09-24; the basis for Sprint 25 v3 |
-| Sprint 25 evidence | `SPRINT25_EVIDENCE.md` *(in repo)* | — | Gate 0 section added 2026-11-13 (readiness, passphrase map, rotation, renewal) — **in progress** |
-| Handoff updates | `MASTER_HANDOFF_UPDATE_2026-09-27.md`, `MASTER_HANDOFF_UPDATE_2026-11-13.md` | — | **Merged into v4.63** (superseded; no longer needed) |
+| Sprint 25 evidence | `SPRINT25_EVIDENCE.md` *(in repo)* | — | Gate 0 section complete — **Gate 0 CLOSED 2026-11-13** (commit `859f2974`) |
+| Handoff updates | `MASTER_HANDOFF_UPDATE_2026-09-27.md`, `MASTER_HANDOFF_UPDATE_2026-11-13.md`, `MASTER_HANDOFF_UPDATE_2026-11-13_GATE0.md` | — | **Merged** (v4.63, v4.64); superseded |
+| Archived sprint specs | `docs/history/specs/` | — | 23 unchanged PDFs (Sprints 0+1, 2–13, 15–24) with an index `README.md` (commit `f8145acd`); **the Sprint 14 spec is missing** (its closure is recorded in the Sprint 14 row above and in `SPRINT14_EVIDENCE.md`) |
 | Sprint 24 spec (AI apply flow + item-page organisation) | `SPRINT_24_SPEC.md` | v1.1 | ◐ **ROUND 2** (§10–11 added): title-save bug, JSON rendering, safe-area regression, rationale metadata; features observably deployed but **no closure evidence received** |
 | Sprint 24 round-2 continuation | `SPRINT_24_CONTINUATION.md` | v1.0 | **Ready for Codex** — fix round + closure-evidence catch-up for 23R2 + 24R1 |
 | Sprint 24 kickoff note | `SPRINT_24_KICKOFF.md` | v1.0 | **Used** — drove round 1 (evidence outstanding) |
@@ -270,7 +271,7 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 
 ## 7. Next actions (immediate queue)
 
-1. **Sprint 25 Gate 0 close-out — the current blocker.** One read-only call per eBay scope (inventory, fulfilment, finances; account is done) and confirmation that the unopenable June operational backup is superseded. Then Gate 0 closes. **Phase 0 starts only on Regan’s go-ahead.**
+1. **Sprint 25 Phase 0 — next, on Regan’s go-ahead.** The diagnostic harness on a real item Regan picks: `createOrReplaceInventoryItem` → `createOffer` → offer fees/validation; **`publishOffer` forbidden**; raw results reported to Regan and Claude (spec §2). Success means “staging passed; live publishing remains unproven.” Then Phase 1, the reachability audit, with a stop-and-report after each (kickoff).
 
 2. **Regan: store B offline.** The backup passphrase (the Windows user variable, D-139) must be in a password manager; without it the offsite backups cannot be opened.
 
@@ -280,11 +281,13 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 
 5. **Maintenance (whenever):** ~~re-point the Magpie NSSM service off the fragile `...\.tmp\tools...` path~~ **done 2026-10-26 (D-138: runtime and NSSM on `D:\Magpie`).** **Confirm the auth-wording change is committed + being served** (the `AuthRequiredState` bundle `index-xQlE5Wmo.js` 404’d pre-restart — one more Administrator restart if the app still shows the old “Django session” wording). **Formula-parity watch:** the fee/ROI maths now exist in both backend and frontend (client-side what-if fix) — Sprint 19 mandates a shared canonical fixture in both suites; any formula change updates the fixture. Calculator **status-bar overlap** → folded into Sprint 19. Also standing: set real `quantity_total` on bulk-lot items; confirm the 02:00 `Magpie Backup` auto-run; Recharts bundle-size hygiene. *(The old eBay decrypt/reconnect rehearsal is superseded — the §7.3 rotation forces a reconnect anyway.)*
 
-6. **Retire the old C: runtime folder** once the Gate 0 evidence is copied across (D-138). It still holds a pre-rotation `.env`.
+6. **Retire the old C: runtime folder now** (D-138): the Gate 0 evidence is in the repo. It still holds a pre-rotation `.env` (including the eBay Cert ID kept by D-140), the superseded 14 June archive that needs A, and the unopenable test archives; none are needed. Delete the stale `2026-06-11` checkout too, whose `.env` holds older secrets.
 
 ## 8. Decision log (append-only, dated) — recent; full history in `MASTER_HANDOFF_LOG.md`
 
 > Newest at the top. Never edit or delete; supersede with a new dated entry. **Only the most recent entries are kept here — all earlier entries are in the companion** `MASTER_HANDOFF_LOG.md` **.**
+
+**2026-11-13 — Claude — Sprint 25 Gate 0 CLOSED.** Reviewed Codex’s close-out (`859f2974`). All four scopes Magpie uses answered one read-only GET each with HTTP 200 (account policies 2 records, inventory locations 1, orders 0, finances transactions 1); the close-out run made three GETs, no OAuth POST, and changed no data. Automatic refresh HTTP 200 after the post-rotation reconnect; policy snapshot `fetched_at` 2026-11-12 10:58:01 UTC; recovery per D-139. The operational backup `20260613-120743` (purpose in `ROBUSTNESS_EVIDENCE.md`) cannot be opened with the known passphrases but is superseded by `20260613-232008`, which restores with B and matches 8 items, 2 photos, 5 valuations, 2 drafts, 1 credential and 6 media files. Item 1 passes by D-140. The old sprint specs were archived unchanged in `docs/history/specs/` (`f8145acd`); the Sprint 14 spec is missing. Phase 0 next, on Regan’s go-ahead.
 
 **2026-11-13 — Claude — D-141: the handoff moves to GitHub.** Regan asked for one handoff that Claude, ChatGPT and Codex all read each session. The canonical copy is `docs/MASTER_HANDOFF.md` on `main`; Codex reads it via `AGENTS.md` and makes all commits; Claude and ChatGPT read it through their GitHub integrations. No markdown source of v4.62 survived and `MASTER_HANDOFF_LOG.md` was not found, so v4.63 was rebuilt from the v4.62 project PDF with the 2026-09-27 and 2026-11-13 updates merged. Regan approved.
 
@@ -341,6 +344,8 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 ## 9. Session / handoff log (append-only) — recent; full history in `MASTER_HANDOFF_LOG.md`
 
 > One short entry per working session, newest at the top. **Only the most recent entries are kept here — all earlier entries are in the companion** `MASTER_HANDOFF_LOG.md` **.**
+
+**2026-11-13 — Claude —** Bumped to **v4.64** (applied by Codex). Recorded **Sprint 25 Gate 0 CLOSED** (evidence `859f2974`) and the spec archive (`f8145acd`). Updated header, §2 (status, artifact index), §7 and §8. Phase 0 awaits Regan’s go-ahead.
 
 **2026-11-13 — Codex —** Sprint 25 Gate 0 CLOSED under D-139/D-140: rechecked inventory, fulfilment and finances GETs (all HTTP 200), verified the superseding June backup with B, and filed the accumulated close-out evidence in `SPRINT25_EVIDENCE.md`; Phase 0, staging, publishing and UI work not begun. HEAD at task start: `f8145acdea51a93205971b9648f8a5da0d60a63d`.
 
