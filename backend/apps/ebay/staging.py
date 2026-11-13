@@ -8,7 +8,7 @@ from django.utils import timezone
 
 import integrations.ebay as ebay_integration
 from apps.audit.services import record
-from apps.ebay.aspects import check_aspects
+from apps.ebay.aspects import check_aspects, get_category_condition_policy
 from apps.ebay.constants import (
     AUDIT_INVENTORY_ITEM_UPSERTED,
     AUDIT_MEDIA_UPLOADED,
@@ -37,7 +37,7 @@ def stage_draft(
     original_status = draft.status
     channel_data = dict(draft.channel_data or {})
     try:
-        _guard_stageable(draft)
+        condition_policy = _guard_stageable(draft)
         aspect_check = check_aspects(draft, actor=actor)
         if aspect_check["missing_required"] and not override_missing_aspects:
             raise ValidationError(
@@ -70,7 +70,7 @@ def stage_draft(
             media=media,
             actor=actor,
         )
-        inventory_payload = _inventory_item_payload(draft, eps_urls)
+        inventory_payload = _inventory_item_payload(draft, eps_urls, condition_policy=condition_policy)
         inventory.upsert_inventory_item(
             access_token=access_token,
             sku=draft.item.sku,
@@ -116,6 +116,7 @@ def stage_draft(
                     "inventory_item": inventory_payload,
                     "offer": offer_payload,
                     "aspects": aspect_check,
+                    "condition_policy": condition_policy,
                 },
                 "last_ebay_error": "",
             }
@@ -180,7 +181,7 @@ def _locked_draft(pk) -> ListingDraft:
     )
 
 
-def _guard_stageable(draft: ListingDraft) -> None:
+def _guard_stageable(draft: ListingDraft) -> dict | None:
     if draft.status == ListingDraft.Status.PUBLISHED:
         raise ValidationError("Published drafts cannot be staged again.")
     if draft.item.status in {InventoryItem.Status.SOLD, InventoryItem.Status.ARCHIVED}:
@@ -206,7 +207,6 @@ def _guard_stageable(draft: ListingDraft) -> None:
         raise ValidationError("eBay staging is limited to 24 photos.")
     required = [
         "category_id",
-        "condition_id",
         "payment_policy_id",
         "fulfillment_policy_id",
         "return_policy_id",
@@ -217,6 +217,12 @@ def _guard_stageable(draft: ListingDraft) -> None:
         raise ValidationError(f"Missing eBay staging field(s): {', '.join(missing)}.")
     if not draft.price:
         raise ValidationError("Price is required before staging.")
+    if not (draft.channel_data or {}).get("condition_id"):
+        policy = get_category_condition_policy(category_id=draft.channel_data["category_id"])
+        if not _allows_no_condition(draft, policy):
+            raise ValidationError("Missing eBay staging field(s): condition_id.")
+        return policy
+    return None
 
 
 def _ordered_photos(draft: ListingDraft) -> list[PhotoAsset]:
@@ -245,14 +251,18 @@ def _upload_photos(draft: ListingDraft, *, access_token: str, media, actor=None)
     return urls
 
 
-def _inventory_item_payload(draft: ListingDraft, eps_urls: list[str]) -> dict:
-    condition = _condition_for_draft(draft)
+def _inventory_item_payload(
+    draft: ListingDraft,
+    eps_urls: list[str],
+    *,
+    condition_policy: dict | None = None,
+) -> dict:
     aspects = {
         str(row.get("name")): [str(row.get("value"))]
         for row in draft.item_specifics or []
         if isinstance(row, dict) and row.get("name") and row.get("value")
     }
-    return {
+    payload = {
         "availability": {
             "shipToLocationAvailability": {
                 "quantity": int(draft.quantity),
@@ -264,7 +274,6 @@ def _inventory_item_payload(draft: ListingDraft, eps_urls: list[str]) -> dict:
                 ],
             }
         },
-        "condition": condition["condition"],
         "product": {
             "title": draft.title,
             "description": draft.description_html,
@@ -272,11 +281,28 @@ def _inventory_item_payload(draft: ListingDraft, eps_urls: list[str]) -> dict:
             "imageUrls": eps_urls,
         },
     }
+    # Only explicit category metadata permits omission; an unknown grade is not a condition choice.
+    if not _allows_no_condition(draft, condition_policy):
+        if not (draft.channel_data or {}).get("condition_id"):
+            raise ValidationError("Missing eBay staging field(s): condition_id.")
+        payload["condition"] = _condition_for_draft(draft)["condition"]
+    return payload
+
+
+def _allows_no_condition(draft: ListingDraft, policy: dict | None) -> bool:
+    return bool(
+        isinstance(policy, dict)
+        and policy.get("category_id") == str((draft.channel_data or {}).get("category_id"))
+        and policy.get("marketplace") == EBAY_MARKETPLACE_ID
+        and policy.get("fetched_at")
+        and policy.get("required") is False
+        and policy.get("conditions") == []
+    )
 
 
 def _offer_payload(draft: ListingDraft) -> dict:
     channel_data = draft.channel_data or {}
-    return {
+    payload = {
         "sku": draft.item.sku,
         "marketplaceId": EBAY_MARKETPLACE_ID,
         "format": "FIXED_PRICE" if draft.listing_format == ListingDraft.Format.FIXED else "AUCTION",
@@ -296,6 +322,9 @@ def _offer_payload(draft: ListingDraft) -> dict:
         },
         "includeCatalogProductDetails": False,
     }
+    if channel_data.get("listing_duration"):
+        payload["listingDuration"] = str(channel_data["listing_duration"])
+    return payload
 
 
 def _recover_unpublished_offer_id(

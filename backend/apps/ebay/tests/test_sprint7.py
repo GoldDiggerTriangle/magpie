@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
+from io import BytesIO
 from pathlib import Path
 
 import pytest
@@ -267,6 +268,142 @@ def test_inventory_payload_serializes_condition_enum_from_condition_id(item):
     assert isinstance(payload["condition"], str)
     assert payload["condition"] != "USED"
     assert "condition_id" not in payload
+
+
+@pytest.mark.django_db
+def test_stage_omits_condition_only_for_verified_category_without_choices(
+    item, credential, merchant_location, monkeypatch
+):
+    add_photo(item)
+    draft = make_draft(item, channel_data={"condition_id": "", "listing_duration": "GTC"})
+    monkeypatch.setattr(
+        ebay_integration.FakeEbayTaxonomyAdapter,
+        "item_condition_policy",
+        lambda self, *, category_id: {"category_id": category_id, "required": False, "conditions": []},
+    )
+
+    staged = stage_draft(draft)
+
+    assert staged.status == ListingDraft.Status.STAGED
+    snapshot = staged.channel_data["last_payload_snapshot"]
+    assert "condition" not in snapshot["inventory_item"]
+    assert snapshot["condition_policy"]["required"] is False
+    assert snapshot["condition_policy"]["category_id"] == "105848"
+    assert snapshot["condition_policy"]["marketplace"] == "EBAY_AU"
+    assert snapshot["condition_policy"]["fetched_at"]
+    assert snapshot["offer"]["listingDuration"] == "GTC"
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
+    item.refresh_from_db()
+    assert item.status == InventoryItem.Status.READY_TO_LIST
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        {"category_id": "105848", "required": True, "conditions": []},
+        {"category_id": "105848", "required": False, "conditions": [{"conditionId": "3000"}]},
+        {"category_id": "other-category", "required": False, "conditions": []},
+        {"category_id": "105848", "conditions": []},
+    ],
+)
+@pytest.mark.django_db
+def test_stage_missing_condition_fails_closed_without_authoritative_no_choice_policy(
+    item, credential, merchant_location, monkeypatch, policy
+):
+    add_photo(item)
+    draft = make_draft(item, channel_data={"condition_id": ""})
+    monkeypatch.setattr(
+        ebay_integration.FakeEbayTaxonomyAdapter,
+        "item_condition_policy",
+        lambda self, *, category_id: policy,
+    )
+
+    with pytest.raises(Exception, match="condition_id"):
+        stage_draft(draft)
+
+    assert ebay_integration.FakeEbayMediaAdapter.upload_count == 0
+    assert ebay_integration.FakeEbayInventoryAdapter.create_count == 0
+    assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
+
+
+@pytest.mark.django_db
+def test_payload_does_not_infer_condition_from_item_when_no_policy_was_verified(item):
+    draft = make_draft(item, channel_data={"condition_id": ""})
+    with pytest.raises(Exception, match="condition_id"):
+        _inventory_item_payload(draft, ["fake-eps://photo.jpg"])
+
+
+@pytest.mark.parametrize("include_empty_choices", [True, False])
+def test_http_condition_policy_accepts_real_shaped_optional_category(monkeypatch, include_empty_choices):
+    import apps.ebay.adapters as adapters
+
+    policy = {"categoryId": "139965", "itemConditionRequired": False}
+    if include_empty_choices:
+        policy["itemConditions"] = []
+    calls = []
+
+    def respond(request, *, timeout):
+        calls.append((request.get_method(), request.full_url))
+        return BytesIO(json.dumps({"itemConditionPolicies": [policy]}).encode())
+
+    monkeypatch.setattr(adapters, "urlopen", respond)
+    adapter = adapters.HttpEbayTaxonomyAdapter(environment="production", access_token="fake-condition-test")
+    assert adapter.item_condition_policy(category_id="139965") == {
+        "category_id": "139965", "required": False, "conditions": []
+    }
+    assert calls == [(
+        "GET",
+        "https://api.ebay.com/sell/metadata/v1/marketplace/EBAY_AU/"
+        "get_item_condition_policies?filter=categoryIds%3A%7B139965%7D",
+    )]
+
+
+@pytest.mark.parametrize(
+    "policies",
+    [
+        [],
+        [{"categoryId": "other", "itemConditionRequired": False}],
+        [{"categoryId": "139965", "itemConditionRequired": "false"}],
+        [{"categoryId": "139965", "itemConditionRequired": True}],
+        [{"categoryId": "139965", "itemConditionRequired": False, "itemConditions": None}],
+    ],
+)
+def test_http_condition_policy_refuses_missing_mismatched_or_malformed_metadata(monkeypatch, policies):
+    import apps.ebay.adapters as adapters
+
+    monkeypatch.setattr(
+        adapters, "urlopen",
+        lambda request, *, timeout: BytesIO(json.dumps({"itemConditionPolicies": policies}).encode()),
+    )
+    adapter = adapters.HttpEbayTaxonomyAdapter(environment="production", access_token="fake-condition-test")
+    with pytest.raises(adapters.EbayUnavailable):
+        adapter.item_condition_policy(category_id="139965")
+
+
+@pytest.mark.parametrize(
+    "status,error_id,is_empty",
+    [(404, 25713, True), (403, 25713, False), (404, 25710, False)],
+)
+def test_http_get_offers_only_treats_exact_no_offer_response_as_empty(
+    monkeypatch, status, error_id, is_empty
+):
+    from urllib.error import HTTPError
+    import apps.ebay.adapters as adapters
+
+    def respond(request, *, timeout):
+        payload = {"errors": [{"errorId": error_id, "message": "Offer result"}]}
+        raise HTTPError(request.full_url, status, "Offer result", {}, BytesIO(json.dumps(payload).encode()))
+
+    monkeypatch.setattr(adapters, "urlopen", respond)
+    adapter = adapters.HttpEbayInventoryAdapter(environment="production")
+    kwargs = {"access_token": "fake-offer-test", "sku": "test-sku", "marketplace_id": "EBAY_AU", "format": "FIXED_PRICE"}
+    if is_empty:
+        assert adapter.get_offers(**kwargs) == []
+    else:
+        with pytest.raises(adapters.EbayHttpError) as error:
+            adapter.get_offers(**kwargs)
+        assert error.value.http_status == status
+        assert error.value.error_ids == (error_id,)
 
 
 @pytest.mark.django_db

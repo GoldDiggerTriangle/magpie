@@ -36,6 +36,13 @@ class EbayUnavailable(Exception):
     """Raised when eBay auth/account data cannot be fetched safely."""
 
 
+class EbayHttpError(EbayUnavailable):
+    def __init__(self, message: str, *, http_status: int, error_ids: tuple[int, ...]):
+        super().__init__(message)
+        self.http_status = http_status
+        self.error_ids = error_ids
+
+
 class EbayAuthAdapter(Protocol):
     def build_consent_url(self, *, state: str) -> str:
         ...
@@ -103,6 +110,9 @@ class EbayTaxonomyAdapter(Protocol):
         ...
 
     def item_aspects(self, *, category_id: str) -> list[dict]:
+        ...
+
+    def item_condition_policy(self, *, category_id: str) -> dict:
         ...
 
 
@@ -337,14 +347,19 @@ class HttpEbayInventoryAdapter:
             },
             quote_via=quote,
         )
-        response = _request_json(
-            f"{_api_base(self.environment)}/sell/inventory/v1/offer?{query}",
-            access_token=access_token,
-            method="GET",
-            headers={"Accept": "application/json"},
-            timeout_seconds=self.timeout_seconds,
-            service_name="eBay inventory endpoint",
-        )
+        try:
+            response = _request_json(
+                f"{_api_base(self.environment)}/sell/inventory/v1/offer?{query}",
+                access_token=access_token,
+                method="GET",
+                headers={"Accept": "application/json"},
+                timeout_seconds=self.timeout_seconds,
+                service_name="eBay inventory endpoint",
+            )
+        except EbayHttpError as exc:
+            if exc.http_status == 404 and exc.error_ids == (25713,):
+                return []
+            raise
         offers = response.get("offers") or []
         if not isinstance(offers, list):
             raise EbayUnavailable("eBay offers response could not be parsed.")
@@ -500,6 +515,33 @@ class HttpEbayTaxonomyAdapter:
         if not isinstance(aspects, list):
             raise EbayUnavailable("eBay taxonomy aspects response could not be parsed.")
         return [_normalize_aspect(aspect) for aspect in aspects if isinstance(aspect, dict)]
+
+    def item_condition_policy(self, *, category_id: str) -> dict:
+        response = _request_json(
+            f"{_api_base(self.environment)}/sell/metadata/v1/marketplace/EBAY_AU/get_item_condition_policies"
+            f"?filter={quote('categoryIds:{' + str(category_id) + '}', safe='')}",
+            access_token=self.access_token,
+            method="GET",
+            headers={"Accept": "application/json"},
+            timeout_seconds=self.timeout_seconds,
+            service_name="eBay condition metadata endpoint",
+        )
+        policies = response.get("itemConditionPolicies")
+        if not isinstance(policies, list):
+            raise EbayUnavailable("eBay condition policy response could not be parsed.")
+        matches = [
+            row
+            for row in policies
+            if isinstance(row, dict) and str(row.get("categoryId")) == str(category_id)
+        ]
+        if len(matches) != 1:
+            raise EbayUnavailable("eBay did not return a unique condition policy for this category.")
+        policy = matches[0]
+        required = policy.get("itemConditionRequired")
+        conditions = policy.get("itemConditions", [] if required is False else None)
+        if not isinstance(required, bool) or not isinstance(conditions, list):
+            raise EbayUnavailable("eBay condition policy response could not be parsed.")
+        return {"category_id": str(category_id), "required": required, "conditions": conditions}
 
 
 class HttpEbayOrderAdapter:
@@ -848,6 +890,13 @@ class FakeEbayTaxonomyAdapter:
             },
         ]
 
+    def item_condition_policy(self, *, category_id: str) -> dict:
+        return {
+            "category_id": str(category_id),
+            "required": True,
+            "conditions": [{"conditionId": "3000", "conditionDescription": "Used"}],
+        }
+
 
 class FakeEbayOrderAdapter:
     orders: list[dict] = []
@@ -1025,9 +1074,26 @@ def _request_json(
             return json.loads(raw.decode("utf-8"))
     except HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        error_ids = ()
+        try:
+            payload = json.loads(detail)
+            errors = payload.get("errors", []) if isinstance(payload, dict) else []
+            if isinstance(errors, list):
+                error_ids = tuple(
+                    error["errorId"] for error in errors
+                    if isinstance(error, dict) and isinstance(error.get("errorId"), int)
+                )
+        except json.JSONDecodeError:
+            pass
         if detail:
-            raise EbayUnavailable(f"{service_name} returned HTTP {exc.code}: {detail[:1000]}") from exc
-        raise EbayUnavailable(f"{service_name} returned HTTP {exc.code}.") from exc
+            raise EbayHttpError(
+                f"{service_name} returned HTTP {exc.code}: {detail[:1000]}",
+                http_status=exc.code, error_ids=error_ids,
+            ) from exc
+        raise EbayHttpError(
+            f"{service_name} returned HTTP {exc.code}.",
+            http_status=exc.code, error_ids=error_ids,
+        ) from exc
     except (URLError, TimeoutError, json.JSONDecodeError) as exc:
         raise EbayUnavailable(f"{service_name} request failed.") from exc
 

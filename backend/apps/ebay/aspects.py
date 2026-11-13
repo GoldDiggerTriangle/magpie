@@ -90,6 +90,17 @@ def get_category_aspects(*, category_id: str, actor=None) -> dict:
     return payload
 
 
+def get_category_condition_policy(*, category_id: str) -> dict:
+    access_token = get_app_access_token()
+    adapter = ebay_integration.get_ebay_taxonomy_adapter(access_token=access_token)
+    policy = adapter.item_condition_policy(category_id=str(category_id))
+    return {
+        **policy,
+        "marketplace": EBAY_MARKETPLACE_ID,
+        "fetched_at": timezone.now().isoformat(),
+    }
+
+
 def check_aspects(draft, *, actor=None) -> dict:
     category_id = str((draft.channel_data or {}).get("category_id") or "")
     if not category_id:

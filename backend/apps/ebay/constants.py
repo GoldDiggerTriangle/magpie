@@ -58,6 +58,7 @@ CHANNEL_DATA_KEYS = {
     "category_tree_id",
     "category_name",
     "condition_id",
+    "listing_duration",
     "merchant_location_key",
     "payment_policy_id",
     "fulfillment_policy_id",
