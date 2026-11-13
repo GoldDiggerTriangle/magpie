@@ -7,6 +7,6 @@ Regan supplied the current Markdown documents in `C:\Users\Regan\Downloads\files
 | `SPRINT_25_SPEC.md` | v3.4 LOCKED: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_SPEC_v3.4.md` |
 | `SPRINT_25_KICKOFF.md` | v3.4: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_KICKOFF_v3.4.md` |
 
-The initial D-141 commit `e1ae1059b1d4ed474215822a57edd720d51faf6e` contained clearly marked v2.0 PDF fallbacks because the Markdown sources were not yet available. Those historical PDFs are removed from this directory now that the actual v3.3 sources are present; they remain available in Git history. No PDF content was used to reconstruct these Markdown files.
+The initial D-141 commit `e1ae1059b1d4ed474215822a57edd720d51faf6e` contained clearly marked v2.0 PDF fallbacks because the Markdown sources were not yet available. Those historical PDFs are removed from this directory now that the actual v3.4 sources are present; they remain available in Git history. No PDF content was used to reconstruct these Markdown files.
 
 The imported master handoff remains unchanged, as Regan required for this D-141 import. No session-log entry was added to it during this task because Regan explicitly prohibited editing it. This document import performs no Gate 0, staging, publishing, UI or implementation work.

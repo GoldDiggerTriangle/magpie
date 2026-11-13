@@ -1183,3 +1183,103 @@ Coverage includes every status/unknown-active fallback, ten-component scoring an
 No `.env`, requirement, settings, credential, specification, frontend or structural-audit file was changed. No eBay or AI call occurred, and no live migration or service restart occurred. This task changes backend implementation/tests plus this appended evidence and one handoff session line; Phase 1's restoration checklist remains intact and unchecked work is not silently declared complete.
 
 **Phase 2 stop and report:** approve the four-row GOLD-00002 archival plan above before real Migration A. Do not proceed to Migration B or UI restoration on the strength of this dry run. Phase 0 remains **staging passed; live publishing remains unproven**. Sprint 25 is not closed.
+
+## 2026-11-14: Approved Migration A Applied; Migration B Tested, Not Installed Live
+
+**STOP BEFORE LIVE MIGRATION B.** Regan approved the Migration A report at `64712feb` and authorised exactly the four GOLD-00002 archives. Migration A is now applied and verified. Migration B is committed/tested and its live read-only pre-check is clean, but its index and migration record are deliberately absent from live. No service restart or UI work was performed; B installation remains a separate owner-approved backup/Administrator-restart step. Phase 0 remains staging-only, not live-publish proof.
+
+### Approval And Drift Protection
+
+- Starting HEAD was `64712feb5e7406e5685de5777f3ff475a908e910`, with only the existing untracked `CLAUDE_STRUCTURAL_AUDIT.md`. Main Validation `43384549149` was green on both lanes.
+- Before any live change, the full plan fingerprint matched the approved report exactly: `f2a614c9862ff30ef8cd7866582b3f32770699426416657757b56178ecbf8f99`. Full ordered-row hashes/counts for drafts, audit rows, ChannelListing and migration records also matched the prior evidence snapshot. The only pending migration was additive `listing.0004_listingdraft_canonical_statuses`.
+- The same operation was rehearsed on a scratch restore of the fresh pre-operation backup. Live execution then used a single SQLite **BEGIN IMMEDIATE** transaction: recheck the exact fingerprint and four UUIDs, verify the pending migration list, apply 0004, invoke the existing approved-fingerprint Migration A command, and verify all resulting rows before commit. A plan mismatch or failed verification aborts the entire transaction, including the migration record; the migration was not recorded separately before the recheck.
+- All other table values, all existing audit rows and all non-target draft values were compared inside the transaction. Each archived draft changed only `status` and `updated_at`; its original content remains retained. Published STM-00003, its ChannelListing, inventory and sale/audit history were not changed.
+
+### Fresh Encrypted Backups And Restore Spot-Check
+
+Backup filenames use UTC; this session is dated **14 November Australia/Sydney**.
+
+| Stage | Encrypted archive | Bytes | Verification |
+| --- | --- | --- | --- |
+| Before A | `D:\Magpie\backups\phase2-migration-a-20261114\pre\magpie-backup-20261113-223737.tar.gz.enc` | 27,959,029 | B decryption; 92 archive members, 64 media files; restored to scratch for the successful transaction rehearsal |
+| After A | `D:\Magpie\backups\phase2-migration-a-20261114\post\magpie-backup-20261113-224016.tar.gz.enc` | 27,958,972 | B decryption; 92 members; full restore spot-check passed |
+
+Both use the unchanged existing `backup --no-upload` / `restore` paths. The child environment matched Windows user passphrase B without displaying its value; B and `.env` were not changed. The post-A restore contains **46 tables, 728 rows, 64 media files**. Every restored table's row-content digest and every media-file digest matched live; SQLite integrity check returned `ok`, with zero foreign-key violations. It includes all eight drafts, the four new archival audit records and the new 0004 migration record. No restore targeted live. Decrypted tar files were deleted immediately; rehearsal/restore/test scratch folders were path-checked and removed. Both encrypted archives remain outside the repository; no cloud upload/rclone was run.
+
+### Actual Migration A Result
+
+`listing.0004_listingdraft_canonical_statuses` was recorded at **2026-11-13 22:39:18.584929 UTC** (14 November locally). The four appended audit rows were created between 22:39:18.679281 and 22:39:18.684309 UTC, inside the same transaction.
+
+| Check | Before | After |
+| --- | --- | --- |
+| All ListingDraft rows | 8 | **8** |
+| GOLD-00002 active drafts | 5 | **1** |
+| GOLD-00002 archived drafts | 0 | **4** |
+| GOLD-00002 keeper | `af013dd9-0611-431c-be4a-223c44ec4e06`, staged | Same UUID/status; offer `356038014011` unchanged |
+| Global statuses | draft 6; staged 1; published 1 | draft 2; archived 4; staged 1; published 1 |
+| Audit rows | 151 | **155**, exactly four new rows; all 151 original rows unchanged |
+| ChannelListing rows | 1 | **1**, full row unchanged |
+| Migration records | 51 | **52**, only 0004 added |
+| STM-00003 published draft/history | Preserved | **Unchanged**, including its related listing and historical rows |
+| Unresolved groups | 0 | **0** |
+
+Exactly these rows were archived, with one new `listing.draft.archived` audit record each (actor `migration_a`, keeper linkage retained):
+
+| Draft UUID | Pre-archive status | Offer ID recorded | Score recorded | Current status |
+| --- | --- | --- | --- | --- |
+| `0fe7df74-b982-4173-8aa0-d449fa228128` | draft | None | 2/10 | archived |
+| `151cbc31-0146-4300-a061-40a4c6f36d1a` | draft | None | 2/10 | archived |
+| `2ddac3c1-7462-48ea-8432-cab907e20693` | draft | None | 2/10 | archived |
+| `6a66b92a-fac7-4414-9c5a-e51614c36e27` | draft | None | 2/10 | archived |
+
+GSP-00001 and PH-00001 retain their original single active drafts. GOLD-00002's keeper was neither edited nor restaged; the offer ID above is unchanged local evidence, not a new remote read-back.
+
+**Archived read-only proof:** authenticated GETs to all four `/api/listing-drafts/<uuid>/` routes on the actual port-8000 service returned HTTP 200 and status `archived`. Each model reports read-only. Direct current API-handler PATCH checks, authenticated in-process against a `PRAGMA query_only=ON` connection, returned HTTP 400 with the read-only message; no live HTTP write attempt was made. Content was not rewritten just to test a guard. No browser/UI edit path was added or claimed here.
+
+**Supervised resolution: COMPLETE, nothing to resolve.** The post-A planner reports zero unresolved groups and zero further archives. No offer needed withdrawal/deletion and no eBay operation was made.
+
+### Migration B Implementation And Live Pre-Check
+
+Implementation commit: **`1564d32127d2553585b2f291792b371cce78e836`**.
+
+- New `listing.0005_listingdraft_one_active` runs a historical-model pre-check first. Duplicate active groups abort with SKU, item UUID, channel and count; it never silently repairs/archives data or calls eBay. The shared local query accepts the frozen migration predicate.
+- Only after a clean pre-check does it add partial `UniqueConstraint` **`listing_one_active_draft`** on `(item, channel)`, excluding only `archived` and `published`. Every other value, including unknown/future statuses, stays active. The model predicate and frozen migration predicate are asserted equal in tests.
+- SQLite SQL generation is `CREATE UNIQUE INDEX ... WHERE NOT (status IN ('archived', 'published'))`. The index is genuinely installed in isolated test databases on both SQLite and PostgreSQL. No new table or business-data rewrite is involved.
+- New management command **`check_canonical_drafts`** is read-only and reports violating groups plus whether the constraint is installed; it exits nonzero and names the items on violation. It does not apply migrations.
+- The live command ran with SQLite query-only enabled and outbound connections blocked. Result: **violation_count 0, violations [], constraint_installed false**. Draft/audit/listing/migration counts and full-row digests were identical before and after. The only pending migration is **0005**; live remains at **52 migration records**, with no B index.
+
+Post-A / live-pre-check digests (unchanged by the pre-check):
+
+| Table | Rows | SHA-256 |
+| --- | --- | --- |
+| `listing_listingdraft` | 8 | `c0dd12a51acb4e19ed232bde5cd7a143101b10c66892cb2861d1162bd78443e0` |
+| `audit_auditlog` | 155 | `6729b9be30095f45355981d6a22544c28287427e45f0531f216701d18e279d95` |
+| `listing_channellisting` | 1 | `f1e3038cbd4a9034de5c6d2f2d2afb6192e4db3fc98b029da8c13f431ac45a1f` |
+| `django_migrations` | 52 | `1637b2dbe01dee7bf430bf9dc092f48ab561cebb993338f08a85b7bd707fa157` |
+
+### Tests And Validation
+
+| Check | Result |
+| --- | --- |
+| Focused canonical + constraint suite | **34 passed** |
+| Full local backend, live venv / isolated DB / network blocked | **264 passed, 1 skipped**, 14 warnings; 157.37 seconds |
+| Django check | No issues |
+| `makemigrations --check --dry-run --noinput` | No changes detected |
+| [Validation 43522671807](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43522671807), commit `1564d321` | **Both lanes green** |
+| SQLite job `132220582796` | **264 passed, 1 skipped**; fresh migrations/seed/checks/marketplace guard and backup/restore passed |
+| PostgreSQL job `132220582401` | **252 passed, 13 skipped**; migrations/seed/checks and the actual uniqueness/pre-check tests passed |
+| Frontend CI | **123 passed across 33 files**; typecheck/build/collectstatic passed |
+| Production CI | Deploy check and Waitress/WhiteNoise smoke passed |
+
+Required regression proof includes: a seeded `ready` + unknown-status duplicate abort names the item on both database lanes; a real file-backed SQLite MigrationExecutor failure leaves both draft rows unchanged, adds no B migration record and installs no index; a successful file-backed install rejects a second active draft for every known active status and an unknown value; both directions of active/unknown collisions are rejected on the default SQLite/PostgreSQL test databases; repeated terminal history and different channels remain permitted; pre-check queries are read-only.
+
+Migration A's legacy-duplicate tests explicitly simulate the before-B index state inside rolled-back test transactions, restoring the index automatically. The old staging-conflict guard likewise retains its legacy-collision assertion in a rolled-back savepoint. The old readiness test now repairs its existing canonical draft instead of creating a second active one. No assertions were removed, no new skips were added, and the actual B tests keep the constraint installed.
+
+### Documentation, Runtime And Stop Point
+
+- `docs/specs/README.md`: corrected only the stale "actual v3.3 sources" wording to **v3.4**.
+- Applied `C:\Users\Regan\Downloads\MASTER_HANDOFF_UPDATE_2026-11-13_PHASE2.md` verbatim: all **13 Find strings matched exactly once**, and the result's normalised-content hash matched the exact replacement output before adding Codex's required session line. Handoff is **v4.66**; no additional header/decision-log edits were improvised. One dated 2026-11-14 Codex line records this task's actual outcome.
+- Service was already Running: NSSM PID 26960, listener PID 4764, started 2026-11-13 11:07:28.208146 UTC. The same PIDs/start time remain; live `/api/health/` returned **200**. No stop/restart or NSSM change occurred in this task.
+- `.env`, Windows passphrase B, requirements/settings, credentials, controlling spec/kickoff, frontend and the existing untracked structural audit are unchanged. Changed files were checked for known secret values and credential patterns before commit/push; no values were printed or committed.
+
+**Stop and report before installing Migration B live.** A fresh backup and Administrator restart are for that next supervised step. No Phase 3/UI work, real eBay/AI call, staging, publishing or withdrawal was undertaken. Sprint 25 remains open; the approved Migration A operation and zero-unresolved supervision step are complete.
