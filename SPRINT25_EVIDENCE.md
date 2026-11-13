@@ -801,3 +801,86 @@ ListingFee is the listing-fee total and InsertionFee is its component here, not 
 - Git publication covers the separate backend fix and this evidence/session-log filing only. No frontend/build/collectstatic or GitHub Validation result is claimed here unless separately recorded.
 
 **Stop and report:** Phase 0 is complete with staging passed; live publishing remains unproven. Do not proceed to Phase 1 or call publishOffer without Regan's next instruction. A later live-publish gate must present and obtain approval for this exact item, price, SKU, postage and final preview.
+
+### Phase 0 Validation Repair - 13 November 2026
+
+**Scope:** repair the red Validation run before Phase 1. No eBay calls, UI changes, staging, publishing or Phase 1 audit were performed in this task. Backend fix commit: `08b6ae2325aeba66934dbe49a30903211101a78f`.
+
+#### Failed Run And Last Green Comparison
+
+Failed [Validation run 43372420422](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43372420422) tested evidence commit `6bd6cae9f33f321e12aad83fd59991507054c856`, including Phase 0 fix `f91f5b89f190a1aa919367b94715274e5bf28fe1`.
+
+| Lane | Failed Backend Job | Result |
+| --- | --- | --- |
+| SQLite | 131711045326 | 5 failed, 221 passed, 1 skipped; 94 warnings; 31.67 seconds |
+| PostgreSQL | 131711045565 | 5 failed, 209 passed, 13 skipped; 92 warnings; 35.20 seconds |
+
+Both lane logs were retrieved through GitHub's API using existing Git authentication, with credentials kept in memory. The same five pre-existing tests failed in both lanes:
+
+- `apps/catalog/tests/test_sprint4.py::test_bullion_coin_uses_existing_commodity_valuation_strategies`
+- `apps/valuation/tests/test_sprint2.py::test_valuation_api_create_set_current_research_links_profit_and_validation`
+- `apps/valuation/tests/test_sprint3.py::test_commodity_live_report_snapshots_provenance`
+- `apps/valuation/tests/test_sprint3.py::test_live_report_missing_inputs_422_and_unconfigured_fallback`
+- `apps/valuation/tests/test_sprint3.py::test_live_override_with_reason_still_wins`
+
+Nested valuation creation returned HTTP 400 with `item: This field is required.` instead of HTTP 201. The missing-input test likewise returned 400 before reaching its expected 422 validation path.
+
+The last successful [Validation run 29173344886](https://github.com/GoldDiggerTriangle/magpie/actions/runs/29173344886) was created at `2026-07-12 00:12:17 UTC` for `afe9b351bd084c42aa6cd5a98be37352b9d7bfe0`; both jobs succeeded (PostgreSQL 86597988461; SQLite 86597988464). Its retained logs now return HTTP 410, so the exact July package versions are not claimed.
+
+Git blob comparisons confirmed these eight paths were byte-identical at that last green commit, Phase 0 fix `f91f5b89` and failed-run tip `6bd6cae9`:
+
+- `backend/requirements.txt`
+- `backend/apps/valuation/models.py`
+- `backend/apps/valuation/serializers.py`
+- `backend/apps/valuation/views.py`
+- `backend/apps/valuation/tests/test_sprint2.py`
+- `backend/apps/valuation/tests/test_sprint3.py`
+- `backend/apps/catalog/tests/test_sprint4.py`
+- `.github/workflows/postgresql-validation.yml`
+
+The affected valuation binding and unbounded DRF requirement therefore predate the Phase 0 change; this was dependency drift exposing an older compatibility gap, not an eBay Phase 0 test depending on this PC's credentials or paths.
+
+#### Dependency Comparison And Controlled Reproduction
+
+The live venv's `pip freeze --all` was compared with the fresh CI installation and CI's Python version. Selected differences:
+
+| Component | Live Windows Venv | Failed CI, Both Lanes |
+| --- | --- | --- |
+| Python | 3.13.4 | 3.12.16 |
+| Django | 5.2.15 | 5.2.19 |
+| Django REST framework | 3.17.1 | 3.18.3 |
+| django-filter | 25.2 | 26.2 |
+| Pillow | 12.2.0 | 13.0.0 |
+| cryptography | 49.0.0 | 50.0.2 |
+| pytest | 9.0.3 | 9.2.0 |
+| pytest-django | 4.12.0 | 4.14.0 |
+
+The former `djangorestframework>=3.15` requirement allowed CI to select a newer DRF than the live venv. Installing only DRF 3.18.3 into `D:\Magpie\scratch\ci-drf-3183` and prepending that isolated path reproduced all five failures without any other package change: **5 failed in 9.49 seconds**, still using Python 3.13.4 and Django 5.2.15. Tests used an isolated in-memory SQLite database, process-local synthetic settings and a socket-level network prohibition. No real credential or Windows user-variable dependency was required. The live venv was not modified.
+
+Cause: `ValuationReport` has a conditional `UniqueConstraint` over `item` when `is_current=True`. DRF 3.18.3 generates a uniqueness validator for this single-field conditional constraint; DRF 3.17.1 did not. The nested endpoint previously supplied the URL-owned item only during serializer creation/save, after `is_valid()`. The new validator therefore rejected a valid nested request before that late binding.
+
+#### Smallest Fix And Regression Coverage
+
+- Pin `djangorestframework==3.18.3` for repeatable installs rather than leaving this dependency unbounded.
+- Copy the submitted data and bind `item` from the URL before serializer validation in `ItemValuationReportListCreateView.create`. A conflicting body-supplied item cannot override the URL.
+- Add two parametrized regression cases: item absent from the body, and a different item explicitly supplied in the body. Each must create exactly the URL item's current report, return its ID and create no report for the other item.
+- Preserve uniqueness validation, database constraints and existing test expectations. No test was weakened, skipped or removed. No other dependency was pinned or upgraded in this change.
+
+Keeping the current DRF version also retains intervening security fixes instead of rolling back to 3.17.1; see the [official DRF release notes](https://github.com/encode/django-rest-framework/blob/main/docs/community/release-notes.md).
+
+The five original failures plus the two new cases passed: **7 passed in 10.37 seconds**. The full local backend suite with the same isolated DRF 3.18.3 overlay and network prohibition then passed: **228 passed, 1 skipped, 14 warnings in 136.81 seconds**. Existing skips were unchanged. Both checked scratch directories (`ci-drf-3183` and `ci-drf-tests`) were deleted after testing, including synthetic test databases, media and backup fixtures.
+
+#### Green Validation Proof
+
+[Validation run 43375267166](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43375267166) completed **successfully on both lanes** for fix commit `08b6ae2325aeba66934dbe49a30903211101a78f`.
+
+| Lane | Job | Backend Result | Lane Conclusion |
+| --- | --- | --- | --- |
+| SQLite | 131720163381 | 228 passed, 1 skipped; 96 warnings; 31.03 seconds | success |
+| PostgreSQL | 131720163071 | 216 passed, 13 skipped; 94 warnings; 36.76 seconds | success |
+
+Both jobs used CI Python 3.12.16, Django 5.2.19 and the pinned DRF 3.18.3. SQLite also passed the marketplace URL-only guard, encrypted backup/restore, frontend tests, typecheck, build, collectstatic, deploy check and Waitress/WhiteNoise production smoke. PostgreSQL passed its migrations, committed-migration check, seed/schema/fake-adapter checks and full backend suite. No additional skips were introduced by the repair.
+
+No live database, service, .env, Windows user variable, stored credential, inventory draft or staged offer was changed. The live venv remains on its prior versions; no live deployment/restart is claimed. Only the three-file backend/test/dependency fix and this evidence/session-log filing were committed. Whole-file secret checks precede publication; no credential values or raw authenticated logs are included.
+
+**Stop and report:** the red Validation defect is resolved. Phase 0 remains staging-only; live publishing remains unproven. Phase 1 was not started.

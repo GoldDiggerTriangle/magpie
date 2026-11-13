@@ -345,6 +345,8 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 
 > One short entry per working session, newest at the top. **Only the most recent entries are kept here — all earlier entries are in the companion** `MASTER_HANDOFF_LOG.md` **.**
 
+**2026-11-13 — Codex —** Repaired Sprint 25 Phase 0 Validation dependency drift: DRF 3.18.3 exposed late URL-item binding in nested valuation validation; bound the item before validation, pinned DRF and added two regression cases. Local backend 228 passed/1 skipped; Validation `43375267166` green on SQLite and PostgreSQL. Evidence appended to `SPRINT25_EVIDENCE.md`; no eBay calls, UI, live service/venv changes or Phase 1 work. HEAD before evidence filing: `08b6ae2325aeba66934dbe49a30903211101a78f`.
+
 **2026-11-13 — Codex —** Sprint 25 Phase 0: staging passed; live publishing remains unproven. Regan selected GOLD-00002 and AUD 360, P1/F4/R5, Nugget/Maryborough, fixed/GTC, quantity 1 and removal of 24ct; existing draft staged as UNPUBLISHED offer `356038014011` (six EPS 201s, inventory 204, offer 201, read-back/fees 200; expected listing total AUD 0.06). Backend preflight fixes tested (226 passed, 1 skipped); evidence in `SPRINT25_EVIDENCE.md`. No publish or Phase 1 work. HEAD before evidence filing: `f91f5b89f190a1aa919367b94715274e5bf28fe1`.
 
 **2026-11-13 — Claude —** Bumped to **v4.64** (applied by Codex). Recorded **Sprint 25 Gate 0 CLOSED** (evidence `859f2974`) and the spec archive (`f8145acd`). Updated header, §2 (status, artifact index), §7 and §8. Phase 0 awaits Regan’s go-ahead.
