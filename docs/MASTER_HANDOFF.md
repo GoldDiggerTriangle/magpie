@@ -342,6 +342,8 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 
 > One short entry per working session, newest at the top. **Only the most recent entries are kept here — all earlier entries are in the companion** `MASTER_HANDOFF_LOG.md` **.**
 
+**2026-11-13 — Codex —** Archived 23 unchanged, secret-scanned historical sprint-spec PDFs from Downloads in `docs/history/specs/`, with a version/revision index and the missing Sprint 14 spec recorded; Sprint 25 and existing evidence left untouched. HEAD at task start: `b54a284bf9d0c668c5d0c145d80866f1c2be7666`.
+
 **2026-11-13 — Claude —** Bumped to **v4.63**. **Rebuilt this file from the v4.62 project PDF** (no markdown source survived; `MASTER_HANDOFF_LOG.md` not found) and **merged the 2026-09-27 and 2026-11-13 update files**, plus **D-141** (canonical copy in GitHub). Wording carried over unchanged; table layout and emphasis approximated. Updated header + status, §2 (Sprint 25 status, runtime, artifact index), §3 (D-134 status, D-135…D-141), §4 (F-14 update), §7, §8, and notes on §0 rule 6 and §10 rule 1.
 
 **2026-11-13 — Claude —** Gate 0 review. Found the 2026-09-27 rotation entries wrong (corrected in §8). Recorded D-138 (runtime on D:), D-139 (single backup passphrase B) and D-140 (Cert ID kept, risk accepted). Rotation of `SECRET_KEY` and the token key verified. Issued the backup-gap fix and the Gate 0 close-out checks. Gate 0 stays OPEN until those are in the evidence.
