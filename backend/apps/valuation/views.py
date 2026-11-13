@@ -57,7 +57,10 @@ class ItemValuationReportListCreateView(ListCreateAPIView):
         serializer.save(item=self.get_item())
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        # The URL owns this relation, including during uniqueness validation.
+        data = request.data.copy()
+        data["item"] = str(self.get_item().pk)
+        serializer = self.get_serializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)

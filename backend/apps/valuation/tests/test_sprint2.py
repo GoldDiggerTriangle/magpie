@@ -282,6 +282,26 @@ def test_valuation_api_create_set_current_research_links_profit_and_validation(
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("include_other_item", [False, True])
+def test_nested_valuation_binds_url_item_before_validation(api_client, item, category, include_other_item):
+    other_item = InventoryItem.objects.create(title="Unrelated item", category=category)
+    make_comp(item, "80.00")
+    payload = {"strategy": "comp_based", "is_current": True}
+    if include_other_item:
+        payload["item"] = str(other_item.id)
+
+    response = api_client.post(
+        f"/api/items/{item.id}/valuation-reports/", payload, format="json"
+    )
+
+    assert response.status_code == 201, response.data
+    assert str(response.data["item"]) == str(item.id)
+    assert ValuationReport.objects.get(pk=response.data["id"]).item_id == item.id
+    assert ValuationReport.objects.filter(item=item, is_current=True).count() == 1
+    assert not ValuationReport.objects.filter(item=other_item).exists()
+
+
+@pytest.mark.django_db
 def test_fee_schedule_api_is_read_only(api_client, schedule):
     response = api_client.get("/api/fee-schedules/")
     assert response.status_code == 200
