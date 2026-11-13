@@ -345,6 +345,8 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 
 > One short entry per working session, newest at the top. **Only the most recent entries are kept here — all earlier entries are in the companion** `MASTER_HANDOFF_LOG.md` **.**
 
+**2026-11-13 — Codex —** Sprint 25 Phase 0: staging passed; live publishing remains unproven. Regan selected GOLD-00002 and AUD 360, P1/F4/R5, Nugget/Maryborough, fixed/GTC, quantity 1 and removal of 24ct; existing draft staged as UNPUBLISHED offer `356038014011` (six EPS 201s, inventory 204, offer 201, read-back/fees 200; expected listing total AUD 0.06). Backend preflight fixes tested (226 passed, 1 skipped); evidence in `SPRINT25_EVIDENCE.md`. No publish or Phase 1 work. HEAD before evidence filing: `f91f5b89f190a1aa919367b94715274e5bf28fe1`.
+
 **2026-11-13 — Claude —** Bumped to **v4.64** (applied by Codex). Recorded **Sprint 25 Gate 0 CLOSED** (evidence `859f2974`) and the spec archive (`f8145acd`). Updated header, §2 (status, artifact index), §7 and §8. Phase 0 awaits Regan’s go-ahead.
 
 **2026-11-13 — Codex —** Sprint 25 Gate 0 CLOSED under D-139/D-140: rechecked inventory, fulfilment and finances GETs (all HTTP 200), verified the superseding June backup with B, and filed the accumulated close-out evidence in `SPRINT25_EVIDENCE.md`; Phase 0, staging, publishing and UI work not begun. HEAD at task start: `f8145acdea51a93205971b9648f8a5da0d60a63d`.

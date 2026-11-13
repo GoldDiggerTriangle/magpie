@@ -658,3 +658,146 @@ The following current checklist supersedes earlier OPEN/PARTIAL dispositions wit
 The entire accumulated `SPRINT25_EVIDENCE.md` and the handoff change are checked for locally known secret values and credential patterns before staging. The only handoff edit is one section 9 session-log line; its header, snapshot, locked decisions, decision log and all other text remain unchanged, as explicitly requested. The current Gate 0 disposition is this evidence entry and that new session-log line; older OPEN snapshot wording is historical and was not silently rewritten.
 
 The requested commit message is `Sprint 25 Gate 0 close-out evidence`. Only `SPRINT25_EVIDENCE.md` and `docs/MASTER_HANDOFF.md` are included. `CLAUDE_STRUCTURAL_AUDIT.md` remains untracked and untouched. Git publication is verified separately after the commit; this entry does not embed a self-referential commit hash or claim a new CI/test-suite run.
+
+## Phase 0: Diagnostic Staging Passed - 13 November 2026
+
+**Disposition: staging passed; live publishing remains unproven.** This is the spec section 2 stop-and-report point. Gate 0 remains CLOSED. Phase 1, UI restoration and live publishing have not been started or authorised by this diagnostic result.
+
+Task-start HEAD: `24e06cb4ddfe4fa842c43b67c8f9311a12993de8`. The canonical handoff v4.64, controlling Sprint 25 spec v3.3 and kickoff were read. Backend fixes were committed separately before the successful rerun: `f91f5b89f190a1aa919367b94715274e5bf28fe1` (`fix: unblock verified eBay staging preflight`).
+
+### Item Identification And Existing Draft Selection
+
+The initial read-only inventory check found:
+
+| SKU | Item Title | Photos | Item Asking/Target Price, AUD | Source | eBay Drafts | Recorded Staged Offer |
+| --- | --- | ---: | --- | --- | ---: | --- |
+| GOLD-00001 | Small gold jewellery parcel | 0 | 334.69 | Existing item target_price; not a diagnostic price selection | 0 | None |
+| GOLD-00002 | Australian Gold Nugget 1.4g Grams | 6 | Not set | No figure selected initially | 5 | None |
+
+Regan explicitly selected `GOLD-00002`. Item ID: `4ab42c61-d9cb-428c-81bc-92278ad30f83`. No equivalence with GSP-00001 was assumed.
+
+Existing draft `af013dd9-0611-431c-be4a-223c44ec4e06` was the most complete under the section 4 score: title, existing category mapping and photos were present (3/10 before refreshing required-aspect metadata). Each other draft had title and photos only (2/10). The required-aspects point was conservatively withheld until metadata was known; the live response later confirmed zero required aspects, without changing which draft ranked first. No draft was created, archived or deleted. All five lacked offer IDs and listing IDs before the diagnostic. The other four drafts remain untouched.
+
+### Live Metadata And Regan's Explicit Picks
+
+Business policies were refreshed through the existing account-snapshot service at `2026-11-13 04:35:00.954996 UTC`: 2 payment, 9 fulfilment and 5 return policies; business-policy opt-in confirmed. Merchant location and taxonomy were read live. Magpie's ordinary OAuth access-token refresh and application-token acquisition each returned HTTP 200 during metadata preparation; neither changed listings. Request headers, credentials and token responses were not output.
+
+The live gold-nugget category candidate was `139965 - Nugget`, tree `15`, a leaf category. Other returned search hits were unrelated categories and were not silently selected. Category-specific metadata, fetched at `2026-11-13 04:36:00.300885 UTC`, returned:
+
+- No required or recommended aspects. Eight optional aspects: Region of Origin, Country of Origin, Certification, Fineness, Brand/Mint, Composition, Era and Total Precious Metal Content.
+- `itemConditionRequired=false`, with no condition choices. No New/Used value was invented and no authoritative grade was supplied.
+- Fixed-price duration `GTC`; auction category durations 3, 5, 7 and 10 days. No auction was selected or attempted.
+
+The live IDs, human policy names, postage charges, location and format/duration choices were presented before any draft edit. Regan replied:
+
+> p1 f4 r5 $360 fixed price category:gold nugget location maryborough remove 24ct
+
+| Field | Approved Value / ID | Human Name / Basis |
+| --- | --- | --- |
+| Item | GOLD-00002 | Australian Gold Nugget 1.4g Grams |
+| Draft | af013dd9-0611-431c-be4a-223c44ec4e06 | Most complete existing draft |
+| Price | AUD 360.00 | Regan's own figure; no estimate, valuation or AI price used |
+| Quantity | 1 | Explicit task limit |
+| Category | 139965; tree 15 | Nugget; owner confirmed gold-nugget category |
+| Condition | Omitted | Live category metadata says not required and returns no choices |
+| Payment | 82010246020 | PayPal:Money Transfer Accepted (P1) |
+| Postage | 186497669020 | express 1 day reg inter. (F4) |
+| F4 services | Existing policy, unchanged | 1-day handling; free domestic AU_Express; international AU_StandardInternational AUD 15.00 |
+| Returns | 272504343020 | No Return Accepted (272504343020) (R5) |
+| Merchant location | MARYBOROUGH-AU | Maryborough AU; enabled; Maryborough VIC 3465, AU |
+| Format / duration | FIXED_PRICE / GTC | Owner selected fixed price; GTC is its returned duration |
+| Listing title | 1.4g gold nugget | Existing title with the 24ct claim removed as directed |
+| Photos | Six existing selected item photos | Own photos only; source files verified GPS-free before upload |
+
+These picks were saved to the selected draft at `2026-11-13 05:15:21.893261 UTC`. Price provenance explicitly records Regan's own figure. The 24ct claim was removed from the draft title, description and item specifics. No new optional claims were added. The inventory item's existing attributes were not rewritten, no valuation/comparable/evidence-price row was created, and other drafts were not regenerated.
+
+### Initial Failures And Separately Tested Backend Fix
+
+1. The original `stage_draft` readiness guard failed locally: `Missing eBay staging field(s): condition_id.` HTTP status and eBay error ID: not applicable; zero network requests. This contradicted the live category metadata, rather than proving an eBay plan/permission failure.
+2. A read-only `getOffers` preflight at `2026-11-13 05:19:57.048652 UTC` returned HTTP 404, eBay error `25713`, message `This Offer is not available.` for this new SKU/format. The existing client treated that exact no-offer response as fatal before creation.
+
+The separate backend-only fix commit above:
+
+- Adds the condition-policy read to the existing taxonomy adapter boundary and deterministic fake. A missing condition ID is allowed only when current metadata matches the exact category/marketplace, explicitly marks condition not required and provides no choices. Missing, mismatched, malformed or contrary metadata fails closed. No category ID is hardcoded as a production exemption.
+- Omits the inventory `condition` field for that proven no-choice case; an unknown item grade is not converted into a made-up condition.
+- Preserves typed HTTP status/error IDs and treats only HTTP 404 with the exact error-ID tuple `(25713,)` from `getOffers` as no offers. A 403 and other 404s still raise.
+- Carries the explicitly selected `listing_duration=GTC` into the offer payload; no price, policy or category defaults were invented.
+
+Tests cover the real-shaped optional-condition response both with an empty condition array and with the array omitted, required/mismatched/malformed-policy failures, no inferred condition, GTC transmission, no publish, and precise no-offer handling including permission/other-404 refusal.
+
+Validation: the initial focused suite passed 29 tests. An initial full-suite harness globally disabled logging and caused only the logging-rotation test to fail (222 passed, 1 failed, 1 skipped); that harness-only setting was removed. The final full backend suite, including the added no-offer cases, passed **226 tests, 1 skipped**, 14 warnings, in 133.58 seconds. Tests used an isolated in-memory database, isolated credential settings and a socket-level no-network guard. No unrelated logging code was changed. Temporary test data under the checked `D:\Magpie\scratch\phase0-tests` path was deleted.
+
+### Successful Rerun: Exact Operations And Results
+
+The successful run used the freshly loaded backend at fix commit `f91f5b89f190a1aa919367b94715274e5bf28fe1`, from `2026-11-13 05:25:11.887969` to `05:25:22.955701 UTC` (16:25 AEDT). The existing `stage_draft`, HTTP media/inventory adapters and `staged_review` were used. Fee lookup used the same shared HTTP client and the official `getListingFees` request shape: one offer under `offers`, not a new publishing path.
+
+| Order | Operation | Method / Host | HTTP | eBay Error ID | Message / Result |
+| ---: | --- | --- | ---: | --- | --- |
+| 1 | getOffers preflight | GET api.ebay.com | 404 | 25713 | This Offer is not available.; interpreted narrowly as no existing offer |
+| 2 | getItemConditionPolicies | GET api.ebay.com | 200 | None | Exact category 139965, condition not required, no choices |
+| 3 | getDefaultCategoryTreeId | GET api.ebay.com | 200 | None | EBAY_AU tree 15 |
+| 4 | getItemAspectsForCategory | GET api.ebay.com | 200 | None | No required aspects missing |
+| 5 | createImageFromFile, photo 1 | POST apim.ebay.com | 201 | None | EPS image created |
+| 6 | createImageFromFile, photo 2 | POST apim.ebay.com | 201 | None | EPS image created |
+| 7 | createImageFromFile, photo 3 | POST apim.ebay.com | 201 | None | EPS image created |
+| 8 | createImageFromFile, photo 4 | POST apim.ebay.com | 201 | None | EPS image created |
+| 9 | createImageFromFile, photo 5 | POST apim.ebay.com | 201 | None | EPS image created |
+| 10 | createImageFromFile, photo 6 | POST apim.ebay.com | 201 | None | EPS image created |
+| 11 | createOrReplaceInventoryItem | PUT api.ebay.com | 204 | None | GOLD-00002 inventory record accepted; no response body |
+| 12 | getOffers recovery check | GET api.ebay.com | 404 | 25713 | This Offer is not available.; no offer to recover or update |
+| 13 | createOffer | POST api.ebay.com | 201 | None | Unpublished offer 356038014011 created |
+| 14 | getOffer / staged_review | GET api.ebay.com | 200 | None | UNPUBLISHED; no listing ID; AUD 360.00; quantity 1; FIXED_PRICE; GTC |
+| 15 | getListingFees | POST api.ebay.com | 200 | None | Fee summary returned for EBAY_AU; no warnings |
+
+No success response supplied an error message; `None` above means no returned eBay error, not an invented message. The two expected no-offer reads remain visibly recorded as HTTP 404/error 25713, not rewritten as HTTP 200.
+
+### Offer And Fee Breakdown
+
+**Offer ID: `356038014011`. Status: `UNPUBLISHED`. Listing ID: none.** The selected local draft is `staged`. Read-back confirmed price `360.0` AUD (the approved AUD 360.00), fixed price, GTC and quantity 1.
+
+eBay's `getListingFees` returned these fields for the single requested offer's EBAY_AU summary:
+
+| Fee Type | AUD |
+| --- | ---: |
+| ListingFee | 0.06 |
+| InsertionFee | 0.06 |
+| FeaturedGalleryFee | 0.00 |
+| PrivateListingFee | 0.00 |
+| BoldFee | 0.00 |
+| ProPackPlusBundleFee | 0.00 |
+| ListingDesignerFee | 0.00 |
+| FixedPriceDurationFee | 0.00 |
+| SubtitleFee | 0.00 |
+| FeaturedFee | 0.00 |
+| GalleryPlusFee | 0.00 |
+| GiftIconFee | 0.00 |
+| PhotoDisplayFee | 0.00 |
+| HighLightFee | 0.00 |
+| InternationalInsertionFee | 0.00 |
+| ProPackBundleFee | 0.00 |
+| CategoryFeaturedFee | 0.00 |
+| AuctionLengthFee | 0.00 |
+| BorderFee | 0.00 |
+| ValuePackBundleFee | 0.00 |
+| BasicUpgradePackBundleFee | 0.00 |
+| GalleryFee | 0.00 |
+| PhotoFee | 0.00 |
+| ReserveFee | 0.00 |
+| SchedulingFee | 0.00 |
+| BuyItNowFee | 0.00 |
+| MotorsGermanySearchFee | 0.00 |
+
+ListingFee is the listing-fee total and InsertionFee is its component here, not a second charge to add: the returned listing total is **AUD 0.06**, not AUD 0.12. These are expected listing fees, not actual charged sale fees or a final-value-fee/profit calculation. No sale occurred and no final-value fee was inferred. References: [Inventory API specification, getListingFees](https://developer.ebay.com/api-docs/master/sell/inventory/openapi/3/sell_inventory_v1_oas3.json), [eBay fee-name definitions](https://developer.ebay.com/Devzone/XML/docs/Reference/eBay/types/ListingFeesType.html).
+
+**F-12 reminder:** eBay purges uploaded pictures not used in a listing within 30 days. These six EPS uploads do not make an item live; later publishing must check picture availability rather than assume indefinite retention.
+
+### Operational Limits And Stop Point
+
+- Process-local request guards allowed only the specific metadata/read operations, six EPS uploads, the selected SKU inventory PUT, a single createOffer and the fee lookup. Payload assertions enforced the human's SKU, price, quantity, category, policies, location, GTC and absence of the removed 24ct claim.
+- `publishOffer`: **0**. Withdraw: **0**. Delete: **0**. Offer update: **0**. No real marketplace listing was ended or made live.
+- In-memory before/after comparisons confirmed the inventory item, other four drafts and all ChannelListing rows were unchanged. No auto-listing status or take-down row was fabricated.
+- No migration, schema change, UI/layout change, service restart, bulk operation or AI call occurred. The running NSSM service was not claimed to have reloaded the backend fix; the diagnostic used a fresh backend process in the live checkout.
+- No key, token, passphrase, .env value, request header, raw token response or credential payload was printed or included in evidence. Whole-file secret checks are performed before the documentation commit.
+- Git publication covers the separate backend fix and this evidence/session-log filing only. No frontend/build/collectstatic or GitHub Validation result is claimed here unless separately recorded.
+
+**Stop and report:** Phase 0 is complete with staging passed; live publishing remains unproven. Do not proceed to Phase 1 or call publishOffer without Regan's next instruction. A later live-publish gate must present and obtain approval for this exact item, price, SKU, postage and final preview.
