@@ -1,11 +1,11 @@
-# Sprint 25 kickoff (v3.3): eBay listing, end to end
+# Sprint 25 kickoff (v3.4): eBay listing, end to end
 
-**To Codex. Reasoning: High.** The controlling document is `SPRINT_25_SPEC.md` **v3.3 (LOCKED 2026-09-27)**. It replaces v2.1 and the v1 quick-publish design. Read it in full before touching anything.
+**To Codex. Reasoning: High.** The controlling document is `SPRINT_25_SPEC.md` **v3.4 (LOCKED 2026-11-13)**. It replaces v2.1 and the v1 quick-publish design. Read it in full before touching anything.
 
 ## Situation
 - eBay publishing has errored since the Sprint 23–24 era. Features on the item page stopped being reachable when the layout was reorganised (tabs/collapsible sections).
 - Your own structural audit (2026-09-24, `afe9b351`) found three overlapping publish entry points and drafts that never acquire eBay mappings. GOLD-00002 has 5 drafts, 4 of them empty.
-- Secrets **have been rotated**. eBay has **not yet been reconnected**; Regan does that from Settings → eBay.
+- **Gate 0 closed and Phase 0 passed on 2026-11-13** (see `docs/MASTER_HANDOFF.md` §2). The 2026-09-27 note that secrets had been rotated was wrong; the handoff records what was actually rotated (D-139, D-140).
 
 ## What changed in v3 (the short version)
 - **One canonical eBay draft per item, one editor, one preview** (D-136). Quick publish is a shortcut to that preview, not a separate pipeline.
@@ -16,6 +16,7 @@
   - First, classify every real draft status as active or terminal; unclassified counts as active.
   - Then Migration A (clean-up, with a dry run Regan approves), then supervised resolution until the unresolved list is at zero, then Migration B (the constraint, with an abort-on-violation pre-check).
   - It never calls eBay and never touches published history.
+- **v3.4 (Phase 0 clarifications):** the readiness gates follow the chosen category's live rules (no condition gate where eBay has none); policy choices show their real terms; photos that eBay has expired are re-uploaded before publishing.
 
 ## Order of work (strict)
 1. **Gate 0:** after Regan reconnects, prove a fresh token, a working automatic refresh, complete scopes and a refreshed policy snapshot. **Never print token or `.env` values.**

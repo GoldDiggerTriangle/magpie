@@ -1,6 +1,6 @@
-# Magpie — Sprint 25 spec (v3.3 LOCKED): eBay listing, end to end
+# Magpie — Sprint 25 spec (v3.4 LOCKED): eBay listing, end to end
 
-**Audience:** Codex. **Author:** Claude, with a ChatGPT cross-check. **Status:** LOCKED v3.3 (2026-09-27). It incorporates both ChatGPT cross-checks. v3.3 tightens the implementation only; no decision changes. It fixes the migration sequencing, the draft-status mapping, recovery of interrupted publishes, and the D-135 wording.
+**Audience:** Codex. **Author:** Claude, with a ChatGPT cross-check. **Status:** LOCKED v3.4 (2026-11-13). v3.4 adds three clarifications from Phase 0, approved by Regan, with no decision changes: the readiness gates follow the chosen category's live rules, policy choices show their real terms, and photos that eBay has expired are re-uploaded before publishing. v3.3 (2026-09-27) incorporated both ChatGPT cross-checks and tightened the migration sequencing, the draft-status mapping, recovery of interrupted publishes, and the D-135 wording.
 **Decisions:** D-135, D-136 and D-137 are **approved** by Regan.
 **Supersedes:** SPRINT_25_SPEC.md v2.1. v3 keeps every v2.1 correction; §0 says what changed.
 **Locks carried forward:** D-129 (prices only from Regan's figure or a picked evidence figure), D-132 (preview-gated publish), D-133 (the overhaul), and human-confirmed publish (zero-tap is forbidden). F-19, F-20 and F-21 also carry forward.
@@ -91,14 +91,14 @@ Every field is visible and editable, and each shows where its value came from:
 |---|---|
 | Title | item title, editable; 80-char counter |
 | eBay category | live taxonomy suggestions and search; chosen ID and name shown |
-| Condition | live valid conditions for the chosen category |
-| Item specifics | live required/recommended aspects; required ones flagged |
+| Condition | live valid conditions for the chosen category; shown as “not used by this category” when eBay offers none (e.g. 139965 Nugget) |
+| Item specifics | live required/recommended aspects; required ones flagged; only aspects eBay marks required for the chosen category can block posting |
 | Format | Fixed / Auction |
 | Duration | valid durations for the format |
 | Price | D-129 sources only, with a visible source label |
 | Quantity | defaults to remaining quantity (Phase 8) |
 | Photos | select and reorder from the item's photos; ≥1 required |
-| Payment / Postage / Return policy | dropdowns from the refreshed snapshot (2 / 9 / 4 today) |
+| Payment / Postage / Return policy | dropdowns from the refreshed snapshot (2 / 9 / 5 as of 2026-11-12); each option shows the policy's real terms beside its name: postage services, charges and handling time; return window and who pays; payment terms. The preview shows the chosen policies' terms too. |
 | Merchant location | dropdown (MARYBOROUGH-AU today) |
 | Description | copy-pack template as the default body, editable |
 
@@ -116,8 +116,9 @@ Editing a default does **not** rewrite existing drafts.
 
 ## 7. Phase 5: Review and publish (one pipeline)
 
-- **Preview:** the composed listing as eBay will see it, with hard gates (price source, ≥1 photo, postage, condition, category, required aspects, healthy connection). If any gate fails, Post is disabled and the failures are named with fix links.
+- **Preview:** the composed listing as eBay will see it, with hard gates (price source, ≥1 photo, postage, condition, category, required aspects, healthy connection). Condition and item specifics are gated only when eBay's live metadata for the chosen category requires them; a category without conditions has no condition gate. If any gate fails, Post is disabled and the failures are named with fix links.
 - **Full path:** editor → preview → stage (`createOffer`) → staged review → **type-the-SKU** → `publishOffer`. The Sprint-7 protocol stays intact, including withdraw.
+- **Photo freshness:** eBay deletes uploaded photos that are not used in a listing within 30 days (F-12). Before `publishOffer`, if the offer's photos were uploaded more than 30 days earlier, Magpie re-uploads them and updates the inventory item first. It never publishes with missing photos.
 - **Quick publish** is a shortcut to the same preview for the canonical draft. Two taps; the second is "Post live to eBay". It is not a separate pipeline.
 - Keep the `befa502` guards: refuse to publish if `listing_id` exists or the draft is already published.
 - **Concurrency protection must work on SQLite,** which is the live database. There, `select_for_update()` does nothing, so a row lock alone is not enough. Instead:
@@ -177,7 +178,9 @@ Variations, volume pricing, Discounts Manager, bulk/batch/background posting, ot
 - Phase 0 was reported as "staging passed; live publishing remains unproven" (or as an error), never as UX-only.
 - Editor: create → edit every field → save → resume → preview (tests and live proof).
 - Defaults pre-fill and are labelled; category defaults never supply price or quantity, and quantity comes from remaining stock; editing defaults doesn't touch existing drafts (tests).
-- Each gate blocks and names its blocker (tests for missing price, photo, postage, condition and category).
+- Each gate blocks and names its blocker (tests for missing price, photo, postage, condition and category), and a category without conditions (139965 Nugget) passes with no condition set (test).
+- Policy options and the preview show each policy's real terms (test).
+- A staged offer whose photos are more than 30 days old has them re-uploaded before `publishOffer` (test).
 - Forced-error tests (expired token, validation failure, permission denied) each give a named message.
 - The Phase-1 reachability table is in the evidence file, with every row ticked as reachable (with its tap path), and the automated reachability gate is green.
 - No item-page layout migration took place (D-137).
