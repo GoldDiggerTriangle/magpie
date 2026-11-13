@@ -1077,3 +1077,109 @@ No new claim is made about completion of Sprint 23R2/Sprint 24 live evidence. Th
 Only this appended evidence section and one handoff session-log entry are changed. No source/config/settings/.env/dependency/schema/service/database change, live UI action, eBay call, AI call, staging, publishing, withdraw or Phase 2 restoration occurred. Historical source was read with `git show`/blob comparisons; no checkout/reset was used. Secret checks cover the documentation before commit/push.
 
 **Phase 1 stop and report:** the restoration inventory is delivered. Await Regan's direction before any build phase, canonical-draft migration, UI restoration or live publish. Phase 0 remains **staging passed; live publishing remains unproven**.
+
+## 2026-11-13: Phase 2 Canonical Draft Model - Migration A Dry Run Only
+
+**STOP FOR OWNER APPROVAL.** The canonical model and Migration A command are implemented and dual-lane tested. The live run was dry-run only: no draft was archived, no audit row was appended, and no migration was applied to the live database. Regan must approve the report below before real Migration A. Migration B is intentionally not written in this phase.
+
+### Step 0 Preconditions
+
+| Check | Result |
+| --- | --- |
+| Checkout / starting HEAD | `D:\Magpie\app`, `main`, `59e1e0da95972ac66ce4c1f957f798074234568c` |
+| Controlling documents | `docs/MASTER_HANDOFF.md` v4.65; `docs/specs/SPRINT_25_SPEC.md` and kickoff v3.4; Phase 1 restoration checklist above read first |
+| Initial working tree | Only pre-existing untracked `CLAUDE_STRUCTURAL_AUDIT.md`; left untouched |
+| Latest applicable main Validation at preflight | `43379342303`, successful on both lanes, commit `d32f00fae3ba526051e7583be0a57d0479ce407f` (ancestor of starting HEAD); SQLite job `131733201076`, PostgreSQL job `131733201446` |
+| Live venv requirements | All 13 direct requirement constraints satisfied; DRF exactly 3.18.3; Python 3.13.4 and Django 5.2.15; no install or dependency-file change required |
+| Restart freshness | Fix `08b6ae2325aeba66934dbe49a30903211101a78f` committed at 2026-11-13 05:56:18 UTC; actual port-8000 Python listener PID 12604 started at 06:17:14.181225 UTC, after that commit; NSSM PID 23328 |
+| End-of-task service observation | Same service/listener PIDs and start time, Running; live `/api/health/` HTTP 200. No restart performed by this task |
+
+### Actual Status Classification (Before Any Cleanup)
+
+The inspected model had six statuses, not merely the five named in the early Sprint 7 spec. There is **no separate `publish_state` field**. Existing remote state/proof lives in `channel_data` (for example offer/listing IDs) and the related `ChannelListing`; those records are not rewritten by cleanup.
+
+| Status | Existing / added | Classification | Treatment |
+| --- | --- | --- | --- |
+| `draft` | Existing | Active | Eligible for keeper selection |
+| `ready` | Existing | Active | Eligible; an offer ID still takes precedence over completeness |
+| `exported` | Existing | Active | Export is not evidence of a terminal marketplace outcome |
+| `staged` | Existing | Active | An unpublished offer holder wins if it is the only one |
+| `publish_failed` | Existing | Active | Failure does not terminate the draft or discard its offer |
+| `published` | Existing | Terminal | Immutable history; never a cleanup candidate |
+| `archived` | Added | Terminal | Retained and viewable read-only, never deleted by cleanup |
+| `publishing` | Added | Active | Unresolved until the publish outcome is reconciled; not auto-archived |
+| `publish_unknown` | Added | Active | Unresolved until reconciled; not auto-archived |
+| Any unclassified/future status | Safety rule | Active | Cannot bypass the active predicate |
+
+`draft_status.py` centralises this mapping and the active predicate (exclude only published/archived). Tests enumerate every actual choice plus an unknown status. There is no existing ended-listing status to classify. An active-status row with a local published listing ID or linked ChannelListing is protected and reported unresolved rather than relabelled or archived.
+
+### Implementation And Safety Boundaries
+
+- `canonical.py` plans per item/channel, entirely from owned local records. Exactly one offer holder wins; multiple offer holders leave the group unresolved. Otherwise score, newest `updated_at`, then highest UUID primary key decide the keeper. No offered non-keeper is archived automatically.
+- The score has ten explicit components: title, category, condition, positive price, photos, payment, postage, returns, merchant location and all required aspects. Required aspects are rechecked against current specifics using the cached category-matching metadata. Unknown metadata scores incomplete. The existing cached `required=false` condition policy makes a category with no condition requirement complete without inventing a condition.
+- Item-scoped create/open reuses the canonical active draft without changing it (HTTP 200); an actual new draft is HTTP 201. The existing item-list endpoint orders the canonical eBay draft first. The generic collection POST cannot bypass canonical creation. Unresolved groups refuse creation. UI unification remains Phase 3+ work; no frontend code changed here.
+- Published and archived draft writes/deletes are rejected through model saves, bulk updates, queryset deletes, item-delete cascades and API mutation actions. Detail/export reads remain available without changing export status/timestamps. Relisting seeds a separate draft from published content and allowlisted listing settings, without copying offer/listing IDs, old EPS URLs, errors or response payloads.
+- The full suite exposed Sprint 11 attaching last-order sync metadata to a published draft. That path now leaves published/archived history untouched; the SaleRecord retains the order/line identifiers. Regression coverage checks full historical row equality, active-draft metadata updates, quantity accounting and sync idempotence. No real order sync was run.
+- Management command `canonicalize_listing_drafts` defaults to dry run; `--dry-run` is explicit. Real `--apply` additionally requires the exact `--approved-fingerprint` from the reviewed report and rechecks it inside a transaction. Changes to the plan abort; an audit failure rolls back archival. Every real archived row would append a new `listing.draft.archived` audit row with its prior status, offer ID, score/components and keeper ID; existing audit history is not modified. Tests exercise apply only on isolated test databases.
+- Additive migration `listing.0004_listingdraft_canonical_statuses` only extends status choices. SQLite `sqlmigrate` reports a no-op; no data cleanup is hidden in it. **It has not been applied to live.** Django check passes and `makemigrations --check --dry-run --noinput` reports no changes.
+- **Migration B remains deferred:** no partial unique constraint or its pre-check migration is installed or claimed here. Its database-level rejection/constraint-coverage tests belong to the later supervised step, after approved Migration A and resolution. Parent locking is not presented as a substitute for SQLite uniqueness protection. Current tests prove the shared active predicate and canonical create/reuse behaviour on both database lanes.
+
+### Encrypted Backup Before Live Dry Run
+
+The unchanged existing `backup --no-upload` command created:
+
+`D:\Magpie\backups\phase2-pre-dry-run-20261113\magpie-backup-20261113-070636.tar.gz.enc`
+
+27,959,020 bytes; decryption with B and tar validation passed: **92 members, 64 media files**, including the SQLite snapshot. The process environment was compared to the Windows user-level B without printing values; D-139 is unchanged. No cloud upload, rclone or eBay call was made. Verification plaintext was immediately deleted. Task test/verification scratch directories were removed after path checks; the encrypted archive is retained outside the repository.
+
+### Live Migration A Dry-Run Report
+
+The command ran against the actual `backend/db.sqlite3` with SQLite **`PRAGMA query_only=ON`** and an outbound socket-connect guard. No `migrate`, seed, archive/apply, staging, publishing, withdraw or remote lookup was invoked. The final report fingerprint is:
+
+`f2a614c9862ff30ef8cd7866582b3f32770699426416657757b56178ecbf8f99`
+
+| Item | Channel | Draft | Current status | Offer ID | Score / 10 | Proposed action |
+| --- | --- | --- | --- | --- | --- | --- |
+| GOLD-00002 | ebay_au | `af013dd9-0611-431c-be4a-223c44ec4e06` | staged | `356038014011` | 10 | **KEEP**: sole staged-offer holder |
+| GOLD-00002 | ebay_au | `0fe7df74-b982-4173-8aa0-d449fa228128` | draft | None | 2 | Archive after approval |
+| GOLD-00002 | ebay_au | `151cbc31-0146-4300-a061-40a4c6f36d1a` | draft | None | 2 | Archive after approval |
+| GOLD-00002 | ebay_au | `2ddac3c1-7462-48ea-8432-cab907e20693` | draft | None | 2 | Archive after approval |
+| GOLD-00002 | ebay_au | `6a66b92a-fac7-4414-9c5a-e51614c36e27` | draft | None | 2 | Archive after approval |
+| GSP-00001 | ebay_au | `d1e714f6-58b3-4640-b705-b185dbb083fb` | draft | None | 3 | KEEP: only active draft |
+| PH-00001 | ebay_au | `a089618e-7dea-4b69-96b6-cab9257cfb5a` | draft | None | 2 | KEEP: only active draft |
+| STM-00003 | ebay_au | `781043d7-fca6-4944-a1ee-9eb4493be27b` | published | Not inspected for selection | Excluded | Preserve published history unchanged |
+
+**Planned archival: 4. Unresolved groups: 0.** GOLD-00002 would have one active and four archived drafts, exactly as expected. The four informally called empty drafts do have title/photo references (2/10); they have no price, category or policy configuration. No claim that they are literally blank is needed. GSP-00001 is a separate record and is not treated as the selected gold item. No groups on other channels exist in this live snapshot.
+
+### Before/After: Dry Run Wrote Nothing
+
+Full ordered row values were hashed in memory before and after, not printed as payloads. Every count, status distribution and digest matched:
+
+| Table / state | Before | After | Full-row SHA-256 before = after |
+| --- | --- | --- | --- |
+| `listing_listingdraft` | 8 | 8 | `fbf48dffaca915e9219b80da606aa8bb314477b0cad0084ccc1892191e77b5dd` |
+| `audit_auditlog` | 151 | 151 | `1d984815623d8fa93a27d70432450e9f83c41885136dfad4d71cf043eaefe99c` |
+| `listing_channellisting` | 1 | 1 | `f1e3038cbd4a9034de5c6d2f2d2afb6192e4db3fc98b029da8c13f431ac45a1f` |
+| `django_migrations` | 51 | 51 | `ffe5d7a6748816c58e8d350154c7a12221fa70a2fa32b798b5583752362d3983` |
+| Draft statuses | draft 6; staged 1; published 1 | draft 6; staged 1; published 1 | No archived/new-state row was written |
+
+### Tests, Validation And Commits
+
+Implementation commit: **`8d223247e3929fe3997015377da95cba6b95c871`**, pushed to main.
+
+| Validation | Result |
+| --- | --- |
+| Focused canonical / Sprint 5 / Sprint 7 suite | 64 passed after correcting the test-only placeholder photo UUID and matching the existing condition-policy key |
+| Full local backend, updated live venv, isolated SQLite, socket connects blocked | **252 passed, 1 skipped**, 14 warnings, 140.12 seconds |
+| GitHub [Validation 43384013974](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43384013974) | **Both lanes green**, exact implementation commit above |
+| SQLite job `131748128680` | **252 passed, 1 skipped** backend; migrations/check/seed and marketplace-confinement guard passed; encrypted backup/restore passed |
+| PostgreSQL job `131748128217` | **240 passed, 13 skipped**; migrations/check/seed/fake-adapter checks passed; same canonical/archival/history tests run here |
+| Frontend in SQLite CI lane | **123 passed across 33 files**; typecheck, build and collectstatic passed |
+| Production checks in CI | Deploy check and Waitress/WhiteNoise smoke passed |
+| Repository checks | `git diff --check` passed; secret scan found no known secret values or credential-shaped values in changed files |
+
+Coverage includes every status/unknown-active fallback, ten-component scoring and category-specific optional conditions, sole/multiple offer holders, deterministic ties, per-item/channel separation, uncertain outcomes, published-proof protection, unchanged dry runs, exact-plan approval, per-archive audit rows, rollback/idempotence, published/archived immutability and export, canonical create/reuse/list priority, safe relisting, and adapter-forbidden local planning/apply tests. Existing suites remain enabled; platform-specific backup tests retain their existing skips.
+
+No `.env`, requirement, settings, credential, specification, frontend or structural-audit file was changed. No eBay or AI call occurred, and no live migration or service restart occurred. This task changes backend implementation/tests plus this appended evidence and one handoff session line; Phase 1's restoration checklist remains intact and unchecked work is not silently declared complete.
+
+**Phase 2 stop and report:** approve the four-row GOLD-00002 archival plan above before real Migration A. Do not proceed to Migration B or UI restoration on the strength of this dry run. Phase 0 remains **staging passed; live publishing remains unproven**. Sprint 25 is not closed.
