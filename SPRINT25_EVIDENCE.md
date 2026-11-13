@@ -1283,3 +1283,66 @@ Migration A's legacy-duplicate tests explicitly simulate the before-B index stat
 - `.env`, Windows passphrase B, requirements/settings, credentials, controlling spec/kickoff, frontend and the existing untracked structural audit are unchanged. Changed files were checked for known secret values and credential patterns before commit/push; no values were printed or committed.
 
 **Stop and report before installing Migration B live.** A fresh backup and Administrator restart are for that next supervised step. No Phase 3/UI work, real eBay/AI call, staging, publishing or withdrawal was undertaken. Sprint 25 remains open; the approved Migration A operation and zero-unresolved supervision step are complete.
+
+## 2026-11-14: Migration B Installed Live - Awaiting Administrator Restart
+
+**PENDING OWNER RESTART.** Regan accepted Migration A at `6202c4e0` and explicitly authorised installation of B. Steps 1-5 are complete. Codex has stopped live operations and asked Regan to restart the service from Administrator PowerShell. Post-restart health, serving-version and canonical-draft checks are **not yet claimed**; Phase 3 requires a separate instruction.
+
+### Preconditions, Backup And Read-Only Pre-Check
+
+- Checkout `D:\Magpie\app`, main HEAD `6202c4e0b276b9d95c57d283c80ca22898ecc1cc`, containing implementation `1564d32127d2553585b2f291792b371cce78e836`. Existing Validation `43523195223` is green on both lanes. Handoff v4.66 and spec v3.4 were read first; no application-code change was made in this task.
+- The accepted post-A counts and full-row hashes matched: 8 drafts, 155 audit rows, 1 ChannelListing and 52 migration records. GOLD-00002 retained its exact staged keeper and four archives. The only pending migration was `listing.0005_listingdraft_one_active`.
+- The unchanged `backup --no-upload` path created a fresh encrypted archive and B decryption/tar validation passed. It was also restored to scratch to rehearse B against the real owned-data snapshot, without adding test rows.
+- After the backup, `check_canonical_drafts` was rerun on the live SQLite database with `PRAGMA query_only=ON` and outbound connections blocked: **violation_count 0, violations [], constraint_installed false**. Draft/audit/listing/migration counts and full-row hashes were unchanged by the check.
+
+### Live Installation And Schema-Only Verification
+
+Migration B was applied at **2026-11-13 23:33:08.027819 UTC**, which is 14 November in Australia/Sydney. A single SQLite BEGIN IMMEDIATE transaction rechecked zero violations and the exact pending migration, applied only 0005, and verified schema and every table's original row values before commit. No original business/audit row changed; only the expected migration record was added.
+
+Live schema inspection confirmed:
+
+```sql
+CREATE UNIQUE INDEX "listing_one_active_draft"
+ON "listing_listingdraft" ("item_id", "channel")
+WHERE NOT ("status" IN ('archived', 'published'))
+```
+
+`PRAGMA index_list` reports **unique=1, partial=1**; `PRAGMA index_info` confirms columns **item_id, channel**. The sqlite_master definition matches the approved migration exactly. Verification used schema inspection, not a probe insert: **zero test rows were inserted into live data**. Integrity check returned `ok`; foreign-key checking remained enabled after the transaction.
+
+| Check | Before B | After B |
+| --- | --- | --- |
+| ListingDraft rows | 8 | **8**, full values unchanged |
+| GOLD-00002 active / archived | 1 / 4 | **1 / 4** |
+| Canonical keeper | `af013dd9-0611-431c-be4a-223c44ec4e06` | Same UUID; staged offer `356038014011` unchanged |
+| Audit rows | 155 | **155**, all values unchanged |
+| ChannelListing rows | 1 | **1**, full row unchanged |
+| Migration records | 52 | **53**, only 0005 added; all prior records unchanged |
+| STM-00003 published history | Preserved | **Unchanged** |
+| Partial unique index | Absent | **Present** |
+
+The post-install query-only command confirms **zero violations, constraint_installed true**. No other pending migration was applied or new draft created.
+
+### Encrypted Backups And Restore
+
+Filenames use UTC; both backups belong to this 14-November local session. B was read/compared without displaying it and was not changed.
+
+| Stage | Encrypted archive | Bytes | Verification |
+| --- | --- | --- | --- |
+| Before B | `D:\Magpie\backups\phase2-migration-b-20261114\pre\magpie-backup-20261113-233211.tar.gz.enc` | 27,958,962 | B decryption; 92 archive members / 64 media files; successful scratch rehearsal |
+| After B | `D:\Magpie\backups\phase2-migration-b-20261114\post\magpie-backup-20261113-233339.tar.gz.enc` | 27,959,104 | B decryption; 92 members; full restore spot-check passed |
+
+The post-install restore contains **46 tables, 729 rows and 64 media files**; every table's row-content digest and every media-file digest matched live. It retains the actual partial unique index and the 0005 migration record, all eight drafts and unchanged audit/listing rows. SQLite integrity is `ok`, with zero foreign-key violations. No restore targeted live. Plaintext tar files were deleted immediately, and the entire task scratch directory was path-checked and removed after verification. Only encrypted archives are retained; no cloud upload/rclone was used.
+
+### Restart Handoff And Remaining Checks
+
+Before the requested restart, NSSM was Running with service PID **26960**, actual port-8000 listener PID **4764**, start time **2026-11-13 11:07:28.208146 UTC**, AppDirectory **D:\Magpie\app\backend**. These are baseline observations, not proof that the requested restart has happened.
+
+Regan was asked to run:
+
+```powershell
+Restart-Service -Name Magpie -ErrorAction Stop
+```
+
+After his confirmation, verify a new service/listener start, `/api/health/` HTTP 200, and that the process uses this checkout containing `1564d321` or later. Check GOLD-00002's existing canonical draft via the read-only local draft routes, with no saves or eBay preflight/read-back calls; it must resolve to `af013dd9`. Do not navigate a page that automatically performs remote eBay lookups merely to prove the route. These post-restart results will be recorded separately once actually observed.
+
+No code/settings/.env/credential/dependency/UI change, real eBay/AI call, staging/publishing/withdrawal or service restart was performed by Codex. Published history remains unchanged. **Stop for Regan's restart; do not begin Phase 3.**
