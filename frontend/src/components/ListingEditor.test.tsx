@@ -92,7 +92,7 @@ test("default provenance and remaining-stock source survive resume and descripti
   const format = await screen.findByLabelText("Format", { exact: true });
   await waitFor(() => expect(format.closest("label")).toHaveTextContent("Source: from Gold defaults"));
   expect(screen.getByLabelText("Quantity", { exact: true }).closest("label")).toHaveTextContent("Item remaining stock (total minus sold)");
-  await user.click(screen.getByRole("button", { name: "Preview", exact: true }));
+  await user.click(screen.getByRole("button", { name: "Preview" }));
   expect(format.closest("label")).toHaveTextContent("Source: from Gold defaults");
   expect(mocks.save).not.toHaveBeenCalled();
 });

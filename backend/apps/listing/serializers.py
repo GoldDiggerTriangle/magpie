@@ -188,6 +188,7 @@ class ListingDraftSerializer(serializers.ModelSerializer):
                     origins[key] = "Human selection in listing editor"
         if "category_id" in changed and "condition_id" not in changed:
             origins.pop("condition_id", None)
+            changed.add("condition_id")  # The old default's category dependency no longer applies.
         meta["listing_defaults_review"] = [row for row in meta.get("listing_defaults_review", []) if row.get("field") not in changed]
         validated_data["generated_meta"] = meta
         if "title" in validated_data and validated_data["title"] != instance.title:

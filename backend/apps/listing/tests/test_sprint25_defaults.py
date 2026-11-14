@@ -328,3 +328,15 @@ def test_empty_format_cannot_silently_fall_through_to_auction(listing, monkeypat
     with pytest.raises(ValidationError, match="empty format is not an auction"):
         staging._guard_stageable(listing)
     assert any(c.key == "listing_format" and c.level == "fail" for c in check_readiness(listing))
+
+
+def test_manual_category_correction_removes_obsolete_default_condition_issue(api, listing):
+    set_defaults(api, listing, {**values(listing), "condition_id": "3000"})
+    listing.channel_data["editor_metadata"]["categories"]["139965"]["category"]["is_leaf"] = False
+    listing.save()
+    row = create(api, new_item(listing))
+    assert any(c["field"] == "condition_id" and c["state"] == "invalid" for c in row.generated_meta["listing_defaults_review"])
+    response = api.patch(f"/api/listing-drafts/{row.pk}/", {"channel_data": {"category_id": "105848", "category_name": "Australian Stamps", "category_tree_id": "15"}}, format="json")
+    assert response.status_code == 200
+    row.refresh_from_db()
+    assert not any(c["field"] == "condition_id" for c in row.generated_meta["listing_defaults_review"])
