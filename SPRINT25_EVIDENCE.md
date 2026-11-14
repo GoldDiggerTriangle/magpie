@@ -1567,3 +1567,11 @@ Regan replied **"Yes, use starter IDs and one-level display/storage"**. This sup
 - Live preservation checks still show **46 unchanged table digests**, **8 drafts / 1 ChannelListing / 156 audit rows / 53 migration records**, unchanged item-page layout and protected configuration. No eBay call, live save, schema change or restart by Codex.
 
 **Final stop for this fix round:** root-starter approval is implemented; Administrator restart and Regan's real-phone re-check are still pending. Phase 4 has not begun and Sprint 25 remains OPEN.
+
+### 2026-11-15 - Final Validation Test-Race Correction
+
+The documentation-head Validation run **43598489724** passed PostgreSQL but failed SQLite's frontend step in the unchanged Sprint 21 `LotsPage.test.tsx`: it synchronously looked for `40.00` share inputs after finding the query-loaded title, before the component's effect had populated its editable allocation state. The lot implementation and test both predate this fix round (`b5a593d`).
+
+Test-only correction **`9dc2bac3a911169b3c75085bc858ce73460f7046`** awaits `findAllByDisplayValue("40.00")`, adds an exact two-input assertion, and retains the sold-lock, unlocked editing, live tally and save assertions. No timeout increase, skipped test, weakened assertion or application behaviour change. Local frontend **140 passed / 34 files**, typecheck PASS. Replacement Validation **43598827518** is pending at this entry's preparation; its completed result will be recorded below before the stop report.
+
+**Completed:** [Validation **43598827518**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43598827518) is green on both lanes (PostgreSQL job `132458993211`, SQLite job `132458993476`), including backend/frontend tests, typecheck, build, collectstatic and smoke checks. Final secret/protected-file scan reports no matches/changes; all 46 live table digests and the item-page layout remain unchanged. Administrator restart and real-phone acceptance remain pending; no Phase 4 or eBay operation was performed.
