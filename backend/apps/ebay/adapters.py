@@ -115,6 +115,9 @@ class EbayTaxonomyAdapter(Protocol):
     def item_condition_policy(self, *, category_id: str) -> dict:
         ...
 
+    def listing_type_policy(self, *, category_id: str) -> dict:
+        ...
+
 
 class EbayOrderAdapter(Protocol):
     def list_orders(self, *, access_token: str, start, end) -> list[dict]:
@@ -544,6 +547,25 @@ class HttpEbayTaxonomyAdapter:
         return {"category_id": str(category_id), "required": required, "conditions": conditions}
 
 
+    def listing_type_policy(self, *, category_id: str) -> dict:
+        response = _request_json(
+            f"{_api_base(self.environment)}/sell/metadata/v1/marketplace/EBAY_AU/get_listing_type_policies"
+            f"?filter={quote('categoryIds:{' + str(category_id) + '}', safe='')}",
+            access_token=self.access_token, method="GET",
+            headers={"Accept": "application/json"}, timeout_seconds=self.timeout_seconds,
+            service_name="eBay listing-duration metadata endpoint",
+        )
+        rows = response.get("listingTypePolicies")
+        matches = [row for row in rows if isinstance(row, dict) and str(row.get("categoryId")) == str(category_id)] if isinstance(rows, list) else []
+        if len(matches) != 1 or not isinstance(matches[0].get("listingDurations"), list):
+            raise EbayUnavailable("eBay did not return a unique listing-duration policy for this category.")
+        return {"category_id": str(category_id), "formats": {
+            row["listingType"]: row["durationValues"] for row in matches[0]["listingDurations"]
+            if isinstance(row, dict) and row.get("listingType") in {"AUCTION", "FIXED_PRICE_ITEM"}
+            and isinstance(row.get("durationValues"), list)
+        }}
+
+
 class HttpEbayOrderAdapter:
     def __init__(self, *, environment: str | None = None, timeout_seconds: int | None = None):
         self.environment = _configured_environment(environment)
@@ -896,6 +918,12 @@ class FakeEbayTaxonomyAdapter:
             "required": True,
             "conditions": [{"conditionId": "3000", "conditionDescription": "Used"}],
         }
+
+
+    def listing_type_policy(self, *, category_id: str) -> dict:
+        return {"category_id": str(category_id), "formats": {
+            "FIXED_PRICE_ITEM": ["GTC"], "AUCTION": ["DAYS_3", "DAYS_5", "DAYS_7", "DAYS_10"],
+        }}
 
 
 class FakeEbayOrderAdapter:

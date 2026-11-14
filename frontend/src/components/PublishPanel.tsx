@@ -36,6 +36,7 @@ import type {
 } from "../types";
 
 interface PublishPanelProps {
+  localEditor?: boolean;
   draft: ListingDraft;
   item: InventoryItemDetail;
   onDraftChange: (draft: ListingDraft) => void;
@@ -43,7 +44,7 @@ interface PublishPanelProps {
   persistDraft: () => Promise<ListingDraft>;
 }
 
-export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persistDraft }: PublishPanelProps) {
+export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persistDraft, localEditor = false }: PublishPanelProps) {
   const queryClient = useQueryClient();
   const [categorySearch, setCategorySearch] = useState("");
   const [categoryResult, setCategoryResult] = useState<EbayCategorySuggestionsResponse | null>(null);
@@ -66,12 +67,12 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
   const aspectCheck = useQuery({
     queryKey: ["listing-aspects", draft.id, channelValue(draft, "category_id")],
     queryFn: () => getListingAspectCheck(draft.id),
-    enabled: Boolean(channelValue(draft, "category_id"))
+    enabled: !localEditor && Boolean(channelValue(draft, "category_id"))
   });
   const stagedReview = useQuery({
     queryKey: ["staged-review", draft.id, channelValue(draft, "offer_id")],
     queryFn: () => getStagedOfferReview(draft.id),
-    enabled: showReview && draft.status === "staged" && Boolean(channelValue(draft, "offer_id"))
+    enabled: !localEditor && showReview && draft.status === "staged" && Boolean(channelValue(draft, "offer_id"))
   });
 
   const updateChannel = (patch: Record<string, unknown>) => {
@@ -171,6 +172,13 @@ export function PublishPanel({ draft, item, onDraftChange, onDraftUpdated, persi
   const offerId = channelValue(draft, "offer_id");
   const listingId = channelValue(draft, "listing_id");
   const isPublished = draft.status === "published" || Boolean(listingId);
+
+  // Phase 3 is local editing only. The existing pipeline remains intact for the
+  // supervised publish phase; opening or saving this editor never invokes it.
+  if (localEditor) return <section className="border-t pt-4"><h3 className="section-title">eBay staging</h3>
+    <p className="listing-source">Local editor only. Staging, review, withdraw and publish remain separate supervised steps.</p>
+    <div className="mt-3 flex flex-wrap gap-2"><button className="btn-secondary" type="button" disabled>{offerId ? "Re-stage offer" : "Stage offer"}</button><button className="btn-secondary" type="button" disabled>Review &amp; publish</button></div>
+  </section>;
 
   return (
     <section className="space-y-4 rounded border border-slate-800 bg-slate-950/40 p-4">

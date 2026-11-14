@@ -18,15 +18,14 @@ import {
   deleteListingDraft,
   downloadListingZip,
   generateListingDraft,
-  getListingReadiness,
+  getListingDraft,
+  getListingEditor,
   listItemListingDrafts,
   listListingBoilerplates,
-  updateListingDraft
 } from "../api/listing";
 import type {
   InventoryItemDetail,
   ListingBoilerplate,
-  ListingCheck,
   ListingDraft,
   ListingSpecific,
   PhotoAsset,
@@ -35,6 +34,8 @@ import type {
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmptyState } from "./EmptyState";
 import { PublishPanel } from "./PublishPanel";
+import { EditorReadiness, FieldSource, ListingMetadataFields, listingFieldId } from "./ListingMetadataFields";
+import { useDraftAutosave } from "./useDraftAutosave";
 
 const titleMax = 80;
 
@@ -54,8 +55,18 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
     }
   }, [draftList, selectedId]);
 
+  useEffect(() => {
+    const open = () => {
+      setSelectedId(draftList[0]?.id ?? null);
+      document.getElementById(`listing-editor-${item.id}`)?.scrollIntoView?.({ block: "start" });
+    };
+    window.addEventListener(`magpie:open-draft:${item.id}`, open);
+    return () => window.removeEventListener(`magpie:open-draft:${item.id}`, open);
+  }, [draftList, item.id]);
+
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["listing-drafts", item.id] });
+    queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
     queryClient.invalidateQueries({ queryKey: ["item", item.id] });
     if (selectedDraft) {
       queryClient.invalidateQueries({ queryKey: ["listing-readiness", selectedDraft.id] });
@@ -87,7 +98,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
         </div>
         <button className="btn-primary gap-2" disabled={createMutation.isPending} onClick={() => createMutation.mutate()} type="button">
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Create draft
+          {draftList.some((row) => !["published", "archived"].includes(row.status)) ? "Open listing draft" : "Create draft"}
         </button>
       </div>
 
@@ -115,6 +126,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
 
           {selectedDraft ? (
             <DraftEditor
+              key={selectedDraft.id}
               boilerplates={boilerplates.data?.results ?? []}
               draft={selectedDraft}
               item={item}
@@ -149,11 +161,13 @@ interface DraftEditorProps {
 
 function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEditorProps) {
   const queryClient = useQueryClient();
-  const [local, setLocal] = useState(draft);
+  const readOnly = ["published", "archived", "publishing", "publish_unknown"].includes(draft.status) || Boolean(draft.channel_data.listing_id);
+  const autosave = useDraftAutosave(draft, onSaved, readOnly);
+  const { local, setLocal } = autosave;
   const [preview, setPreview] = useState(false);
   const [pendingGenerate, setPendingGenerate] = useState<"title" | "description" | null>(null);
 
-  useEffect(() => setLocal(draft), [draft]);
+  const editor = useQuery({ queryKey: ["listing-editor", draft.id, String(local.channel_data.category_id ?? ""), local.updated_at], queryFn: () => getListingEditor(draft.id, String(local.channel_data.category_id ?? "")) });
 
   const selectedBoilerplate = boilerplates.find((entry) => entry.id === local.boilerplate) ?? null;
   const titleDirty = local.title !== draft.title || draft.title_edited;
@@ -162,24 +176,27 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   const saveMutation = useMutation({
     mutationFn: persistLocal,
     onSuccess: (updated) => {
-      setLocal(updated);
+      autosave.acceptExternal(updated);
       onSaved();
     }
   });
   const generateMutation = useMutation({
-    mutationFn: ({ field, confirm }: { field: "title" | "description" | "specifics" | "price"; confirm: boolean }) => generateListingDraft(local.id, [field], confirm),
+    mutationFn: async ({ field, confirm }: { field: "title" | "description" | "specifics"; confirm: boolean }) => {
+      await autosave.flush();
+      return generateListingDraft(local.id, [field], confirm);
+    },
     onSuccess: (updated) => {
-      setLocal(updated);
+      autosave.acceptExternal(updated);
       setPendingGenerate(null);
       onSaved();
     }
   });
 
   function persistLocal() {
-    return updateListingDraft(local.id, toPayload(local));
+    return autosave.flush();
   }
 
-  function requestGenerate(field: "title" | "description" | "specifics" | "price") {
+  function requestGenerate(field: "title" | "description" | "specifics") {
     if (field === "title" && titleDirty) {
       setPendingGenerate("title");
       return;
@@ -192,14 +209,18 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   }
 
   return (
-    <div className="space-y-4">
+    <div className="listing-editor min-w-0 space-y-5" id={`listing-editor-${item.id}`}>
+      <p role="status" className="font-semibold">{readOnly ? "Read-only history" : autosave.state}</p>
+      {editor.error ? <p role="alert">Saved metadata could not load. Check your session and retry. Your draft is not staged or published by saving.</p> : null}
+      {local.channel_data.offer_id ? <div className="listing-staged-notice" role="status"><strong>Unpublished staged offer {String(local.channel_data.offer_id)}</strong><p>{editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p></div> : null}
+      <fieldset disabled={readOnly} className="min-w-0 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={local.status} />
           {local.readiness_summary.fail_count > 0 ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Unready</span> : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary gap-2" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()} type="button">
+          <button className="btn-secondary gap-2" disabled={saveMutation.isPending || readOnly} onClick={() => saveMutation.mutate()} type="button">
             <Save className="h-4 w-4" aria-hidden="true" />
             Save
           </button>
@@ -214,9 +235,10 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         <label className="label">
           <span className="flex items-center justify-between gap-3">
             <span>Title</span>
-            <span className={local.title.length > titleMax ? "text-rose-300" : "text-slate-500"}>{local.title.length}/{titleMax}</span>
+            <span className={Array.from(local.title).length > titleMax ? "text-rose-300" : "text-slate-500"}>{Array.from(local.title).length}/{titleMax}</span>
           </span>
-          <input className={local.title.length > titleMax ? "field border-rose-400 focus:border-rose-300 focus:ring-rose-300/20" : "field"} value={local.title} onChange={(event) => setLocal({ ...local, title: event.target.value })} />
+          <input aria-label="Title" id={listingFieldId(local.id, "title")} className={Array.from(local.title).length > titleMax ? "field border-rose-400 focus:border-rose-300 focus:ring-rose-300/20" : "field"} value={local.title} onChange={(event) => setLocal({ ...local, title: event.target.value })} />
+          <FieldSource context={editor.data} field="title" />
         </label>
         <div className="flex flex-wrap gap-2">
           <button className="btn-secondary gap-2" disabled={generateMutation.isPending} onClick={() => requestGenerate("title")} type="button">
@@ -231,58 +253,69 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Regenerate specifics
           </button>
-          <button className="btn-secondary gap-2" disabled={generateMutation.isPending} onClick={() => requestGenerate("price")} type="button">
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Regenerate price
-          </button>
         </div>
       </div>
 
       <label className="label">
         <span>Subtitle</span>
-        <input className="field" value={local.subtitle} onChange={(event) => setLocal({ ...local, subtitle: event.target.value })} />
+        <input aria-label="Subtitle" className="field" value={local.subtitle} onChange={(event) => setLocal({ ...local, subtitle: event.target.value })} />
+        <FieldSource context={editor.data} field="subtitle" />
       </label>
 
-      <div className="grid gap-3 sm:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="label">
           <span>Format</span>
-          <select className="field" value={local.listing_format} onChange={(event) => setLocal({ ...local, listing_format: event.target.value as ListingDraft["listing_format"] })}>
+          <select aria-label="Format" className="field" value={local.listing_format} onChange={(event) => setLocal({ ...local, listing_format: event.target.value as ListingDraft["listing_format"], channel_data: { ...local.channel_data, listing_duration: "" } })}>
             <option value="fixed">Fixed price</option>
             <option value="auction">Auction</option>
           </select>
+          <FieldSource context={editor.data} field="listing_format" />
         </label>
         <label className="label">
           <span>Price</span>
-          <input className="field" inputMode="decimal" value={local.price ?? ""} onChange={(event) => setLocal({ ...local, price: event.target.value || null })} />
+          <input aria-label="Price" id={listingFieldId(local.id, "price")} className="field" inputMode="decimal" value={local.price ?? ""} onChange={(event) => setLocal({ ...local, price: event.target.value || null }, { kind: "human_asking" })} />
+          <small className="listing-source">Source: {autosave.pendingPriceChoice ? `${autosave.pendingPriceChoice.kind === "human_asking" ? "Human asking price" : "Human-picked owned evidence"} (pending save)` : ["human_asking", "owned_evidence"].includes(editor.data?.price_source?.kind || "") ? editor.data?.price_source?.label : "Unconfirmed saved price; confirm it or pick evidence"}</small>
         </label>
         <label className="label">
           <span>Currency</span>
-          <input className="field" maxLength={3} value={local.currency} onChange={(event) => setLocal({ ...local, currency: event.target.value.toUpperCase() })} />
+          <input aria-label="Currency" className="field" maxLength={3} value={local.currency} onChange={(event) => setLocal({ ...local, currency: event.target.value.toUpperCase() })} />
+          <FieldSource context={editor.data} field="currency" />
         </label>
         <label className="label">
           <span>Quantity</span>
-          <input className="field" inputMode="numeric" value={local.quantity} onChange={(event) => setLocal({ ...local, quantity: Number(event.target.value) || 0 })} />
+          <input aria-label="Quantity" id={listingFieldId(local.id, "quantity")} className="field" inputMode="numeric" value={local.quantity} onChange={(event) => setLocal({ ...local, quantity: Number(event.target.value) || 0 })} />
+          <FieldSource context={editor.data} field="quantity" />
         </label>
         <label className="flex items-end gap-2 text-sm font-medium text-slate-300">
-          <input checked={local.include_sku_footer} type="checkbox" onChange={(event) => setLocal({ ...local, include_sku_footer: event.target.checked })} />
+          <input aria-label="SKU footer" checked={local.include_sku_footer} type="checkbox" onChange={(event) => setLocal({ ...local, include_sku_footer: event.target.checked })} />
           SKU footer
+          <FieldSource context={editor.data} field="include_sku_footer" />
         </label>
       </div>
+      <button className="btn-secondary" type="button" disabled={!local.price} onClick={() => setLocal({ ...local }, { kind: "human_asking" })}>Confirm saved price as my asking price</button>
+      <label className="label"><span>Pick an evidence price (seller receives)</span><select className="field" value="" onChange={(event) => {
+        const row = editor.data?.price_options.find((option) => option.id === event.target.value);
+        if (row) setLocal({ ...local, price: row.value }, { kind: "owned_evidence", id: row.id });
+      }}><option value="">Choose owned evidence or item asking price</option>{editor.data?.price_options.map((row) => <option value={row.id} key={row.id}>{local.currency} {row.value} | {row.label}</option>)}</select></label>
+
+      <ListingMetadataFields draft={local} context={editor.data} onChange={setLocal} flush={persistLocal} onRefreshed={(updated) => { autosave.acceptExternal(updated); onSaved(); void editor.refetch(); }} />
 
       <label className="label">
         <span>Shipping note</span>
-        <input className="field" value={local.est_shipping_note} onChange={(event) => setLocal({ ...local, est_shipping_note: event.target.value })} />
+        <input aria-label="Shipping note" className="field" value={local.est_shipping_note} onChange={(event) => setLocal({ ...local, est_shipping_note: event.target.value })} />
+        <FieldSource context={editor.data} field="est_shipping_note" />
       </label>
 
       <label className="label">
         <span>Boilerplate</span>
-        <select className="field" value={local.boilerplate ?? ""} onChange={(event) => setLocal({ ...local, boilerplate: event.target.value || null })}>
+        <select aria-label="Boilerplate" className="field" value={local.boilerplate ?? ""} onChange={(event) => setLocal({ ...local, boilerplate: event.target.value || null })}>
           <option value="">None</option>
           {boilerplates.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
         </select>
+        <FieldSource context={editor.data} field="boilerplate" />
       </label>
 
-      <div>
+      <div id={listingFieldId(local.id, "description_html")} className="listing-field-anchor">
         <div className="mb-2 flex items-center justify-between gap-3">
           <h3 className="text-sm font-semibold text-slate-200">Description</h3>
           <button className="btn-secondary gap-2" onClick={() => setPreview(!preview)} type="button">
@@ -293,20 +326,32 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         {preview ? (
           <div className="prose prose-invert max-w-none rounded border border-slate-800 bg-slate-900 p-3 text-sm" dangerouslySetInnerHTML={{ __html: local.description_html }} />
         ) : (
-          <textarea className="field min-h-48 font-mono" value={local.description_html} onChange={(event) => setLocal({ ...local, description_html: event.target.value })} />
+          <textarea aria-label="Description" className="field min-h-48 font-mono" value={local.description_html} onChange={(event) => setLocal({ ...local, description_html: event.target.value })} />
         )}
+        <FieldSource context={editor.data} field="description_html" />
       </div>
 
-      <SpecificsEditor rows={local.item_specifics} onChange={(item_specifics) => setLocal({ ...local, item_specifics })} />
-      <PhotoPicker photos={item.photos} selected={local.photo_ids} onChange={(photo_ids) => setLocal({ ...local, photo_ids })} />
-      <ReadinessChecklist draft={local} />
-      <ExportButtons boilerplate={selectedBoilerplate} draft={local} onExported={onSaved} />
+      <div id={listingFieldId(local.id, "item_specifics")} className="listing-field-anchor">
+        {(editor.data?.metadata.category_snapshot?.aspects ?? []).map((aspect) => <label className="label mb-3" key={aspect.name}><span>{aspect.name} {aspect.required ? "(required by eBay)" : "(recommended, not a blocker)"}</span><input aria-label={`${aspect.name} (${aspect.required ? "required by eBay" : "recommended, not a blocker"})`} className="field" value={local.item_specifics.find((row) => row.name.toLowerCase() === aspect.name.toLowerCase())?.value ?? ""} onChange={(event) => {
+          const others = local.item_specifics.filter((row) => row.name.toLowerCase() !== aspect.name.toLowerCase());
+          setLocal({ ...local, item_specifics: [...others, { name: aspect.name, value: event.target.value }] });
+        }} />{aspect.values?.length ? <small className="listing-source">eBay values: {aspect.values.join(", ")}</small> : null}</label>)}
+        <SpecificsEditor rows={local.item_specifics} onChange={(item_specifics) => setLocal({ ...local, item_specifics })} />
+        <FieldSource context={editor.data} field="item_specifics" />
+      </div>
+      <div id={listingFieldId(local.id, "photos")} className="listing-field-anchor"><PhotoPicker photos={item.photos} selected={local.photo_ids} onChange={(photo_ids) => setLocal({ ...local, photo_ids })} /><FieldSource context={editor.data} field="photo_ids" /></div>
+      </fieldset>
+      <EditorReadiness draft={local} context={editor.data} />
+      <ExportButtons boilerplate={selectedBoilerplate} draft={local} beforeExport={persistLocal} onExported={() => {
+        void getListingDraft(local.id).then((updated) => { autosave.acceptExternal(updated); onSaved(); });
+      }} />
       <PublishPanel
+        localEditor
         draft={local}
         item={item}
         onDraftChange={setLocal}
         onDraftUpdated={(updated) => {
-          setLocal(updated);
+          autosave.acceptExternal(updated);
           onSaved();
           queryClient.invalidateQueries({ queryKey: ["item", item.id] });
         }}
@@ -360,7 +405,10 @@ function SpecificsEditor({ rows, onChange }: { rows: ListingSpecific[]; onChange
 }
 
 function PhotoPicker({ photos, selected, onChange }: { photos: PhotoAsset[]; selected: UUID[]; onChange: (ids: UUID[]) => void }) {
-  const orderedPhotos = useMemo(() => [...photos].sort((a, b) => a.order_index - b.order_index), [photos]);
+  const orderedPhotos = useMemo(() => [...photos].sort((a, b) => {
+    const ai = selected.indexOf(a.id), bi = selected.indexOf(b.id);
+    return (ai < 0 ? selected.length + a.order_index : ai) - (bi < 0 ? selected.length + b.order_index : bi);
+  }), [photos, selected]);
 
   function toggle(photo: PhotoAsset, checked: boolean) {
     if (checked) {
@@ -390,7 +438,7 @@ function PhotoPicker({ photos, selected, onChange }: { photos: PhotoAsset[]; sel
           const isSelected = selected.includes(photo.id);
           return (
             <div className="flex items-center gap-3 rounded border border-slate-800 bg-slate-900 p-2" key={photo.id}>
-              <input checked={isSelected} type="checkbox" onChange={(event) => toggle(photo, event.target.checked)} aria-label={`Select photo ${photo.id}`} />
+              <label className="flex h-11 w-11 shrink-0 items-center justify-center"><input checked={isSelected} type="checkbox" onChange={(event) => toggle(photo, event.target.checked)} aria-label={`Select photo ${photo.id}`} /></label>
               {photo.thumb_url ? <img alt="" className="h-12 w-12 rounded object-cover" src={photo.thumb_url} /> : <div className="h-12 w-12 rounded bg-slate-800" />}
               <div className="min-w-0 flex-1 text-xs text-slate-400">
                 <p className="truncate">{photo.role}</p>
@@ -414,44 +462,9 @@ function PhotoPicker({ photos, selected, onChange }: { photos: PhotoAsset[]; sel
   );
 }
 
-function ReadinessChecklist({ draft }: { draft: ListingDraft }) {
-  const readiness = useQuery({ queryKey: ["listing-readiness", draft.id], queryFn: () => getListingReadiness(draft.id) });
-  const checks = readiness.data ?? [];
-  const groups = groupChecks(checks);
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold text-slate-200">Readiness</h3>
-        <button className="btn-secondary gap-2" onClick={() => readiness.refetch()} type="button">
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh
-        </button>
-      </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        <CheckGroup title="Fails" checks={groups.fail} tone="rose" />
-        <CheckGroup title="Warnings" checks={groups.warn} tone="amber" />
-        <CheckGroup title="Passes" checks={groups.pass} tone="cyan" />
-      </div>
-    </div>
-  );
-}
-
-function CheckGroup({ title, checks, tone }: { title: string; checks: ListingCheck[]; tone: "rose" | "amber" | "cyan" }) {
-  const toneClass = tone === "rose" ? "text-rose-100 border-rose-400/30 bg-rose-500/10" : tone === "amber" ? "text-amber-100 border-amber-300/30 bg-amber-300/10" : "text-cyan-100 border-cyan-300/30 bg-cyan-300/10";
-  return (
-    <div className={`rounded border p-3 ${toneClass}`}>
-      <p className="text-sm font-semibold">{title} ({checks.length})</p>
-      <ul className="mt-2 space-y-1 text-xs">
-        {checks.length === 0 ? <li>None</li> : checks.map((check) => <li key={check.key}>{check.message}</li>)}
-      </ul>
-    </div>
-  );
-}
-
-function ExportButtons({ boilerplate, draft, onExported }: { boilerplate: ListingBoilerplate | null; draft: ListingDraft; onExported: () => void }) {
+function ExportButtons({ boilerplate, draft, onExported, beforeExport }: { boilerplate: ListingBoilerplate | null; draft: ListingDraft; onExported: () => void; beforeExport: () => Promise<ListingDraft> }) {
   const downloadMutation = useMutation({
-    mutationFn: () => downloadListingZip(draft.id),
+    mutationFn: async () => { await beforeExport(); return downloadListingZip(draft.id); },
     onSuccess: (blob) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -511,32 +524,4 @@ function StatusPill({ status }: { status: ListingDraft["status"] }) {
         ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
         : "border-slate-600 bg-slate-800 text-slate-200";
   return <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{status}</span>;
-}
-
-function groupChecks(checks: ListingCheck[]) {
-  return {
-    fail: checks.filter((check) => check.level === "fail"),
-    warn: checks.filter((check) => check.level === "warn"),
-    pass: checks.filter((check) => check.level === "pass")
-  };
-}
-
-function toPayload(draft: ListingDraft) {
-  return {
-    status: draft.status,
-    channel: draft.channel,
-    channel_data: draft.channel_data,
-    title: draft.title,
-    subtitle: draft.subtitle,
-    description_html: draft.description_html,
-    listing_format: draft.listing_format,
-    price: draft.price,
-    currency: draft.currency,
-    quantity: draft.quantity,
-    est_shipping_note: draft.est_shipping_note,
-    item_specifics: draft.item_specifics,
-    photo_ids: draft.photo_ids,
-    include_sku_footer: draft.include_sku_footer,
-    boilerplate: draft.boilerplate
-  };
 }

@@ -1,0 +1,49 @@
+{
+  "draft": {
+    "id": "editor-fixture", "item": "item-fixture", "status": "staged", "channel": "ebay_au",
+    "channel_data": {"category_id": "139965", "category_name": "Nugget", "category_tree_id": "15", "condition_id": "", "listing_duration": "GTC", "payment_policy_id": "p1", "fulfillment_policy_id": "f4", "return_policy_id": "r5", "merchant_location_key": "MARYBOROUGH-AU", "offer_id": "isolated-unpublished-offer"},
+    "title": "Local editor test - own gold nugget", "subtitle": "", "description_html": "<p>Own specimen shown. Surface marks retained.</p>",
+    "listing_format": "fixed", "price": "360.00", "currency": "AUD", "quantity": 1,
+    "est_shipping_note": "Tracked parcel", "item_specifics": [{"name": "Metal", "value": "Gold"}],
+    "photo_ids": ["photo-a", "photo-b"], "include_sku_footer": false, "boilerplate": null,
+    "title_edited": false, "description_edited": false,
+    "generated_meta": {"price_source": {"kind": "human_asking", "label": "Human asking price", "value": "360.00", "currency": "AUD"}},
+    "exported_at": null, "readiness_summary": {"fail_count": 0, "warn_count": 1, "pass_count": 18},
+    "created_at": "2026-11-13T07:00:00Z", "updated_at": "2026-11-13T07:00:00Z"
+  },
+  "item": {
+    "id": "item-fixture", "sku": "TEST-EDITOR", "title": "Local editor test - own gold nugget", "status": "ready_to_list",
+    "category": "gold-fixture", "category_name": "Gold", "condition": "ungraded", "currency": "AUD",
+    "target_price": "360.00", "quantity_total": 1, "quantity_sold": 0, "quantity_remaining": 1,
+    "attributes": {"metal": "Gold", "form": "Nugget"}, "notes": "Isolated test data, not live inventory.",
+    "photos": [
+      {"id": "photo-a", "item": "item-fixture", "order_index": 0, "role": "front", "original_path": "own/front.jpg", "processed_path": "own/front-display.jpg", "thumb_url": null},
+      {"id": "photo-b", "item": "item-fixture", "order_index": 1, "role": "back", "original_path": "own/back.jpg", "processed_path": "own/back-display.jpg", "thumb_url": null}
+    ]
+  },
+  "editor": {
+    "metadata": {
+      "category_id": "139965", "category_stale": false, "policies_stale": false,
+      "category_snapshot": {
+        "category": {"category_id": "139965", "category_name": "Nugget", "category_tree_id": "15", "is_leaf": true},
+        "aspects": [{"name": "Metal", "required": true, "values": ["Gold"]}, {"name": "Year", "required": false, "values": []}],
+        "condition_policy": {"required": false, "conditions": []},
+        "listing_types": {"formats": {"FIXED_PRICE_ITEM": ["GTC"], "AUCTION": ["DAYS_3", "DAYS_5", "DAYS_7", "DAYS_10"]}},
+        "fetched_at": "2026-11-13T07:00:00Z", "provenance": "eBay metadata GET fixture (isolated test)"
+      },
+      "category_search": {},
+      "policies": {
+        "payment": [{"id": "p1", "name": "Immediate payment", "terms": ["Immediate payment required", "Payment methods not recorded"], "summary": "Immediate payment required", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}],
+        "fulfillment": [{"id": "f4", "name": "Tracked parcel", "terms": ["DOMESTIC: AU Australia Post Parcel; AUD 12.50", "Handling: 2 day"], "summary": "AU Australia Post Parcel; AUD 12.50; Handling: 2 day", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}],
+        "return": [{"id": "r5", "name": "30-day returns", "terms": ["Returns accepted", "Return window: 30 day", "Return postage: BUYER"], "summary": "30 day; Return postage: BUYER", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}]
+      },
+      "policies_fetched_at": "2026-11-13T07:00:00Z", "policies_provenance": "Saved Account API fixture",
+      "locations": [{"id": "MARYBOROUGH-AU", "name": "Maryborough", "address": "Maryborough, VIC, 3465, AU", "verified": true, "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved merchant-location fixture"}]
+    },
+    "sources": {"title": "Item title", "description_html": "eBay copy-pack template", "photo_ids": "Item's own photos", "item_specifics": "Allowlisted item fields"},
+    "price_options": [{"id": "item_asking", "value": "360.00", "label": "Item asking price (human-set)"}, {"id": "comp:owned", "value": "350.00", "label": "Human-captured sold evidence (known basis)"}],
+    "price_source": {"kind": "human_asking", "label": "Human asking price", "value": "360.00"},
+    "checks": [{"key": "aspect:Year", "level": "warn", "message": "Recommended specific: Year", "field": "item_specifics"}],
+    "read_only": false, "staged_local_changes": false
+  }
+}

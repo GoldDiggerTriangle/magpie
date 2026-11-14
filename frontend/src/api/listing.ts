@@ -30,6 +30,40 @@ export function getListingDraft(id: UUID) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/`);
 }
 
+export interface EditorPolicy {
+  id: string; name: string; terms: string[]; summary: string; fetched_at: string | null; provenance: string;
+}
+export interface ListingEditorContext {
+  metadata: {
+    category_id: string; category_stale: boolean; policies_stale: boolean;
+    category_snapshot: null | {
+      category: { category_id: string; category_name: string; category_tree_id: string; is_leaf: boolean };
+      aspects: null | Array<{ name: string; required: boolean; values: string[] }>;
+      condition_policy: null | { required: boolean; conditions: Array<{ conditionId: string; conditionDescription: string }> };
+      listing_types: null | { formats: Record<string, string[]> };
+      fetched_at: string | null; provenance: string;
+    };
+    category_search: { query?: string; fetched_at?: string; provenance?: string; suggestions?: Array<{ category_id: string; category_name: string; category_tree_id: string; is_leaf: boolean }> };
+    policies: Record<"payment" | "fulfillment" | "return", EditorPolicy[]>;
+    policies_fetched_at: string | null; policies_provenance: string;
+    locations: Array<{ id: string; name: string; address: string; verified: boolean; fetched_at: string | null; provenance: string }>;
+  };
+  sources: Record<string, string>;
+  price_options: Array<{ id: string; value: string; label: string }>;
+  price_source: null | { kind?: string; label?: string; value?: string };
+  checks: Array<ListingCheck & { field: string }>;
+  read_only: boolean; staged_local_changes: boolean;
+}
+
+export function getListingEditor(id: UUID, categoryId?: string) {
+  const query = categoryId === undefined ? "" : `?category_id=${encodeURIComponent(categoryId)}`;
+  return apiRequest<ListingEditorContext>(`/api/listing-drafts/${id}/editor/${query}`);
+}
+
+export function refreshListingMetadata(id: UUID, options: { category_id?: string; query?: string }) {
+  return apiRequest<{ draft: ListingDraft; editor: ListingEditorContext }>(`/api/listing-drafts/${id}/refresh-metadata/`, { method: "POST", body: options });
+}
+
 export function updateListingDraft(id: UUID, payload: ListingDraftPayload) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/`, {
     method: "PATCH",

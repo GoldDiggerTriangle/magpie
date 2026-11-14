@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, Send, X } from "lucide-react";
+import { ExternalLink, Pencil, Send, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -93,6 +93,15 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
     onError: (error) => {
       setPreviewError(error instanceof Error ? error.message : "Could not prepare the eBay preview.");
       setPreviewOpen(true);
+    }
+  });
+  const openEditor = useMutation({
+    mutationFn: () => createItemListingDraft(item.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["listing-drafts", item.id] });
+      void queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
+      window.location.hash = "listings-channels";
+      window.setTimeout(() => window.dispatchEvent(new Event(`magpie:open-draft:${item.id}`)), 0);
     }
   });
 
@@ -215,6 +224,8 @@ export function QuickPublishPanel({ item }: { item: InventoryItemDetail }) {
           Post to eBay
         </button>
       </div>
+      <button className="btn-secondary gap-2 mt-3" type="button" disabled={openEditor.isPending} onClick={() => openEditor.mutate()}><Pencil size={18} />Edit canonical listing draft</button>
+      {openEditor.error ? <p role="alert">Could not open the listing draft. Check your session and retry.</p> : null}
       {previewError ? <p className="intelligence-error mt-3">{previewError}</p> : null}
       <p className="mt-3 text-sm text-slate-700">
         Uses the existing eBay draft, stage, and publish pipeline. A ChannelListing is written only after eBay returns a live listing ID.

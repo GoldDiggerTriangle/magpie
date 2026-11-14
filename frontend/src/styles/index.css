@@ -2587,3 +2587,72 @@
     gap: 0.35rem;
   }
 }
+
+.listing-editor,
+.listing-editor fieldset,
+.listing-metadata,
+.listing-metadata .label {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.listing-editor input,
+.listing-editor select,
+.listing-editor textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  color: #0f172a;
+  background: #fff;
+  border-color: #475569;
+  font-size: 1rem;
+}
+
+.listing-editor input[type="checkbox"] {
+  width: 1.25rem;
+  min-height: 1.25rem;
+}
+
+.listing-source {
+  display: block;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.listing-policy-terms {
+  margin-top: 0.5rem;
+  padding-left: 1.25rem;
+  color: #0f172a;
+  list-style: disc;
+  overflow-wrap: anywhere;
+}
+
+.listing-category-option {
+  width: 100%;
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.listing-staged-notice {
+  border-left: 4px solid #92400e;
+  padding: 0.75rem;
+  color: #78350f;
+  background: #fffbeb;
+  overflow-wrap: anywhere;
+}
+
+.listing-field-anchor,
+.listing-editor [id] {
+  scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 6rem);
+}
+
+.listing-editor button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}

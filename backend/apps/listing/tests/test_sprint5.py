@@ -414,12 +414,14 @@ def test_item_create_api_defaults_price_source_and_regenerate_semantics(api_clie
     create = api_client.post(f"/api/items/{item.id}/listing-drafts/", {}, format="json")
     assert create.status_code == 201, create.data
     draft_id = create.data["id"]
-    assert Decimal(create.data["price"]) == Decimal("199.00")
-    assert create.data["generated_meta"]["price_source"]["valuation_report_id"] == str(report.id)
+    # D-129 supersedes Sprint 5's valuation-derived default.
+    assert create.data["price"] is None
+    assert "price_source" not in create.data["generated_meta"]
     assert create.data["title"]
     assert create.data["item_specifics"]
     assert create.data["photo_ids"]
-    assert "<h2>Postage</h2>" in create.data["description_html"]
+    assert create.data["generated_meta"]["editor_sources"]["description_html"] == "eBay copy-pack template"
+    assert "359999999999999" not in create.data["description_html"]
 
     patch = api_client.patch(
         f"/api/listing-drafts/{draft_id}/",
@@ -439,13 +441,15 @@ def test_item_create_api_defaults_price_source_and_regenerate_semantics(api_clie
 
     accepted = api_client.post(
         f"/api/listing-drafts/{draft_id}/generate/",
-        {"fields": ["title", "description", "specifics", "price"], "confirm_overwrite": True},
+        {"fields": ["title", "description", "specifics"], "confirm_overwrite": True},
         format="json",
     )
     assert accepted.status_code == 200, accepted.data
     assert accepted.data["title_edited"] is False
     assert accepted.data["description_edited"] is False
-    assert Decimal(accepted.data["price"]) == Decimal("199.00")
+    assert accepted.data["price"] is None
+    forbidden = api_client.post(f"/api/listing-drafts/{draft_id}/generate/", {"fields": ["price"]}, format="json")
+    assert forbidden.status_code == 400
 
 
 @pytest.mark.django_db

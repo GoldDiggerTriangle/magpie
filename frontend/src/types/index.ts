@@ -780,7 +780,7 @@ export interface ListingBoilerplate {
 export interface ListingDraft {
   id: UUID;
   item: UUID;
-  status: "draft" | "ready" | "exported" | "staged" | "published" | "publish_failed";
+  status: "draft" | "ready" | "exported" | "staged" | "published" | "publish_failed" | "archived" | "publishing" | "publish_unknown";
   channel: string;
   channel_data: Record<string, unknown>;
   title: string;
@@ -805,6 +805,9 @@ export interface ListingDraft {
 }
 
 export interface ListingDraftPayload {
+  editor_save?: boolean;
+  expected_updated_at?: string;
+  price_choice?: { kind: "human_asking" | "owned_evidence"; id?: string };
   status?: ListingDraft["status"];
   channel?: string;
   channel_data?: Record<string, unknown>;

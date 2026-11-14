@@ -28,6 +28,8 @@ from apps.listing.canonical import get_or_create_canonical_draft, plan_group
 from apps.listing.export import build_export_bundle
 from apps.listing.generators import generated_meta, generator_for
 from apps.listing.context import safe_context
+from apps.listing.editor import description_default, editor_context
+from apps.listing.editor_metadata import refresh_editor_metadata
 from apps.listing.models import ChannelListing, ListingBoilerplate, ListingDraft
 from apps.listing.readiness import check_readiness
 from apps.listing.serializers import (
@@ -36,7 +38,6 @@ from apps.listing.serializers import (
     ListingDraftSerializer,
 )
 from apps.listing.specifics import build_specifics, build_specifics_from_context
-from apps.valuation.models import ValuationReport
 
 
 class ListingBoilerplateViewSet(ReadOnlyModelViewSet):
@@ -230,6 +231,25 @@ class ListingDraftViewSet(ModelViewSet):
         except ValidationError as exc:
             raise ApiValidationError(_validation_payload(exc)) from None
 
+    @action(detail=True, methods=["get"], url_path="editor")
+    def editor(self, request, pk=None):
+        return Response(editor_context(self.get_object(), category_id=request.query_params.get("category_id")))
+
+    @action(detail=True, methods=["post"], url_path="refresh-metadata")
+    def refresh_metadata(self, request, pk=None):
+        draft = self.mutable_draft()
+        query = request.data.get("query", "")
+        category_id = request.data.get("category_id", (draft.channel_data or {}).get("category_id", ""))
+        if not isinstance(query, str) or len(query) > 200 or not isinstance(category_id, str) or (category_id and not category_id.isdecimal()):
+            return Response({"detail": "Provide a category ID and/or a search of at most 200 characters."}, status=400)
+        try:
+            updated = refresh_editor_metadata(draft, query=query, category_id=category_id, actor=request.user)
+        except ValidationError as exc:
+            return Response(_validation_payload(exc), status=400)
+        except EbayUnavailable:
+            return Response({"detail": "eBay metadata refresh failed. Saved snapshots are unchanged; check the connection in Settings and retry."}, status=503)
+        return Response({"draft": self.get_serializer(updated).data, "editor": editor_context(updated, category_id=category_id)})
+
     @action(detail=True, methods=["post"], url_path="generate")
     def generate(self, request, pk=None):
         draft = self.mutable_draft()
@@ -241,7 +261,7 @@ class ListingDraftViewSet(ModelViewSet):
             )
 
         normalized = {"description" if field == "description_html" else field for field in fields}
-        allowed = {"title", "description", "specifics", "price"}
+        allowed = {"title", "description", "specifics"}
         unknown = sorted(normalized - allowed)
         if unknown:
             return Response(
@@ -365,30 +385,15 @@ def create_generated_draft(item, *, channel="ebay_au") -> ListingDraft:
         .order_by("name")
         .first()
     )
-    current_report = current_valuation(item)
     meta = {
         "title": generated_meta(generator.profile_key),
         "description": generated_meta(generator.profile_key),
     }
     price = None
     currency = item.currency or "AUD"
-    if current_report and current_report.suggested_price is not None:
-        price = current_report.suggested_price
-        currency = current_report.currency
-        meta["price_source"] = {
-            "valuation_report_id": str(current_report.id),
-            "price_point": "suggested",
-            "value": str(current_report.suggested_price),
-            "captured_at": timezone.now().isoformat(),
-        }
-
-    title = generator.title(ctx)
-    description = generator.description_html(
-        ctx,
-        specifics=specifics,
-        boilerplate_html=boilerplate.body_html if boilerplate else "",
-        sku_footer="",
-    )
+    title = item.title
+    description = description_default(item)
+    meta["editor_sources"] = {"title": "Item title", "description_html": "eBay copy-pack template", "item_specifics": "Allowlisted item fields", "photo_ids": "Item's own photos", "quantity": "Draft default (confirm remaining stock)"}
     photo_ids = [
         str(photo.id)
         for photo in item.photos.order_by("order_index", "created_at")
@@ -431,26 +436,7 @@ def regenerate_fields(draft, fields: set[str]) -> None:
         draft.description_edited = False
         meta["description"] = generated_meta(generator.profile_key)
 
-    if "price" in fields:
-        report = current_valuation(draft.item)
-        if report and report.suggested_price is not None:
-            draft.price = report.suggested_price
-            draft.currency = report.currency
-            meta["price_source"] = {
-                "valuation_report_id": str(report.id),
-                "price_point": "suggested",
-                "value": str(report.suggested_price),
-                "captured_at": timezone.now().isoformat(),
-            }
-        else:
-            draft.price = None
-            meta.pop("price_source", None)
-
     draft.generated_meta = meta
-
-
-def current_valuation(item):
-    return ValuationReport.objects.filter(item=item, is_current=True).first()
 
 
 def _validation_payload(exc: ValidationError) -> dict:

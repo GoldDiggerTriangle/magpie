@@ -1,14 +1,17 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { ListingPanel } from "./ListingPanel";
+import { PublishPanel } from "./PublishPanel";
 import type { InventoryItemDetail, ListingDraft } from "../types";
 
 const longTitle = "x".repeat(81);
 
 const mocks = vi.hoisted(() => ({
+  getListingEditor: vi.fn(),
   getEbayStatus: vi.fn(),
   getEbayCategorySuggestions: vi.fn(),
   getListingAspectCheck: vi.fn(),
@@ -51,6 +54,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../api/listing", () => ({
+  getListingEditor: (...args: unknown[]) => mocks.getListingEditor(...args),
+  refreshListingMetadata: vi.fn(),
   createItemListingDraft: vi.fn(),
   deleteListingDraft: vi.fn(),
   downloadListingZip: vi.fn(),
@@ -113,6 +118,7 @@ const item = {
 } satisfies InventoryItemDetail;
 
 beforeEach(() => {
+  mocks.getListingEditor.mockResolvedValue({ metadata: { category_snapshot: null, category_search: {}, policies: { payment: [], fulfillment: [], return: [] }, locations: [], policies_stale: true, category_stale: true }, sources: {}, price_options: [], checks: [{ key: "title_missing", level: "fail", message: "Title is required.", field: "title" }], price_source: null, read_only: false, staged_local_changes: false });
   mocks.generateListingDraft.mockReset();
   mocks.generateListingDraft.mockResolvedValue({ ...mocks.draft, title_edited: false, title: "Generated title" });
   mocks.getEbayStatus.mockReset();
@@ -186,13 +192,20 @@ beforeEach(() => {
   mocks.publishListingDraft.mockResolvedValue({ ...mocks.draft, status: "published", channel_data: { listing_id: "listing-1" } });
 });
 
-function renderPanel() {
+function renderPanel(legacyPipeline = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ListingPanel item={item} />
+      {legacyPipeline ? <LegacyPipeline /> : <ListingPanel item={item} />}
     </QueryClientProvider>
   );
+}
+
+function LegacyPipeline() {
+  const drafts = useQuery({ queryKey: ["legacy-test-draft"], queryFn: () => mocks.listItemListingDrafts(item.id) });
+  const [draft, setDraft] = useState<ListingDraft | null>(null);
+  const row = draft ?? drafts.data?.results[0];
+  return row ? <PublishPanel draft={row} item={item} onDraftChange={setDraft} onDraftUpdated={setDraft} persistDraft={() => Promise.resolve(row)} /> : null;
 }
 
 test("ListingPanel flags titles over 80 characters and unready exports", async () => {
@@ -219,13 +232,12 @@ test("ListingPanel asks before regenerating edited title only", async () => {
   expect(screen.getByText("Overwrite edited title?")).toBeInTheDocument();
 });
 
-test("ListingPanel groups readiness checks by level", async () => {
+test("ListingPanel names readiness blockers with a field jump", async () => {
   renderPanel();
 
-  expect(await screen.findByText("Fails (1)")).toBeInTheDocument();
-  expect(screen.getByText("Warnings (1)")).toBeInTheDocument();
-  expect(screen.getByText("Passes (1)")).toBeInTheDocument();
-  expect(screen.getByText("Title is required.")).toBeInTheDocument();
+  expect(await screen.findByText("1 blockers · 0 recommendations")).toBeInTheDocument();
+  expect(screen.getByText("Required: Title is required.")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Go to field" })).toBeInTheDocument();
 });
 
 test("ListingPanel requires an override reason before staging with missing aspects", async () => {
@@ -256,7 +268,7 @@ test("ListingPanel requires an override reason before staging with missing aspec
     aspects: [],
     fetched_at: null
   });
-  renderPanel();
+  renderPanel(true);
 
   const stageButton = await screen.findByRole("button", { name: "Stage offer" });
   expect(stageButton).toBeDisabled();
@@ -318,7 +330,7 @@ test("ListingPanel renders category labels, paths, and leaf safety", async () =>
       }
     ]
   });
-  renderPanel();
+  renderPanel(true);
 
   await user.type(await screen.findByLabelText("Category search"), "postage stamps");
   await user.click(screen.getByRole("button", { name: "Search" }));
@@ -366,7 +378,7 @@ test("ListingPanel disables staging when category pre-flight has a hard error", 
     }]
   });
   mocks.getListingAspectCheck.mockRejectedValue(new Error("The specified category ID must be a leaf category."));
-  renderPanel();
+  renderPanel(true);
 
   expect(await screen.findByText("The specified category ID must be a leaf category.")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Stage offer" })).toBeDisabled();
@@ -389,7 +401,7 @@ test("ListingPanel enables publish only after exact SKU confirmation", async () 
       }
     }]
   });
-  renderPanel();
+  renderPanel(true);
 
   await user.click(await screen.findByRole("button", { name: "Review & publish" }));
   await screen.findByText("This will create a live eBay listing");
@@ -422,7 +434,7 @@ test("ListingPanel keeps published listing read-only and hides publish gate", as
       }
     }]
   });
-  renderPanel();
+  renderPanel(true);
 
   expect(await screen.findByText("Published listing listing-1")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Review & publish" })).not.toBeInTheDocument();
