@@ -1575,3 +1575,65 @@ The documentation-head Validation run **43598489724** passed PostgreSQL but fail
 Test-only correction **`9dc2bac3a911169b3c75085bc858ce73460f7046`** awaits `findAllByDisplayValue("40.00")`, adds an exact two-input assertion, and retains the sold-lock, unlocked editing, live tally and save assertions. No timeout increase, skipped test, weakened assertion or application behaviour change. Local frontend **140 passed / 34 files**, typecheck PASS. Replacement Validation **43598827518** is pending at this entry's preparation; its completed result will be recorded below before the stop report.
 
 **Completed:** [Validation **43598827518**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43598827518) is green on both lanes (PostgreSQL job `132458993211`, SQLite job `132458993476`), including backend/frontend tests, typecheck, build, collectstatic and smoke checks. Final secret/protected-file scan reports no matches/changes; all 46 live table digests and the item-page layout remain unchanged. Administrator restart and real-phone acceptance remain pending; no Phase 4 or eBay operation was performed.
+
+## 2026-11-15 - Phase 3 Owner Close And Phase 4 Listing Defaults
+
+**Phase 3:** Regan supplied `MASTER_HANDOFF_UPDATE_2026-11-15_PHASE3_CLOSE.md`, confirming his Administrator restart and successful real-phone check. All **15 Find strings matched exactly once**. The resulting file was verified against the exact replacements, with no additional edits, and committed as **`213ae47df722de21b586b175ef60f49a36a32d40`** (handoff **v4.68**, including D-142/D-143). This written owner close supersedes the pending-restart/phone notes above. No new real-phone screenshot is claimed by this task.
+
+**Phase 4 implementation:** **`6fd3d74500c501f04fb029ad1c2ae3067770b26a`**, followed by **`21c094166b2f9d288d4cb553b08d0c45c9df0c0a`** (obsolete condition dependency warning cleared after a human category correction) and **`f748c9f382b996993a587a398f86816d4689252f`** (save-as-defaults uses the GTC/condition actually shown in the editor). Spec v3.4 section 6 / D-135 and the six adopted cross-check corrections govern this work. Phase 5 has not begun.
+
+### Contract And Test Matrix
+
+| Requirement | Implementation / proof |
+| --- | --- |
+| D-135 allowlist only | Server accepts category ID/name/tree as one category choice, condition ID, payment/postage/return IDs, merchant-location key, format and duration. Unknown fields, price, quantity, item specifics, title, description, offer state and generated metadata are rejected by defaults save/preview APIs. |
+| Settings path | Settings > eBay > **Listing defaults**, one expandable row per actual Magpie category. Reuses the editor's search/browse, leaf selection, native condition/policy/location/duration pickers and readable selected policy terms. Merely opening Settings creates no row and makes no eBay call. |
+| Save from editor | **Save these as Gold defaults** extracts only allowed fields. It captures recovered GTC as displayed, and no condition when the category does not use one; it does not save or re-stage the draft. |
+| Preview / clear | Exact before/after field changes, explicit **Clears existing default**, then **Confirm defaults changes** or Cancel. Clear/reset uses the same preview. Revision checks reject stale confirmation rather than overwriting a newer default. |
+| Apply on new creation only | Canonical existing-draft branch returns before defaults are read/applied. Settings updates never update drafts; no backfill and no apply-to-empty-fields action. Exact existing-row comparisons cover this. |
+| No defaults | New eBay draft default-able fields are empty, including format. Price stays empty even when the item has an asking price; no inferred/default price. |
+| Relisting | Published-draft seeding takes precedence over category defaults and retains the published content/price, with no published row or remote-state mutation. Quantity comes from current remaining stock, not the defaults registry. |
+| Quantity | Sprint 10 `quantity_remaining` (total minus active/corrected sales, floored at zero), labelled **Item remaining stock (total minus sold)**. Zero stays zero and unready, never silently becomes one. |
+| Confirmed-invalid metadata | Invalid leaf/category, category-bound condition, format/duration pair, account/marketplace/category-inapplicable policy, policy opt-out and a positively unverified location are omitted from the new draft and named in readiness. A newly confirmed non-leaf supersedes an older valid leaf without requiring leaf-only metadata calls. |
+| Missing / incomplete metadata | Retain the human's values and show **couldn't check**, snapshot time/age and the explicit refresh control. Newer incomplete/failed refreshes do not displace the latest complete snapshot or prove disappearance. Tests cover foreign-category metadata and snapshots predating reconnect. |
+| Honest applicability | If policy category applicability is not recorded, or a location cache cannot prove account applicability, label it unchecked instead of claiming validity or disappearance. The location cache is not a complete account-location inventory. Credential checks load creation metadata only, not token values. Live publish validation remains mandatory in Phase 5. |
+| Condition pairing | No condition default without its default category. Conditionless categories show **Not used by this category**, with no condition blocker. Manual category corrections remove obsolete condition-default warnings; current category readiness still applies. |
+| Persisted provenance | **from <category> defaults** in server-owned `generated_meta.editor_sources`; retained through save, resume, the existing description-preview UI and exported listing summary. Human edits replace the label in both editor-save and legacy PATCH paths. |
+| Empty-format safety | The shared readiness checker and pre-network staging guard reject an empty/unknown format. This is required because the old payload fallback would otherwise interpret any non-fixed value as auction; no staging call was run. |
+| Scope preservation | Existing eBay listing pipeline and item-page layout retained; `ItemDetail.tsx` byte-identical. AI credential/behaviour, prices, fee maths, dependencies, settings and environment values unchanged. |
+
+### Validation And Browser Evidence
+
+- Complete local backend run: **342 passed / 1 skipped**. Latest targeted listing/defaults suite: **88 passed**. Outbound socket connections are forbidden in these local backend runs; fake adapters cover explicit metadata refreshes.
+- Complete frontend suite: **147 passed / 35 files**; final changed-editor subset **19 passed**; typecheck PASS. Production build PASS. Django check and migration consistency check PASS (**No changes detected**).
+- Collectstatic PASS in **scratch only** (`D:\Magpie\scratch\phase4-static`: 162 copied, 468 post-processed on the initial check). This is not a claim that the live static bundle was deployed.
+- Initial [Validation **43632798443**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43632798443) exposed a new-test TypeScript mistake: `exact` is not a `getByRole` option (TS2769). Removed the unsupported option; the name assertion and preview interaction remain. No test was skipped/weakened. [Validation **43633071491**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43633071491) on `21c0941` then passed both lanes. The final visible-value follow-up is tested locally; its CI result is recorded below when complete.
+- Isolated browser run uses real components/styles/AppShell, disables the production proxy, intercepts every API and blocks non-local requests: **390/390px** phone and **1440/1440px** desktop width/scroll width; fields fit; visible buttons >=44px; preview-before-save, clear warning, explicit confirmation and reload/resume pass; **zero unexpected requests, zero page errors, no live DB access**.
+- [Phone-width defaults](docs/evidence/sprint25/phase4-defaults/phone-defaults.png), [phone-width clearing preview with confirmation controls above navigation](docs/evidence/sprint25/phase4-defaults/phone-defaults-clearing-preview.png), [desktop defaults](docs/evidence/sprint25/phase4-defaults/desktop-defaults.png). These are **fixture/browser proofs, not Regan's real iPhone acceptance**.
+
+### Deployment Hold And Live Preservation
+
+Migration **`listing.0006_category_listing_defaults`** adds one category/environment/marketplace-unique defaults table, with JSON values and bounded category metadata. It also permits an empty format at validation level; it contains no data migration/backfill, deletion or published-history rewrite. It has **not** been installed in the live database. Codex asked Regan to approve the encrypted-backup/verified-additive-migration/restore-check step; no affirmative reply has arrived in this task so far. No live migration, backup/restore or live collectstatic is claimed.
+
+All **46 live table digests** match this task's pre-change baseline: **8 drafts / 1 ChannelListing / 156 audit rows / 53 migration records**. Protected configuration, environment/dependency files, the active spec, item-page layout and pre-existing untracked `CLAUDE_STRUCTURAL_AUDIT.md` are unchanged. Local service health on port **8000** remains **HTTP 200**; no restart by Codex and no eBay calls/live saves by Codex.
+
+**Stop:** implementation is ready for the backed-up additive schema deployment, but **Phase 4 is not live-accepted**. Do not restart onto the new code until migration 0006 is approved/installed and live collectstatic completed. Then Regan restarts as Administrator and sets Gold defaults on his phone. Existing GOLD-00002 must not change when defaults are saved; only a genuinely new draft receives them. Sprint 25 remains OPEN; no Phase 5 work.
+
+### 2026-11-15 - Deployment Hold Resolved After Explicit Approval
+
+Regan replied **"Yes, apply the backed-up additive migration"**. The preparation-time hold immediately above is superseded by the completed steps here; only Administrator restart and the owner's phone check remain pending.
+
+- Final implementation [Validation **43633331052**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43633331052), head **`f748c9f382b996993a587a398f86816d4689252f`**: **both lanes green**. SQLite job `132564607887`: **342 passed / 1 skipped**; PostgreSQL job `132564607537`: **330 passed / 13 skipped**; frontend **147 passed / 35 files**. Typecheck/build/collectstatic/deploy/smoke PASS.
+- B was read from the existing process environment and compared, without outputting it, to the unchanged Windows user-level B: match. No passphrase, environment setting or key was changed. Both backups used the existing command with `--no-upload`; no rclone/upload or eBay call.
+
+| Encrypted archive | Location | Restored tables / rows / media | Verification |
+| --- | --- | --- | --- |
+| `magpie-backup-20261114-194433.tar.gz.enc` (27,961,585 bytes) | `D:\Magpie\backups\sprint25-phase4\pre` | **46 / 730 / 64** | B decrypts/restores; SQLite quick-check OK; every table and media hash matches live; restored plaintext immediately deleted |
+| `magpie-backup-20261114-194659.tar.gz.enc` (27,961,769 bytes) | `D:\Magpie\backups\sprint25-phase4\post` | **47 / 736 / 64** | B decrypts/restores; new defaults table and exact schema present, zero rows; every table and media hash matches live; restored plaintext immediately deleted |
+
+- Before applying, the live migration plan was checked twice and contained **only `listing.0006_category_listing_defaults`**. Applied that migration only. Migration records **53 -> 54**; existing `listing_one_active_draft` partial-index SQL unchanged.
+- **All original rows preserved**, including every draft/archived/published row, ChannelListing and audit row. **8 drafts / 1 ChannelListing / 156 audit rows** unchanged; **zero live defaults rows**. The six added bookkeeping rows are one migration record, one content type and four permissions. Removing only those new bookkeeping rows from the comparison reproduces the exact pre-migration hashes.
+- Live collectstatic **PASS** in `D:\Magpie\app\backend\staticfiles`: **7 copied / 155 unmodified / 425 post-processed**. Final frontend assets include `index-BDlrKVLt.js` and `index-tdQ0JNA6.css`. No service restart by Codex; port **8000 health remains HTTP 200**. This does not claim the already-running process has reloaded the new backend/routes.
+- Backup/restore scratch (`D:\Magpie\scratch\sprint25-phase4`) is empty and removed. Only the encrypted archives are retained. Protected environment/dependency/spec/layout/audit files remain unchanged; secret scan PASS.
+
+**Current stop:** schema and static deployment are prepared. Regan may now **Restart-Service Magpie as Administrator**, hard-refresh port 8000, then use **Settings > eBay > Listing defaults > Gold** to set his choices on his phone. No live draft/default values have been saved by Codex, no eBay calls, and no staging/publishing. **Phase 4 awaits that owner phone check; Sprint 25 remains OPEN and Phase 5 has not begun.**
