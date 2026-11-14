@@ -1,5 +1,6 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -107,6 +108,17 @@ class ListingDraft(TimeStampedUUIDModel):
     description_edited = models.BooleanField(default=False)
     generated_meta = models.JSONField(default=dict, blank=True)
     exported_at = models.DateTimeField(null=True, blank=True)
+    staged_fingerprint = models.CharField(max_length=64, blank=True, default="")
+    staging_state = models.CharField(max_length=24, blank=True, default="")
+    staging_attempt = models.UUIDField(null=True, blank=True)
+    staging_started_at = models.DateTimeField(null=True, blank=True)
+    stage_create_started = models.BooleanField(default=False)
+    publish_attempt = models.UUIDField(null=True, blank=True)
+    publish_started_at = models.DateTimeField(null=True, blank=True)
+    publish_call_started_at = models.DateTimeField(null=True, blank=True)
+    publish_prior_status = models.CharField(max_length=20, blank=True, default="")
+    publish_error = models.JSONField(default=dict, blank=True)
+    publish_review = models.ForeignKey("listing.PublishReview", null=True, blank=True, on_delete=models.PROTECT, related_name="publish_attempts")
 
     objects = ListingDraftQuerySet.as_manager()
 
@@ -135,10 +147,42 @@ class ListingDraft(TimeStampedUUIDModel):
             raise ValidationError("Published and archived drafts are read-only; create a relisting draft instead.")
         if self.status in IN_FLIGHT_DRAFT_STATUSES:
             raise ValidationError("Reconcile the publish outcome before editing this draft.")
+        if self.staging_state == "in_progress":
+            raise ValidationError("Staging is in progress; wait before editing this draft.")
 
     def save(self, *args, **kwargs):
         using = kwargs.get("using") or self._state.db
-        type(self).objects.using(using).filter(pk=self.pk).assert_mutable()
+        if self._state.adding:
+            if type(self).objects.using(using).filter(pk=self.pk).exists():
+                raise ValidationError("A draft ID cannot be reused or overwrite history.")
+            return super().save(*args, **kwargs)
+        # PostgreSQL locks the row; SQLite rejects an obsolete read-to-write
+        # upgrade. Neither may overwrite a publish claim that won the race.
+        with transaction.atomic(using=using):
+            current = type(self).objects.using(using).select_for_update().get(pk=self.pk)
+            current.assert_editable()
+            if current.updated_at != self.updated_at:
+                raise ValidationError("Draft changed elsewhere; reload before saving.")
+            if kwargs.get("update_fields"):
+                kwargs["update_fields"] = set(kwargs["update_fields"]) | {"updated_at"}
+            return super().save(*args, **kwargs)
+
+
+class PublishReview(TimeStampedUUIDModel):
+    draft = models.ForeignKey(ListingDraft, on_delete=models.PROTECT, related_name="publish_reviews")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    draft_revision = models.DateTimeField()
+    field_fingerprint = models.CharField(max_length=64)
+    validation_fingerprint = models.CharField(max_length=64)
+    staged_fingerprint = models.CharField(max_length=64, blank=True, default="")
+    offer_id = models.CharField(max_length=100, blank=True, default="")
+    mode = models.CharField(max_length=10, default="full")
+    snapshot = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError("Reviews are immutable. Create a fresh review.")
         return super().save(*args, **kwargs)
 
 
@@ -171,6 +215,7 @@ class ChannelListing(TimeStampedUUIDModel):
     ended_at = models.DateTimeField(null=True, blank=True)
     url = models.URLField(max_length=500, blank=True, default="")
     note = models.TextField(blank=True, default="")
+    external_listing_id = models.CharField(max_length=100, blank=True, default="")
     source_listing_draft = models.OneToOneField(
         "listing.ListingDraft",
         null=True,
@@ -181,6 +226,10 @@ class ChannelListing(TimeStampedUUIDModel):
 
     class Meta:
         ordering = ["channel", "-listed_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["channel", "external_listing_id"], condition=~models.Q(external_listing_id=""), name="channel_external_listing_unique"),
+            models.UniqueConstraint(fields=["channel", "source_listing_draft"], name="channel_draft_unique"),
+        ]
         indexes = [
             models.Index(fields=["item", "ended_at"], name="chan_list_item_active_idx"),
             models.Index(fields=["channel", "ended_at"], name="chan_list_chan_active_idx"),

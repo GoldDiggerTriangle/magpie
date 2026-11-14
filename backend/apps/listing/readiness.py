@@ -172,7 +172,7 @@ def resolve_photo_ids(draft) -> dict:
         return {"photos": [], "missing": []}
     photos_by_id = {
         str(photo.id): photo
-        for photo in PhotoAsset.objects.filter(item=draft.item, id__in=ids)
+        for photo in PhotoAsset.objects.using(draft._state.db).filter(item=draft.item, id__in=ids)
     }
     photos = []
     missing = []

@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import OperationalError, transaction
 from django.db.models import Case, IntegerField, Value, When
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
@@ -16,6 +16,9 @@ from apps.inventory.models import InventoryItem
 from apps.ebay import aspects as ebay_aspects
 from apps.ebay import publishing as ebay_publishing
 from apps.ebay import staging as ebay_staging
+from apps.ebay.workflow_errors import WorkflowError
+from apps.ebay.publish_state import mutable_rows, publish_health
+from apps.ebay.review import prepare_review, review_payload
 from integrations.ebay import EbayUnavailable
 from apps.listing.channel_listings import (
     CHANNEL_LABELS,
@@ -213,6 +216,15 @@ class ListingDraftViewSet(ModelViewSet):
     serializer_class = ListingDraftSerializer
     http_method_names = ["get", "patch", "delete", "post", "head", "options"]
 
+    def handle_exception(self, exc):
+        if isinstance(exc, WorkflowError):
+            return Response(exc.payload(), status=exc.status)
+        if isinstance(exc, OperationalError):
+            return Response({"detail": "Another operation changed this draft. Reload before continuing."}, status=409)
+        if isinstance(exc, ValidationError):
+            return Response(_validation_payload(exc), status=400)
+        return super().handle_exception(exc)
+
     def create(self, request, *args, **kwargs):
         return Response({"detail": "Create or open drafts through the item's listing-drafts endpoint."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -244,7 +256,7 @@ class ListingDraftViewSet(ModelViewSet):
             score = sum(completeness_components(draft).values())
             data = deepcopy(draft.channel_data or {})
             data["archived_at"] = timezone.now().isoformat()
-            claimed = ListingDraft.objects.filter(pk=draft.pk, updated_at=draft.updated_at).update(status=ListingDraft.Status.ARCHIVED, channel_data=data, updated_at=timezone.now())
+            claimed = mutable_rows().filter(pk=draft.pk, updated_at=draft.updated_at).update(status=ListingDraft.Status.ARCHIVED, channel_data=data, updated_at=timezone.now())
             if not claimed:
                 return Response({"detail": "Draft changed elsewhere. Reload before archiving."}, status=409)
             record(actor=request.user, action="listing.draft.archived", target_type="listing_draft", target_id=str(draft.pk), payload={"pre_archive_status": prior, "offer_id": None, "score": score})
@@ -355,25 +367,28 @@ class ListingDraftViewSet(ModelViewSet):
         try:
             staged = ebay_staging.stage_draft(
                 draft,
+                review_id=request.data.get("review_id"),
                 override_missing_aspects=bool(request.data.get("override_missing_aspects")),
                 override_reason=str(request.data.get("override_reason") or ""),
                 actor=request.user,
             )
         except ValidationError as exc:
             return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
-        except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except EbayUnavailable:
+            return Response({"detail": "eBay operation unavailable. Check connection and review the named blockers."}, status=503)
         return Response(self.get_serializer(staged).data)
 
     @action(detail=True, methods=["post"], url_path="withdraw")
     def withdraw(self, request, pk=None):
+        if request.data.get("confirm_remove_unpublished") is not True:
+            return Response({"detail": "Explicitly confirm removal of this unpublished offer before archiving."}, status=400)
         draft = self.mutable_draft()
         try:
             withdrawn = ebay_staging.withdraw_staged(draft, actor=request.user)
         except ValidationError as exc:
             return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
-        except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except EbayUnavailable:
+            return Response({"detail": "eBay operation unavailable. Check connection and review the named blockers."}, status=503)
         return Response(self.get_serializer(withdrawn).data)
 
     @action(detail=True, methods=["get"], url_path="aspects-check")
@@ -381,8 +396,21 @@ class ListingDraftViewSet(ModelViewSet):
         draft = self.mutable_draft()
         try:
             return Response(ebay_aspects.check_aspects(draft, actor=request.user))
-        except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except EbayUnavailable:
+            return Response({"detail": "eBay operation unavailable. Check connection and review the named blockers."}, status=503)
+
+    @action(detail=True, methods=["post"], url_path="preview")
+    def preview(self, request, pk=None):
+        return Response(review_payload(prepare_review(self.get_object(), actor=request.user, mode=request.data.get("mode", "full"))))
+
+    @action(detail=True, methods=["post"], url_path="reconcile")
+    def reconcile(self, request, pk=None):
+        draft = ebay_publishing.reconcile_draft(self.get_object(), actor=request.user)
+        return Response(self.get_serializer(draft).data)
+
+    @action(detail=False, methods=["get"], url_path="publish-health")
+    def publish_health(self, request):
+        return Response({"drafts": publish_health()})
 
     @action(detail=True, methods=["get"], url_path="staged-review")
     def staged_review(self, request, pk=None):
@@ -391,22 +419,24 @@ class ListingDraftViewSet(ModelViewSet):
             return Response(ebay_publishing.staged_review(draft, actor=request.user))
         except ValidationError as exc:
             return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
-        except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except EbayUnavailable:
+            return Response({"detail": "eBay operation unavailable. Check connection and review the named blockers."}, status=503)
 
     @action(detail=True, methods=["post"], url_path="publish")
     def publish(self, request, pk=None):
-        draft = self.mutable_draft()
+        draft = self.get_object()
         try:
             published = ebay_publishing.publish_draft(
                 draft,
+                review_id=request.data.get("review_id"),
+                mode=request.data.get("mode", "full"),
                 confirm_sku=str(request.data.get("confirm_sku") or ""),
                 actor=request.user,
             )
         except ValidationError as exc:
             return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
-        except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except EbayUnavailable:
+            return Response({"detail": "eBay operation unavailable. Check connection and review the named blockers."}, status=503)
         return Response(self.get_serializer(published).data)
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from io import BytesIO
 import json
+import uuid
+from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -10,169 +12,197 @@ import integrations.ebay as ebay_integration
 from apps.audit.services import record
 from apps.ebay.aspects import check_aspects, get_category_condition_policy
 from apps.ebay.constants import (
-    AUDIT_INVENTORY_ITEM_UPSERTED,
-    AUDIT_MEDIA_UPLOADED,
-    AUDIT_OFFER_CREATED,
-    AUDIT_OFFER_UPDATED,
-    AUDIT_OFFER_WITHDRAWN,
-    AUDIT_TAXONOMY_ASPECTS_OVERRIDE,
-    CONDITION_MAP,
-    EBAY_MARKETPLACE_ID,
+    AUDIT_INVENTORY_ITEM_UPSERTED, AUDIT_MEDIA_UPLOADED, AUDIT_OFFER_CREATED,
+    AUDIT_OFFER_UPDATED, AUDIT_OFFER_WITHDRAWN, AUDIT_TAXONOMY_ASPECTS_OVERRIDE,
+    CONDITION_MAP, EBAY_MARKETPLACE_ID,
 )
 from apps.ebay.services import get_access_token
+from apps.ebay.review import EPS_LIFETIME, _offer_state, field_fingerprint, fresh_draft, mapping, reviewed, text
+from apps.ebay.publish_state import mutable_rows
+from apps.ebay.workflow_errors import WorkflowError, provider_error
+from apps.ebay.conditions import CONDITION_ENUMS
 from apps.inventory.models import InventoryItem
 from apps.listing.models import ListingDraft
 from apps.photos.models import PhotoAsset
 from integrations.storage import LocalFileStorageAdapter
 
 
-def stage_draft(
-    draft: ListingDraft,
-    *,
-    override_missing_aspects=False,
-    override_reason: str = "",
-    actor=None,
-) -> ListingDraft:
-    draft = _locked_draft(draft.pk)
+def _stage_progress(pk, attempt, data, *, using, **fields):
+    count = ListingDraft.objects.using(using).filter(pk=pk, staging_attempt=attempt, staging_state="in_progress").update(
+        channel_data=data, updated_at=timezone.now(), **fields)
+    if count != 1:
+        raise WorkflowError("staging_changed", "Staging was superseded; do not retry blindly.")
+    return count
+
+
+def recover_stale_staging(pk, using):
+    draft = fresh_draft(pk, using)
+    if draft.staging_state == "in_progress" and draft.staging_started_at and draft.staging_started_at < timezone.now()-timedelta(minutes=10):
+        ListingDraft.objects.using(using).filter(pk=pk, staging_attempt=draft.staging_attempt, staging_state="in_progress").update(
+            staging_state="create_unknown" if draft.stage_create_started and not mapping(draft.channel_data).get("offer_id") else "unverified",
+            staged_fingerprint="", updated_at=timezone.now())
+
+
+def stage_draft(draft, *, review_id=None, override_missing_aspects=False, override_reason="", actor=None):
+    from django.utils.dateparse import parse_datetime
+    using = draft._state.db or "default"
+    recover_stale_staging(draft.pk, using)
+    draft = fresh_draft(draft.pk, using)
     draft.assert_editable()
-    original_status = draft.status
-    channel_data = dict(draft.channel_data or {})
+    others = ListingDraft.objects.using(using).filter(item_id=draft.item_id, channel=draft.channel).exclude(pk=draft.pk).exclude(status__in=["archived", "published"])
+    if any(mapping(row.channel_data).get("offer_id") or row.status in {"publishing", "publish_unknown"} for row in others):
+        raise WorkflowError("duplicate_state", "Another draft has unresolved eBay state; resolve it before staging.")
+    if override_missing_aspects:
+        raise WorkflowError("required_aspects", "Required eBay aspects cannot be overridden.", status=400)
+    review, validation = reviewed(draft, review_id, actor=actor)
+    if review.mode != "full" or not review.snapshot.get("can_stage"):
+        raise WorkflowError("review_required", "Use the full reviewed staging path.")
+    attempt = uuid.uuid4()
+    old_stage_state = draft.staging_state
+    if mutable_rows(using).filter(pk=draft.pk, updated_at=review.draft_revision).update(
+        staging_state="in_progress", staging_attempt=attempt, staging_started_at=timezone.now(),
+        stage_create_started=False, staged_fingerprint="", updated_at=timezone.now()) != 1:
+        raise WorkflowError("staging_changed", "Draft changed or another operation is in progress.")
+    data = dict(draft.channel_data or {})
+    offer_id = text(data.get("offer_id"))
+    create_started = False
     try:
-        condition_policy = _guard_stageable(draft)
-        aspect_check = check_aspects(draft, actor=actor)
-        if aspect_check["missing_required"] and not override_missing_aspects:
-            raise ValidationError(
-                {
-                    "aspects": (
-                        "Missing required eBay aspects: "
-                        + ", ".join(aspect_check["missing_required"])
-                    ),
-                    "missing_required": aspect_check["missing_required"],
-                }
-            )
-        if aspect_check["missing_required"]:
-            record(
-                actor=actor,
-                action=AUDIT_TAXONOMY_ASPECTS_OVERRIDE,
-                target_type="listing_draft",
-                target_id=draft.id,
-                payload={
-                    "missing_required": aspect_check["missing_required"],
-                    "category_id": channel_data.get("category_id"),
-                    "reason": override_reason,
-                },
-            )
-        access_token = get_access_token(actor=actor)
-        media = ebay_integration.get_ebay_media_adapter()
+        access = get_access_token(actor=actor)
         inventory = ebay_integration.get_ebay_inventory_adapter()
-        eps_urls = _upload_photos(
-            draft,
-            access_token=access_token,
-            media=media,
-            actor=actor,
-        )
-        inventory_payload = _inventory_item_payload(draft, eps_urls, condition_policy=condition_policy)
-        inventory.upsert_inventory_item(
-            access_token=access_token,
-            sku=draft.item.sku,
-            payload=inventory_payload,
-        )
-        record(
-            actor=actor,
-            action=AUDIT_INVENTORY_ITEM_UPSERTED,
-            target_type="listing_draft",
-            target_id=draft.id,
-            payload={"sku": draft.item.sku, "photo_count": len(eps_urls)},
-        )
-        offer_payload = _offer_payload(draft)
-        offer_id = channel_data.get("offer_id") or _recover_unpublished_offer_id(
-            inventory=inventory,
-            access_token=access_token,
-            draft=draft,
-            offer_payload=offer_payload,
-        )
         if offer_id:
-            inventory.update_offer(
-                access_token=access_token,
-                offer_id=offer_id,
-                payload=offer_payload,
-            )
-            audit_action = AUDIT_OFFER_UPDATED
+            remote = inventory.get_offer(access_token=access, offer_id=offer_id)
+            state, listing_id = _offer_state(remote)
+            if state != "UNPUBLISHED" or listing_id or remote.get("sku") != draft.item.sku:
+                raise WorkflowError("remote_offer", "Offer is published or ambiguous. Stop; ending a live listing is a separate decision.")
         else:
-            offer_id, recovered_existing = _create_or_recover_offer(
-                inventory=inventory,
-                access_token=access_token,
-                draft=draft,
-                offer_payload=offer_payload,
-            )
-            audit_action = AUDIT_OFFER_UPDATED if recovered_existing else AUDIT_OFFER_CREATED
-        now = timezone.now().isoformat()
-        channel_data.update(
-            {
-                "eps_image_urls": eps_urls,
-                "inventory_item_sku": draft.item.sku,
-                "offer_id": offer_id,
-                "staged_at": now,
-                "last_payload_snapshot": {
-                    "inventory_item": inventory_payload,
-                    "offer": offer_payload,
-                    "aspects": aspect_check,
-                    "condition_policy": condition_policy,
-                },
-                "last_ebay_error": "",
-            }
-        )
-        draft.channel_data = channel_data
-        draft.status = ListingDraft.Status.STAGED
-        draft.save(update_fields=["channel_data", "status", "updated_at"])
-        record(
-            actor=actor,
-            action=audit_action,
-            target_type="listing_draft",
-            target_id=draft.id,
-            payload={"offer_id": offer_id, "sku": draft.item.sku},
-        )
-        return draft
+            matches = inventory.get_offers(access_token=access, sku=draft.item.sku, marketplace_id=EBAY_MARKETPLACE_ID,
+                                           format="FIXED_PRICE" if draft.listing_format == "fixed" else "AUCTION")
+            if len(matches) > 1 or any(_offer_state(row)[0] != "UNPUBLISHED" or _offer_state(row)[1] for row in matches):
+                raise WorkflowError("ambiguous_offers", "Existing offers are ambiguous or published. Resolve them before staging.")
+            if matches:
+                offer_id = text(matches[0].get("offerId"))
+                if not offer_id:
+                    raise WorkflowError("ambiguous_offers", "Offer identity is missing.")
+                data["offer_id"] = offer_id
+            elif old_stage_state == "create_unknown":
+                raise WorkflowError("create_unknown", "The timed-out createOffer is still unresolved. An empty lookup is not permission to create another offer.")
+        photos = validation["photos"]
+        previous = data.get("eps_photos") or []
+        uploaded = []
+        remote_urls = None
+        if offer_id:
+            try:
+                remote_urls = mapping(inventory.get_inventory_item(access_token=access, sku=draft.item.sku).get("product")).get("imageUrls", [])
+            except ebay_integration.EbayHttpError as exc:
+                if exc.http_status != 404:
+                    raise
+                remote_urls = []
+        media = ebay_integration.get_ebay_media_adapter()
+        storage = LocalFileStorageAdapter()
+        for photo in photos:
+            old = next((row for row in previous if isinstance(row, dict) and row.get("photo_id") == photo["id"] and row.get("sha256") == photo["sha256"]), {})
+            try:
+                stamp = parse_datetime(text(old.get("uploaded_at")))
+            except (ValueError, TypeError):
+                stamp = None
+            reusable = stamp and not timezone.is_naive(stamp) and timezone.now()-EPS_LIFETIME < stamp <= timezone.now() and old.get("url") and not old.get("missing") and (remote_urls is None or old["url"] in remote_urls)
+            if reusable:
+                uploaded.append(old)
+            else:
+                file_obj = BytesIO(storage.open(photo["path"]))
+                file_obj.name = draft.item.sku + ".jpg"
+                url = media.upload_image(access_token=access, file=file_obj)
+                uploaded.append({"photo_id": photo["id"], "sha256": photo["sha256"], "url": url, "uploaded_at": timezone.now().isoformat()})
+                record(actor=actor, action=AUDIT_MEDIA_UPLOADED, target_type="listing_draft", target_id=draft.pk, payload={"photo_id": photo["id"], "attempt": str(attempt)}, using=using)
+            data["eps_photos"] = list(uploaded)
+            _stage_progress(draft.pk, attempt, data, using=using)
+        eps_urls = [row["url"] for row in uploaded]
+        category = validation["metadata"]["category_snapshot"]
+        condition_policy = {**category["condition_policy"], "category_id": text(data.get("category_id")), "marketplace": "EBAY_AU", "fetched_at": category["fetched_at"]}
+        inventory_payload = _inventory_item_payload(draft, eps_urls, condition_policy=condition_policy)
+        offer_payload = _offer_payload(draft)
+        inventory.upsert_inventory_item(access_token=access, sku=draft.item.sku, payload=inventory_payload)
+        record(actor=actor, action=AUDIT_INVENTORY_ITEM_UPSERTED, target_type="listing_draft", target_id=draft.pk, payload={"sku": draft.item.sku, "attempt": str(attempt)}, using=using)
+        if offer_id:
+            inventory.update_offer(access_token=access, offer_id=offer_id, payload=offer_payload)
+        else:
+            create_started = True
+            _stage_progress(draft.pk, attempt, data, using=using, stage_create_started=True)
+            offer_id = inventory.create_offer(access_token=access, payload=offer_payload)
+            data["offer_id"] = offer_id
+            _stage_progress(draft.pk, attempt, data, using=using)
+        if field_fingerprint(fresh_draft(draft.pk, using)) != review.field_fingerprint:
+            raise WorkflowError("staging_changed", "Photos or listing values changed during staging; update and review again.")
+        data.update(eps_image_urls=eps_urls, inventory_item_sku=draft.item.sku, offer_id=offer_id,
+            staged_at=timezone.now().isoformat(), last_ebay_error="",
+            last_payload_snapshot={"inventory_item": inventory_payload, "offer": offer_payload,
+                                   "aspects": {"aspects": category["aspects"], "fetched_at": category["fetched_at"]},
+                                   "condition_policy": condition_policy})
+        _stage_progress(draft.pk, attempt, data, using=using, status="staged", staging_state="verified",
+                        staged_fingerprint=review.field_fingerprint)
+        record(actor=actor, action=AUDIT_OFFER_UPDATED if review.offer_id else AUDIT_OFFER_CREATED, target_type="listing_draft", target_id=draft.pk,
+               payload={"attempt": str(attempt), "offer_id": offer_id, "photo_count": len(uploaded)}, using=using)
+        return fresh_draft(draft.pk, using)
     except Exception as exc:
-        channel_data["last_ebay_error"] = _safe_error_payload(exc)
-        draft.channel_data = channel_data
-        draft.status = (
-            ListingDraft.Status.STAGED
-            if original_status == ListingDraft.Status.STAGED
-            else original_status
-        )
-        draft.save(update_fields=["channel_data", "status", "updated_at"])
-        raise
+        error = provider_error(exc, "createOffer" if create_started and not offer_id else "stageOffer")
+        data["last_ebay_error"] = {"key": exc.key, "message": exc.message} if isinstance(exc, WorkflowError) else error
+        unknown_create = create_started and not offer_id and error["kind"] != "definite_failure"
+        if old_stage_state == "create_unknown" and not offer_id:
+            unknown_create = True
+        ListingDraft.objects.using(using).filter(pk=draft.pk, staging_attempt=attempt, staging_state="in_progress").update(
+            channel_data=data, staging_state="create_unknown" if unknown_create else "unverified",
+            staged_fingerprint="", updated_at=timezone.now())
+        if isinstance(exc, WorkflowError):
+            raise
+        raise WorkflowError("staging_unverified", "Staging is unverified after a partial/failed operation. Reconcile unknown creation before another create; explicitly update and review again.", status=503) from None
 
 
-def withdraw_staged(draft: ListingDraft, *, actor=None) -> ListingDraft:
-    draft = _locked_draft(draft.pk)
+def withdraw_staged(draft, *, actor=None):
+    """Remove an explicitly confirmed unpublished offer; never call withdrawOffer."""
+    using = draft._state.db or "default"
+    draft = fresh_draft(draft.pk, using)
     draft.assert_editable()
-    if draft.status not in {ListingDraft.Status.STAGED, ListingDraft.Status.PUBLISH_FAILED}:
-        raise ValidationError("Only staged or publish-failed drafts can be withdrawn.")
-    channel_data = dict(draft.channel_data or {})
-    offer_id = channel_data.get("offer_id")
+    data = dict(draft.channel_data or {})
+    offer_id = text(data.get("offer_id"))
     if not offer_id:
-        raise ValidationError("Draft has no unpublished eBay offer to withdraw.")
-    access_token = get_access_token(actor=actor)
-    ebay_integration.get_ebay_inventory_adapter().withdraw_offer(
-        access_token=access_token,
-        offer_id=offer_id,
-    )
-    channel_data.pop("offer_id", None)
-    channel_data.pop("staged_at", None)
-    channel_data["last_ebay_error"] = ""
-    draft.channel_data = channel_data
-    draft.status = ListingDraft.Status.READY
-    draft.save(update_fields=["channel_data", "status", "updated_at"])
-    record(
-        actor=actor,
-        action=AUDIT_OFFER_WITHDRAWN,
-        target_type="listing_draft",
-        target_id=draft.id,
-        payload={"offer_id": offer_id, "sku": draft.item.sku},
-    )
-    return draft
+        raise WorkflowError("offer_missing", "No staged offer to remove.")
+    attempt = uuid.uuid4()
+    if mutable_rows(using).filter(pk=draft.pk, updated_at=draft.updated_at, channel_data__offer_id=offer_id).update(
+        staging_state="in_progress", staging_attempt=attempt, staging_started_at=timezone.now(), updated_at=timezone.now()) != 1:
+        raise WorkflowError("operation_in_progress", "Another operation won the claim; nothing was removed.")
+    try:
+        access = get_access_token(actor=actor)
+        inventory = ebay_integration.get_ebay_inventory_adapter()
+        offer = inventory.get_offer(access_token=access, offer_id=offer_id)
+        state, listing_id = _offer_state(offer)
+        if state != "UNPUBLISHED" or listing_id or offer.get("sku") != draft.item.sku:
+            raise WorkflowError("published_offer", "Offer is published or ambiguous. Stop: ending a live listing is a separate explicit decision.")
+        inventory.delete_offer(access_token=access, offer_id=offer_id)
+        try:
+            inventory.get_offer(access_token=access, offer_id=offer_id)
+        except ebay_integration.EbayHttpError as exc:
+            if exc.http_status != 404:
+                raise
+        else:
+            raise WorkflowError("removal_unconfirmed", "Offer removal is not confirmed; Archive remains blocked.")
+        data.pop("offer_id", None)
+        data.pop("staged_at", None)
+        data.pop("last_payload_snapshot", None)
+        data["eps_image_urls"] = []
+        data["eps_photos"] = []
+        data["removed_offer_id"] = offer_id
+        data["offer_removed_at"] = timezone.now().isoformat()
+        data["last_ebay_error"] = ""
+        _stage_progress(draft.pk, attempt, data, using=using, staging_state="", staged_fingerprint="", status="ready")
+        record(actor=actor, action=AUDIT_OFFER_WITHDRAWN, target_type="listing_draft", target_id=draft.pk,
+               payload={"attempt": str(attempt), "removed_offer_id": offer_id}, using=using)
+        return fresh_draft(draft.pk, using)
+    except Exception as exc:
+        ListingDraft.objects.using(using).filter(pk=draft.pk, staging_attempt=attempt, staging_state="in_progress").update(
+            staging_state="unverified", staged_fingerprint="", updated_at=timezone.now())
+        if isinstance(exc, WorkflowError):
+            raise
+        raise WorkflowError("removal_unconfirmed", "Offer removal could not be confirmed; Archive remains blocked.", status=503) from None
 
 
 def _locked_draft(pk) -> ListingDraft:
@@ -286,10 +316,12 @@ def _inventory_item_payload(
         },
     }
     # Only explicit category metadata permits omission; an unknown grade is not a condition choice.
-    if not _allows_no_condition(draft, condition_policy):
-        if not (draft.channel_data or {}).get("condition_id"):
-            raise ValidationError("Missing eBay staging field(s): condition_id.")
+    if _allows_no_condition(draft, condition_policy) and not condition_policy["conditions"]:
+        pass  # An obsolete local condition cannot create a condition on this category.
+    elif (draft.channel_data or {}).get("condition_id"):
         payload["condition"] = _condition_for_draft(draft)["condition"]
+    elif not _allows_no_condition(draft, condition_policy):
+        raise ValidationError("Missing eBay staging field(s): condition_id.")
     return payload
 
 
@@ -300,7 +332,7 @@ def _allows_no_condition(draft: ListingDraft, policy: dict | None) -> bool:
         and policy.get("marketplace") == EBAY_MARKETPLACE_ID
         and policy.get("fetched_at")
         and policy.get("required") is False
-        and policy.get("conditions") == []
+        and isinstance(policy.get("conditions"), list)
     )
 
 
@@ -422,13 +454,9 @@ def _offer_id_from_duplicate_error(exc: Exception) -> str:
 
 def _condition_for_draft(draft: ListingDraft) -> dict:
     override = str((draft.channel_data or {}).get("condition_id") or "")
-    item_entry = CONDITION_MAP.get(draft.item.condition)
-    if item_entry and item_entry["condition_id"] == override:
-        return item_entry
-    for entry in CONDITION_MAP.values():
-        if entry["condition_id"] == override:
-            return entry
-    return item_entry or CONDITION_MAP["ungraded"]
+    if override not in CONDITION_ENUMS:
+        raise ValidationError("Selected eBay condition has no verified Inventory API mapping; review condition_id.")
+    return {"condition_id": override, "condition": CONDITION_ENUMS[override]}
 
 
 def _safe_error_payload(exc: Exception):

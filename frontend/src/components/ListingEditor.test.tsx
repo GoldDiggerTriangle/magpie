@@ -56,8 +56,8 @@ test("opens offline without autosave or remote inventory calls and explains stag
   expect(await screen.findByDisplayValue(draft.title)).toBeInTheDocument();
   expect(await screen.findByText("Not used by this category")).toBeInTheDocument();
   expect(screen.getByText(/Editing here stays local/)).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Re-stage offer" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Review & publish" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Review listing" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Confirm publish to eBay" })).not.toBeInTheDocument();
   expect(mocks.save).not.toHaveBeenCalled();
   expect(mocks.refresh).not.toHaveBeenCalled();
   expect(mocks.aspects).not.toHaveBeenCalled();

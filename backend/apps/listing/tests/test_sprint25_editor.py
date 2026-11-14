@@ -143,6 +143,8 @@ def test_staged_edits_only_local_and_reserved_snapshot_not_client_writable(api, 
     old = deepcopy(listing.channel_data)
     attempted = {**old, "offer_id": "forged", "last_payload_snapshot": {}, "editor_metadata": {}}
     response = save(api, listing, title="Human change after staging", channel_data=attempted)
+    assert response.status_code == 400
+    response = save(api, listing, title="Human change after staging")
     assert response.status_code == 200
     listing.refresh_from_db()
     assert listing.status == "staged" and listing.channel_data["offer_id"] == old["offer_id"]

@@ -106,7 +106,7 @@ export function getListingAspectCheck(id: UUID) {
   return apiRequest<EbayAspectCheck>(`/api/listing-drafts/${id}/aspects-check/`);
 }
 
-export function stageListingDraft(id: UUID, payload: { override_missing_aspects?: boolean; override_reason?: string } = {}) {
+export function stageListingDraft(id: UUID, payload: { review_id?: UUID; override_missing_aspects?: boolean; override_reason?: string } = {}) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/stage/`, {
     method: "POST",
     body: payload
@@ -116,7 +116,7 @@ export function stageListingDraft(id: UUID, payload: { override_missing_aspects?
 export function withdrawListingDraft(id: UUID) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/withdraw/`, {
     method: "POST",
-    body: {}
+    body: { confirm_remove_unpublished: true }
   });
 }
 
@@ -124,10 +124,10 @@ export function getStagedOfferReview(id: UUID) {
   return apiRequest<StagedOfferReview>(`/api/listing-drafts/${id}/staged-review/`);
 }
 
-export function publishListingDraft(id: UUID, confirmSku: string) {
+export function publishListingDraft(id: UUID, confirmSku: string, review?: { review_id: UUID; mode: "full" | "quick" }) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/publish/`, {
     method: "POST",
-    body: { confirm_sku: confirmSku }
+    body: { confirm_sku: confirmSku, ...review }
   });
 }
 

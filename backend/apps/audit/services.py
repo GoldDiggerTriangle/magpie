@@ -27,8 +27,9 @@ def record(
     target_type: str = "",
     target_id: str = "",
     payload: Mapping[str, Any] | None = None,
+    using=None,
 ) -> AuditLog:
-    return AuditLog.objects.create(
+    return AuditLog.objects.using(using or "default").create(
         actor=_actor_label(actor),
         action=action,
         target_type=target_type,

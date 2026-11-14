@@ -36,6 +36,7 @@ import { EmptyState } from "../../components/EmptyState";
 import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus, ProfitSettings, RoiBasis, SellerMode } from "../../types";
 import { formatUsd } from "../../utils/currency";
 import { ListingDefaultsPanel } from "../../components/ListingDefaultsPanel";
+import { PublishHealthPanel } from "../../components/PublishHealthPanel";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -207,6 +208,7 @@ export function EbaySettings() {
             error={errorText(policyMutation.error)}
           />
           <ListingDefaultsPanel />
+          <PublishHealthPanel />
           <AIProviderPanel
             apiKey={aiApiKey}
             configureError={errorText(aiConfigureMutation.error)}

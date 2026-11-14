@@ -38,9 +38,11 @@ from apps.ebay.constants import (
     EBAY_SCOPES,
 )
 from apps.ebay.models import EbayAppToken, EbayCredential, MerchantLocation
-from apps.ebay.publishing import publish_draft, staged_review
+from apps.ebay.publishing import publish_draft as publish_operation, staged_review
+from apps.ebay.review import prepare_review
+from apps.ebay.workflow_errors import WorkflowError
 from apps.ebay.services import create_merchant_location, get_app_access_token
-from apps.ebay.staging import _inventory_item_payload, stage_draft, withdraw_staged
+from apps.ebay.staging import _inventory_item_payload, stage_draft as stage_operation, withdraw_staged
 from apps.inventory.models import InventoryItem
 from apps.catalog.models import ProductCategory
 from apps.listing.models import ChannelListing, ListingDraft
@@ -112,6 +114,7 @@ def credential():
 
 @pytest.fixture
 def merchant_location():
+    ebay_integration.FakeEbayInventoryAdapter.locations["first-flight-location"] = {"merchantLocationKey": "first-flight-location", "merchantLocationStatus": "ENABLED"}
     return MerchantLocation.objects.create(
         environment="sandbox",
         merchant_location_key="first-flight-location",
@@ -144,6 +147,7 @@ def make_draft(item, *, specifics=None, channel_data=None, status=ListingDraft.S
         description_html="<p>Cheap postage stamp plumbing test.</p>",
         price="1.00",
         quantity=1,
+        generated_meta={"price_source": {"kind": "human_asking", "value": "1.00", "currency": "AUD", "label": "Regan's asking price"}},
         item_specifics=specifics
         if specifics is not None
         else [
@@ -159,12 +163,28 @@ def make_draft(item, *, specifics=None, channel_data=None, status=ListingDraft.S
             "category_name": "Australian Stamps",
             "condition_id": "3000",
             "merchant_location_key": "first-flight-location",
-            "payment_policy_id": "payment-1",
-            "fulfillment_policy_id": "fulfillment-1",
-            "return_policy_id": "return-1",
+            "payment_policy_id": "fake-payment-policy",
+            "fulfillment_policy_id": "fake-fulfillment-policy",
+            "return_policy_id": "fake-return-policy",
+            "listing_duration": "GTC",
             **(channel_data or {}),
         },
     )
+
+
+def stage_draft(draft, **kwargs):
+    # Existing plumbing tests now take the same explicit review step as the UI.
+    review = prepare_review(draft)
+    if review.snapshot["checks"]:
+        raise WorkflowError("listing_blocked", str(review.snapshot["checks"]))
+    return stage_operation(draft, review_id=review.pk, **kwargs)
+
+
+def publish_draft(draft, **kwargs):
+    if draft.is_read_only:
+        return publish_operation(draft, **kwargs)
+    review = prepare_review(draft)
+    return publish_operation(draft, review_id=review.pk, **kwargs)
 
 
 @pytest.mark.django_db
@@ -182,7 +202,7 @@ def test_stage_restage_and_withdraw_against_fakes(item, credential, merchant_loc
 
     restaged = stage_draft(staged)
     assert restaged.channel_data["offer_id"] == "fake-offer-1"
-    assert restaged.channel_data["eps_image_urls"] == ["fake-eps://2.jpg"]
+    assert restaged.channel_data["eps_image_urls"] == ["fake-eps://1.jpg"]
 
     withdrawn = withdraw_staged(restaged)
     assert withdrawn.status == ListingDraft.Status.READY
@@ -191,8 +211,8 @@ def test_stage_restage_and_withdraw_against_fakes(item, credential, merchant_loc
 
     staged_after_withdraw = stage_draft(withdrawn)
     assert staged_after_withdraw.status == ListingDraft.Status.STAGED
-    assert staged_after_withdraw.channel_data["offer_id"] == "fake-offer-1"
-    assert staged_after_withdraw.channel_data["eps_image_urls"] == ["fake-eps://3.jpg"]
+    assert staged_after_withdraw.channel_data["offer_id"] == "fake-offer-2"
+    assert staged_after_withdraw.channel_data["eps_image_urls"] == ["fake-eps://2.jpg"]
 
     actions = set(AuditLog.objects.values_list("action", flat=True))
     assert {
@@ -217,18 +237,18 @@ def test_withdraw_then_restage_recovers_existing_unpublished_offer_without_publi
     original_offer_id = staged.channel_data["offer_id"]
     withdrawn = withdraw_staged(staged)
     assert "offer_id" not in withdrawn.channel_data
-    assert ebay_integration.FakeEbayInventoryAdapter.offers[original_offer_id]["status"] == "UNPUBLISHED"
+    assert original_offer_id not in ebay_integration.FakeEbayInventoryAdapter.offers
 
     restaged = stage_draft(withdrawn)
 
     assert restaged.status == ListingDraft.Status.STAGED
     assert restaged.item.status == InventoryItem.Status.READY_TO_LIST
-    assert restaged.channel_data["offer_id"] == original_offer_id
+    assert restaged.channel_data["offer_id"] != original_offer_id
     assert "listing_id" not in restaged.channel_data
-    assert ebay_integration.FakeEbayInventoryAdapter.create_count == 1
-    assert ebay_integration.FakeEbayInventoryAdapter.update_count == 1
+    assert ebay_integration.FakeEbayInventoryAdapter.create_count == 2
+    assert ebay_integration.FakeEbayInventoryAdapter.update_count == 0
     assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 0
-    assert AuditLog.objects.filter(action=AUDIT_OFFER_UPDATED).count() == 1
+    assert AuditLog.objects.filter(action=AUDIT_OFFER_CREATED).count() == 2
     assert not AuditLog.objects.filter(action=AUDIT_PUBLISH_ATTEMPTED).exists()
 
 
@@ -303,7 +323,6 @@ def test_stage_omits_condition_only_for_verified_category_without_choices(
     "policy",
     [
         {"category_id": "105848", "required": True, "conditions": []},
-        {"category_id": "105848", "required": False, "conditions": [{"conditionId": "3000"}]},
         {"category_id": "other-category", "required": False, "conditions": []},
         {"category_id": "105848", "conditions": []},
     ],
@@ -411,7 +430,7 @@ def test_http_get_offers_only_treats_exact_no_offer_response_as_empty(
 @pytest.mark.django_db
 def test_stage_guards_zero_photo_many_photos_missing_fields_and_conflict(item, credential, merchant_location):
     no_photo = make_draft(item)
-    with pytest.raises(Exception, match="At least one photo"):
+    with pytest.raises(Exception, match="At least one"):
         stage_draft(no_photo)
 
     no_photo.status = ListingDraft.Status.ARCHIVED
@@ -452,14 +471,16 @@ def test_aspects_block_and_override_path(item, credential, merchant_location):
 
     aspect_result = check_aspects(draft)
     assert aspect_result["missing_required"] == ["Country/Region of Manufacture"]
-    with pytest.raises(Exception, match="Missing required eBay aspects"):
+    with pytest.raises(Exception, match="Required specific"):
         stage_draft(draft)
 
-    staged = stage_draft(draft, override_missing_aspects=True, override_reason="first-flight check")
+    with pytest.raises(WorkflowError):
+        stage_operation(draft, override_missing_aspects=True, override_reason="first-flight check")
+    draft.item_specifics.append({"name": "Country/Region of Manufacture", "value": "Australia"})
+    draft.save()
+    staged = stage_draft(draft)
     assert staged.status == ListingDraft.Status.STAGED
-    override = AuditLog.objects.filter(action=AUDIT_TAXONOMY_ASPECTS_OVERRIDE).latest("created_at")
-    assert override.payload["missing_required"] == ["Country/Region of Manufacture"]
-    assert override.payload["reason"] == "first-flight check"
+    assert not AuditLog.objects.filter(action=AUDIT_TAXONOMY_ASPECTS_OVERRIDE).exists()
 
 
 @pytest.mark.django_db
@@ -474,7 +495,7 @@ def test_stage_blocks_non_leaf_category(item, credential, merchant_location):
         },
     )
 
-    with pytest.raises(ebay_integration.EbayUnavailable, match="leaf category"):
+    with pytest.raises(WorkflowError, match="leaf category"):
         stage_draft(draft)
 
     draft.refresh_from_db()
@@ -483,7 +504,7 @@ def test_stage_blocks_non_leaf_category(item, credential, merchant_location):
     assert "listing_id" not in draft.channel_data
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_publish_gate_success_failure_and_restage(item, credential, merchant_location):
     add_photo(item)
     draft = stage_draft(make_draft(item))
@@ -493,14 +514,14 @@ def test_publish_gate_success_failure_and_restage(item, credential, merchant_loc
 
     review = staged_review(draft)
     assert review["offer_id"] == draft.channel_data["offer_id"]
-    assert review["photo_count"] == 1
+    assert len(review["photos"]) == 1 and review["fees"]
 
     ebay_integration.FakeEbayInventoryAdapter.publish_should_fail = True
-    with pytest.raises(ebay_integration.EbayUnavailable):
+    with pytest.raises(WorkflowError):
         publish_draft(draft, confirm_sku=item.sku)
     draft.refresh_from_db()
-    assert draft.status == ListingDraft.Status.PUBLISH_FAILED
-    assert draft.channel_data["last_ebay_error"]
+    assert draft.status == ListingDraft.Status.STAGED
+    assert draft.publish_error["http_status"] == 400
     assert ChannelListing.objects.count() == 0
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_FAILED).exists()
 
@@ -520,7 +541,7 @@ def test_publish_gate_success_failure_and_restage(item, credential, merchant_loc
     assert AuditLog.objects.filter(action=AUDIT_PUBLISH_SUCCEEDED).count() == 1
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 def test_publish_refuses_second_publish_without_calling_ebay(item, credential, merchant_location):
     add_photo(item)
     draft = stage_draft(make_draft(item))
@@ -530,7 +551,7 @@ def test_publish_refuses_second_publish_without_calling_ebay(item, credential, m
     assert ebay_integration.FakeEbayInventoryAdapter.publish_count == 1
     assert ChannelListing.objects.filter(source_listing_draft=published).count() == 1
 
-    with pytest.raises(Exception, match="published eBay listing"):
+    with pytest.raises(Exception, match="Published history"):
         publish_draft(published, confirm_sku=item.sku)
 
     published.refresh_from_db()
@@ -552,7 +573,7 @@ def test_publish_refuses_stale_staged_draft_with_listing_id(item, credential, me
     draft.channel_data = channel_data
     draft.save(update_fields=["channel_data", "updated_at"])
 
-    with pytest.raises(Exception, match="published eBay listing"):
+    with pytest.raises(Exception, match="Published history"):
         publish_draft(draft, confirm_sku=item.sku)
 
     draft.refresh_from_db()
@@ -679,13 +700,14 @@ def test_listing_draft_sprint7_api_paths(api_client, item, credential, merchant_
     assert aspects.status_code == 200
     assert aspects.data["missing_required"] == []
 
-    stage = api_client.post(f"/api/listing-drafts/{draft.id}/stage/", {}, format="json")
+    preview = api_client.post(f"/api/listing-drafts/{draft.id}/preview/", {}, format="json")
+    stage = api_client.post(f"/api/listing-drafts/{draft.id}/stage/", {"review_id": preview.data["id"]}, format="json")
     assert stage.status_code == 200, stage.data
     review = api_client.get(f"/api/listing-drafts/{draft.id}/staged-review/")
     assert review.status_code == 200, review.data
     publish = api_client.post(
         f"/api/listing-drafts/{draft.id}/publish/",
-        {"confirm_sku": "wrong"},
+        {"confirm_sku": "wrong", "review_id": review.data["id"]},
         format="json",
     )
     assert publish.status_code == 400

@@ -74,6 +74,18 @@ class EbayMediaAdapter(Protocol):
 
 
 class EbayInventoryAdapter(Protocol):
+    def get_inventory_item(self, *, access_token, sku) -> dict:
+        ...
+
+    def get_location(self, *, access_token, merchant_location_key) -> dict:
+        ...
+
+    def get_listing_fees(self, *, access_token, offer_id) -> dict:
+        ...
+
+    def delete_offer(self, *, access_token, offer_id) -> None:
+        ...
+
     def upsert_inventory_item(self, *, access_token, sku, payload) -> None:
         ...
 
@@ -305,6 +317,19 @@ class HttpEbayInventoryAdapter:
         self.environment = _configured_environment(environment)
         self.timeout_seconds = timeout_seconds or settings.EBAY_HTTP_TIMEOUT_SECONDS
 
+    def get_inventory_item(self, *, access_token, sku) -> dict:
+        return _request_json(f"{_api_base(self.environment)}/sell/inventory/v1/inventory_item/{quote(str(sku), safe='')}", access_token=access_token, method="GET", timeout_seconds=self.timeout_seconds, service_name="eBay inventory read")
+
+    def get_location(self, *, access_token, merchant_location_key) -> dict:
+        return _request_json(f"{_api_base(self.environment)}/sell/inventory/v1/location/{quote(str(merchant_location_key), safe='')}", access_token=access_token, method="GET", timeout_seconds=self.timeout_seconds, service_name="eBay location read")
+
+    def get_listing_fees(self, *, access_token, offer_id) -> dict:
+        # eBay's fee lookup is a read operation with a POST-shaped request.
+        return _request_json(f"{_api_base(self.environment)}/sell/inventory/v1/offer/get_listing_fees", access_token=access_token, method="POST", data=json.dumps({"offers": [{"offerId": str(offer_id)}]}).encode(), headers=_inventory_headers(), timeout_seconds=self.timeout_seconds, service_name="eBay fee lookup")
+
+    def delete_offer(self, *, access_token, offer_id) -> None:
+        _request_json(f"{_api_base(self.environment)}/sell/inventory/v1/offer/{quote(str(offer_id), safe='')}", access_token=access_token, method="DELETE", headers=_inventory_headers(), timeout_seconds=self.timeout_seconds, service_name="eBay unpublished offer removal", allow_empty=True)
+
     def upsert_inventory_item(self, *, access_token, sku, payload) -> None:
         _request_json(
             f"{_api_base(self.environment)}/sell/inventory/v1/inventory_item/{quote(str(sku), safe='')}",
@@ -390,7 +415,7 @@ class HttpEbayInventoryAdapter:
             data=b"",
             method="POST",
             headers=_inventory_headers(),
-            timeout_seconds=self.timeout_seconds,
+            timeout_seconds=min(self.timeout_seconds, 60),
             service_name="eBay inventory endpoint",
         )
         listing_id = response.get("listingId") or response.get("listing_id")
@@ -766,6 +791,27 @@ class FakeEbayInventoryAdapter:
     withdraw_count = 0
     publish_count = 0
 
+    def get_inventory_item(self, *, access_token, sku) -> dict:
+        if str(sku) not in self.inventory_items:
+            raise EbayHttpError("Fake inventory not found", http_status=404, error_ids=())
+        return {"sku": str(sku), **self.inventory_items[str(sku)]}
+
+    def get_location(self, *, access_token, merchant_location_key) -> dict:
+        if str(merchant_location_key) not in self.locations:
+            raise EbayHttpError("Fake location not found", http_status=404, error_ids=())
+        return {"merchantLocationKey": str(merchant_location_key), **self.locations[str(merchant_location_key)]}
+
+    def get_listing_fees(self, *, access_token, offer_id) -> dict:
+        return {"feeSummaries": [{"marketplaceId": "EBAY_AU", "fees": [{"feeType": "InsertionFee", "amount": {"currency": "AUD", "value": "0.06"}}]}]}
+
+    def delete_offer(self, *, access_token, offer_id) -> None:
+        if offer_id not in self.offers:
+            raise EbayHttpError("Fake offer not found", http_status=404, error_ids=())
+        if self.offers[offer_id].get("status") == "PUBLISHED":
+            raise EbayHttpError("Published fake offer protected", http_status=409, error_ids=())
+        type(self).withdraw_count += 1
+        del self.offers[offer_id]
+
     def upsert_inventory_item(self, *, access_token, sku, payload) -> None:
         if not access_token:
             raise EbayUnavailable("Missing eBay access token.")
@@ -828,7 +874,7 @@ class FakeEbayInventoryAdapter:
     def publish_offer(self, *, access_token, offer_id) -> str:
         type(self).publish_count += 1
         if self.publish_should_fail:
-            raise EbayUnavailable(
+            raise EbayHttpError(
                 json.dumps(
                     {
                         "errors": [
@@ -839,7 +885,7 @@ class FakeEbayInventoryAdapter:
                             }
                         ]
                     }
-                )
+                ), http_status=400, error_ids=(25002,)
             )
         if offer_id not in self.offers:
             raise EbayUnavailable("Fake offer could not be found.")
@@ -850,7 +896,7 @@ class FakeEbayInventoryAdapter:
 
     def get_offer(self, *, access_token, offer_id) -> dict:
         if offer_id not in self.offers:
-            raise EbayUnavailable("Fake offer could not be found.")
+            raise EbayHttpError("Fake offer could not be found.", http_status=404, error_ids=())
         return dict(self.offers[offer_id])
 
     def create_inventory_location(self, *, access_token, merchant_location_key, payload) -> None:
@@ -1203,6 +1249,7 @@ def _normalize_aspect(aspect: dict) -> dict:
         "required": str(constraint.get("aspectRequired", "")).lower() == "true"
         or constraint.get("aspectRequired") is True,
         "type": str(constraint.get("aspectDataType") or aspect.get("type") or "STRING"),
+        "mode": str(constraint.get("aspectMode") or "FREE_TEXT"),
         "values": [
             str(value.get("localizedValue") or value.get("value") or "")
             for value in values

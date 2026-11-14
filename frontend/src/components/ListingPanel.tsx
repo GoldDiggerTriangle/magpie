@@ -168,7 +168,7 @@ interface DraftEditorProps {
 
 function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEditorProps) {
   const queryClient = useQueryClient();
-  const readOnly = ["published", "archived", "publishing", "publish_unknown"].includes(draft.status) || Boolean(draft.channel_data.listing_id);
+  const readOnly = ["published", "archived", "publishing", "publish_unknown"].includes(draft.status) || draft.staging_state === "in_progress" || Boolean(draft.channel_data.listing_id);
   const autosave = useDraftAutosave(draft, onSaved, readOnly);
   const { local, setLocal } = autosave;
   const [preview, setPreview] = useState(false);

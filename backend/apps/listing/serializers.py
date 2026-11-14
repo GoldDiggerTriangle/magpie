@@ -62,6 +62,7 @@ class ListingDraftSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "editor_save", "expected_updated_at", "price_choice",
+            "staging_state", "staged_fingerprint", "publish_started_at", "publish_error", "publish_attempt",
         ]
         read_only_fields = [
             "id",
@@ -73,24 +74,28 @@ class ListingDraftSerializer(serializers.ModelSerializer):
             "readiness_summary",
             "created_at",
             "updated_at",
+            "staging_state", "staged_fingerprint", "publish_started_at", "publish_error", "publish_attempt",
         ]
 
     def get_readiness_summary(self, obj):
         return readiness_summary(obj)
 
     def validate(self, data):
-        if data.get("status") == ListingDraft.Status.ARCHIVED:
-            raise serializers.ValidationError({"status": "Use the confirmed Archive action; drafts with staged offers must be withdrawn first."})
+        if "status" in data and data["status"] not in {"draft", "ready", "exported"}:
+            raise serializers.ValidationError({"status": "Workflow states can only change through the reviewed listing actions."})
         if self.instance is not None:
             try:
                 self.instance.assert_editable()
             except DjangoValidationError as exc:
                 raise serializers.ValidationError({"detail": exc.messages}) from None
-            if self.instance.channel_data.get("offer_id") and "channel_data" in data and not data.get("editor_save"):
+            if "channel_data" in data:
                 incoming = data["channel_data"]
-                if not isinstance(incoming, dict) or ("offer_id" in incoming and incoming["offer_id"] != self.instance.channel_data["offer_id"]):
-                    raise serializers.ValidationError({"channel_data": "A staged offer cannot be erased by editing. Withdraw it through the publish flow."})
-                data["channel_data"] = {**self.instance.channel_data, **incoming}
+                if not isinstance(incoming, dict):
+                    raise serializers.ValidationError({"channel_data": "Provide a field mapping."})
+                if any(key not in EDITABLE_CHANNEL_FIELDS and value != self.instance.channel_data.get(key) for key, value in incoming.items()):
+                    raise serializers.ValidationError({"channel_data": "Workflow metadata is server-owned; use the reviewed listing actions."})
+                if not data.get("editor_save"):
+                    data["channel_data"] = {**self.instance.channel_data, **{key: value for key, value in incoming.items() if key in EDITABLE_CHANNEL_FIELDS}}
         quantity = data.get(
             "quantity",
             self.instance.quantity if self.instance else ListingDraft._meta.get_field("quantity").default,
@@ -129,7 +134,8 @@ class ListingDraftSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"detail": "Editor saves cannot change draft state or channel."})
             # A conditional claim also protects SQLite, where row locks do nothing.
             with transaction.atomic():
-                claimed = ListingDraft.objects.filter(pk=instance.pk, updated_at=expected).update(updated_at=timezone.now())
+                from apps.ebay.publish_state import mutable_rows
+                claimed = mutable_rows().filter(pk=instance.pk, updated_at=expected).update(updated_at=timezone.now())
                 if not claimed:
                     error = APIException("This draft changed elsewhere. Reload before saving; your text has not been replaced.")
                     error.status_code = 409
@@ -228,6 +234,7 @@ class ChannelListingSerializer(serializers.ModelSerializer):
             "url",
             "note",
             "source_listing_draft",
+            "external_listing_id",
             "take_down_state",
             "created_at",
             "updated_at",
@@ -240,6 +247,7 @@ class ChannelListingSerializer(serializers.ModelSerializer):
             "active",
             "days_listed",
             "source_listing_draft",
+            "external_listing_id",
             "take_down_state",
             "created_at",
             "updated_at",

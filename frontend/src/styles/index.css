@@ -2702,3 +2702,8 @@
 /* Defaults reuse the listing pickers, including comfortable review targets. */
 .listing-defaults-panel button,
 .listing-default-save button { min-height: 44px; }
+
+.listing-review { scroll-margin-top: calc(env(safe-area-inset-top, 0px) + 1rem); }
+.listing-review button { min-height: 44px; }
+.listing-review button:not(.btn-icon) { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.listing-review dl, .listing-review dd { min-width: 0; }

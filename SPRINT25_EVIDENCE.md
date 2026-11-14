@@ -1637,3 +1637,56 @@ Regan replied **"Yes, apply the backed-up additive migration"**. The preparation
 - Backup/restore scratch (`D:\Magpie\scratch\sprint25-phase4`) is empty and removed. Only the encrypted archives are retained. Protected environment/dependency/spec/layout/audit files remain unchanged; secret scan PASS.
 
 **Current stop:** schema and static deployment are prepared. Regan may now **Restart-Service Magpie as Administrator**, hard-refresh port 8000, then use **Settings > eBay > Listing defaults > Gold** to set his choices on his phone. No live draft/default values have been saved by Codex, no eBay calls, and no staging/publishing. **Phase 4 awaits that owner phone check; Sprint 25 remains OPEN and Phase 5 has not begun.**
+
+## 2026-11-15 - Phase 4 Accepted; Phase 5 Review and Publish Build
+
+### Controlling Update
+
+Applied `MASTER_HANDOFF_UPDATE_2026-11-15_PHASE4_CLOSE.md` verbatim first: all **13 Find passages matched exactly once**, with the reconstructed output verified. Handoff v4.69 committed/pushed as **`9626e064399931af0b5521a7e562a829c84d1510`**. This supersedes the preceding owner-check hold: Regan restarted, saved Gold defaults on his phone, confirmed the editor/defaults work and GOLD-00002 remained unchanged. **Phase 4 accepted.**
+
+Phase 5 implements spec v3.4 section 7 and Regan's 16 cross-checked state/review/staging/reconcile requirements (D-143). **Implementation/test checkpoint only: no live publishing or Sprint 25 closure claim.** No real eBay metadata or write calls were made by Codex during the build. Official documentation was consulted separately; workflow execution used isolated fakes/mocks.
+
+### State, Review and Recovery
+
+- Immutable, actor-bound reviews bind the draft revision, listing fields, live metadata/policy terms, offer identity, staged fingerprint, source-labelled price, stock, owned-photo hashes, fees and expiry. Preview and publish both validate current metadata. Only required eBay aspects block; required selection-only values are checked. Conditionless categories have no manufactured global-condition gate.
+- One conditional UPDATE claims publication using the reviewed revision, staged fingerprint, offer ID, review expiry, item revision and no existing listing/history. That same UPDATE captures **prior status via F(status)**, attempt UUID and start time. Only one winner may call publishOffer.
+- Definite rejection restores the captured prior status; a separate whitelisted error records operation/status/codes. Unknown outcomes stay publish_unknown. Every completion/reconcile write is fenced by attempt UUID. Published/archived history remains immutable.
+- The request has a **60-second hard deadline**, with the real publish adapter's socket timeout capped at 60 seconds. **Ten-minute** stale recovery runs at WSGI/ASGI startup, before claims and through `recover_ebay_publishes`. Recovery is local only; Settings lists stuck attempts with explicit Reconcile.
+- A fenced pre-send barrier distinguishes a request conclusively never sent from a possibly unresolved call. An unpublished GET clears only the former; a timeout after sending is **not cancellation**. Missing, unreachable or ambiguous offers remain unknown; late responses cannot overwrite a newer attempt.
+- Success writes ChannelListing, draft publication, item status and success audit in **one transaction**. A failed local commit after remote success leads to reconcile, never another publishOffer. Tests exercise transaction rollback after an audit failure and crash recovery where eBay already reports published.
+- Publishing/unknown drafts reject edits, staging, archive and new claims server-side. Optimistic editor saves and model row locking cannot overwrite a winning publish claim.
+
+### Staging and Shared UI
+
+- Full path: Review -> explicit Stage/Update staged offer -> fresh staged review/getListingFees -> exact SKU -> publish. Quick preview uses the **same canonical draft, review and publish service**, without SKU typing. It never silently stages or edits; unstaged/drifted drafts must use the full explicit update/review step first.
+- Local/staged and remote/staged drift block Post. Unknown-date, expired or known-missing EPS images are uploaded again **only in the explicit update step**. Each upload records time and source-photo hash; freshness is checked again immediately before publishOffer.
+- Timed-out createOffer is reconciled by SKU lookup before any new creation. An empty/ambiguous lookup after uncertain creation does not authorize a duplicate. Partial inventory/offer changes leave staging unverified.
+- Removing an unpublished offer requires separate confirmation, a current UNPUBLISHED/SKU check, and a subsequent 404 before clearing its reference. Published/ambiguous offers stop; Archive remains blocked otherwise. No withdrawOffer call ends a listing through this flow.
+- **Provider limitation:** eBay deleteOffer can also end a published offer. Magpie serializes its own publish/removal paths and checks UNPUBLISHED immediately beforehand; eBay provides no atomic conditional-delete guarantee against a simultaneous change outside Magpie. No live removal was exercised. Ending a live listing remains a separate owner decision.
+- Review shows policy terms, category/condition, quantity, description, source-labelled price, selected own display images and listing-fee estimates. Blocker links use the existing section/editor entry point and focus the field. UI timestamp comparison handles equivalent UTC Z/+00:00 strings; server revision matching remains exact.
+- Verified condition-ID/Inventory-enum registry prevents silently substituting global condition for a selected eBay condition. [Official mapping](https://www.developer.ebay.com/api-docs/sell/static/metadata/condition-id-values.html). Fee parsing follows the official **feeSummaries** schema. [Inventory OpenAPI](https://developer.ebay.com/api-docs/master/sell/inventory/openapi/3/sell_inventory_v1_oas3.json).
+
+### Validation and Browser Evidence
+
+- Focused backend protocol/editor/regressions: **105 passed**. Full suite: **385 passed / 1 skipped**, followed by additional targeted condition/SQL-claim/startup/timeout coverage: **22 passed**. Canonical/publish focus: **86 passed**. Final clean full-suite and CI results follow below.
+- Frontend full suite: **151 passed / 36 files** before four final health/unsaved-edit tests; final results follow below. Retired duplicate-publisher tests were replaced by shared-review, explicit-stage, required-only blocking, drift, full-SKU/quick and recovery tests. Current category/editor regression coverage remains intact.
+- Typecheck/build passed. Django check and migration consistency passed. Collectstatic passed to **scratch only** (`D:\Magpie\scratch\phase5-static`): **7 copied / 155 unmodified / 425 post-processed**. This is not live static deployment.
+- `node scripts/sprint25_publish_check.mjs`: actual React/AppShell with every API intercepted; **390/390px** viewport/document and **1440/1440px**, visible review controls **>=44px**, zero unexpected requests, zero real eBay calls, no live DB access by the harness. Update/quick Post were simulated only.
+- Screenshots are **isolated fixtures, not live-service or real-iPhone proof**. Synthetic listing data; both photo slots reuse one of Regan's own stored gold photos read locally. No third-party image, source-file alteration or upload.
+
+| Evidence | File |
+| --- | --- |
+| Phone: staged drift blocks Post | [phone-drift-blocked.png](docs/evidence/sprint25/phase5-publish/phone-drift-blocked.png) |
+| Phone: staged review and SKU | [phone-staged-review-confirm.png](docs/evidence/sprint25/phase5-publish/phone-staged-review-confirm.png) |
+| Phone: quick preview, no SKU | [phone-quick-preview.png](docs/evidence/sprint25/phase5-publish/phone-quick-preview.png) |
+| Desktop: same staged review | [desktop-staged-review.png](docs/evidence/sprint25/phase5-publish/desktop-staged-review.png) |
+
+### Live Safety and Deployment Hold
+
+Additive **listing.0007_reviewed_publish_protocol** adds review/attempt/staging metadata and ChannelListing identity constraints. Its pre-check aborts on ambiguous/duplicate identities before filling **only the new identity column** from owned historical records. Existing published draft fields, listing dates and audit history are not rewritten. Legacy staged offers have no trusted new fingerprint and need an explicit later update/review, not a fabricated baseline.
+
+**NOT APPLIED LIVE. Regan's explicit approval, fresh B-verified pre/post backups and restore spot-check are required first.** No live migration, live collectstatic, restart, staging, update, removal, withdrawal or publish occurred. No dependency, .env or credential changes.
+
+Read-only pre-check against the actual old live schema: **0 identity violations / 1 ChannelListing checked**. All **47 live table digests** match this task's baseline: **8 drafts / 1 ChannelListing / 158 audit rows / 54 migration records / 1 owner-saved defaults row**. Protected environment/dependency/spec/item-layout/audit files are byte-unchanged. Port **8000 health HTTP 200** describes the prior running service, not this Phase 5 deployment. GOLD-00002 draft **af013dd9** and offer reference **356038014011** remain untouched.
+
+Known-secret scan passed; repeated before commit. `CLAUDE_STRUCTURAL_AUDIT.md` stays untracked and unchanged. **Stop before migration/restart and any live eBay writes.** Supervised re-staging and the one real listing require a later session with Regan confirming exact values. Phase 6/7 and outstanding earlier live-evidence gates are not claimed complete.

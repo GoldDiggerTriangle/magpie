@@ -133,6 +133,7 @@ jobs:
               Path("backend/apps/listing/public_urls.py"),
           }
           frontend_view_only_url_files = {
+              Path("frontend/src/components/ListingWorkflow.tsx"),
               Path("frontend/src/components/PublishPanel.tsx"),
               Path("frontend/src/components/QuickPublishPanel.tsx"),
           }
