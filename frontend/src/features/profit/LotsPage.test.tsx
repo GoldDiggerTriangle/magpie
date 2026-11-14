@@ -51,7 +51,9 @@ test("LotDetail shows the live allocation tally and locked sold member", async (
   expect(screen.getByText("allocated $80.00 of $100.00 · remainder $20.00")).toBeInTheDocument();
   expect(screen.getByText("Partially allocated lot. Remainder stays visible until you finish.")).toBeInTheDocument();
   expect(screen.getByText(/sold · cost locked/i)).toBeInTheDocument();
-  const shareInputs = screen.getAllByDisplayValue("40.00");
+  // The query title renders before the effect populates the editable shares.
+  const shareInputs = await screen.findAllByDisplayValue("40.00");
+  expect(shareInputs).toHaveLength(2);
   expect(shareInputs[0]).toBeDisabled();
   expect(shareInputs[1]).not.toBeDisabled();
 
