@@ -1392,3 +1392,88 @@ The existing authenticated session was used in memory only; no session token, cr
 At the checked runtime HEAD, [Validation 43528199055](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43528199055) is **green on both lanes** (SQLite job `132239066750`, PostgreSQL job `132239067137`). The unchanged implementation's previously recorded results remain 264 passed / 1 skipped SQLite, 252 passed / 13 skipped PostgreSQL, and 123 frontend tests plus typecheck/build/collectstatic/smoke. No new application code, settings, credentials or schema change was needed for this verification.
 
 **Stop and report:** the approved Migration B installation/restart sequence is verified. Phase 3 requires a separate instruction. Sprint 25 remains open; live publishing remains unproven.
+
+## 2026-11-14 - Phase 3: Canonical Local Listing Editor
+
+**Implementation complete and CI-validated; Administrator restart and Regan's phone acceptance remain pending. Sprint 25 is OPEN. Live publishing remains unproven.**
+
+### Contract And Handoff
+
+- Started from accepted Phase 2 head `fd6c43de076ba61c39fe80e5367c91a5843ca8e5` in `D:\Magpie\app`.
+- Applied `MASTER_HANDOFF_UPDATE_2026-11-13_PHASE2_CLOSE.md` first, verbatim: all **13 Find strings matched exactly once**; handoff is **v4.67**. The supplied update was checked against the expected complete-file digest before adding this task's separate section 9 session entry.
+- Controlling implementation scope: `docs/specs/SPRINT_25_SPEC.md` **v3.4 section 5**, D-136 canonical draft, D-137 unchanged item-page layout, and D-129 human price sources.
+- Implementation head: **`5a1d345939494e2916f7f5929cc59da6e8502bab`**.
+
+### Editor Surface
+
+| Field / step | Implemented control and provenance |
+| --- | --- |
+| Title | Full editable item-title default; Unicode character count against 80; full-string save/resume tests |
+| eBay category | Explicit search and leaf selection; chosen ID and name; manual ID plus explicit name confirmation after refresh; no automatic selection |
+| Condition | Chosen-category snapshot options; **Not used by this category** when the policy has no conditions, including Nugget `139965`; legacy unused condition does not create a false blocker |
+| Item specifics | Live-metadata snapshot's required/recommended fields; required flags and supplied values; custom rows retained; only required aspects block |
+| Format / duration | Fixed or auction; duration options restricted to the chosen category's matching format; changing format clears the previous duration |
+| Price | Explicit human asking price or an explicitly selected owned SaleRecord/Comparable/item asking figure; source label; server resolves evidence identity and requires known seller-receives basis and matching currency |
+| Price exclusions | No AI/valuation default or price-regeneration action. Unknown-basis and unrelated evidence cannot be selected. Legacy source-uncertain price requires human confirmation or replacement |
+| Quantity | Editable and positive; current draft value retained. Remaining-stock defaults remain Phase 8, not silently claimed here |
+| Photos | Item-owned photo selection, order controls, visible selected order; at least one required; foreign or duplicate photo IDs rejected |
+| Payment / postage / returns | Saved policy dropdowns show names **and actual supplied terms**; selected terms also render below: services, costs, handling, return window/payer, payment timing/methods. Missing terms say not recorded rather than assuming free postage or another value |
+| Merchant location | Existing verified local merchant-location record, including ID/name/address and provenance; no Inventory API location call |
+| Description | Editable, privacy-filtered eBay copy-pack-template default; existing regenerate/edit confirmation, HTML preview, subtitle, shipping note, boilerplate, SKU footer, copy and ZIP export controls retained |
+| Readiness | Named blockers/recommendations, counts, passed-check details, and jump-to-field focus links |
+| Source labels | Each field has an origin label; earlier values without recorded provenance say so honestly; explicit edits record human selection/edit provenance |
+
+### Persistence And Safety
+
+- **No schema change or migration.** Reuses `ListingDraft.channel_data` for bounded chosen-category metadata snapshots and the last category search, `generated_meta` for field/price provenance, existing `EbayAccountSnapshot` for policies, and existing `MerchantLocation` records.
+- GET `/api/listing-drafts/<id>/editor/` reads saved context only. Loading the editor does not refresh eBay, stage, create an offer or save a draft.
+- Explicit POST `/api/listing-drafts/<id>/refresh-metadata/` uses the existing taxonomy/account adapters and chosen-category Sell Metadata GETs, including the documented `get_listing_type_policies` operation. These are metadata-only paths. Snapshots show `fetched_at`, provenance and missing/stale state. Failed refreshes retain cached draft metadata and return a credential-free actionable error. **No live metadata refresh was invoked by Codex in this task.**
+- Merchant-location refresh is deliberately not an Inventory API call: the editor uses the saved verified record and its recorded provenance. New locations are not silently created or selected.
+- Queued autosave serialises human edits and uses `expected_updated_at` with an atomic conditional claim, including on SQLite. An older save response or background refetch cannot replace newer typing; conflicts return 409 without overwriting text. Save failure remains visibly unsaved. Navigation completes pending local saves and invalidates the shared draft queries.
+- Existing canonical create/open endpoints remain the authority. Listing entry opens/reuses the canonical draft; the existing quick card also links to **Edit canonical listing draft** within the unchanged Listings / channels section. No new top-of-item action or layout migration was added.
+- A staged draft retains its status and offer ID during local editing. Changed fields show **Local changes are not yet on eBay**. Drift from an older saved staging payload is also detected. Remote IDs, snapshots and stage markers cannot be overwritten through an editor save.
+- Existing staging/publish pipeline code and its guards remain regression-tested independently. The new editor's staging/review actions are deliberately inert in this local-only phase. No auto-restage, Inventory call, offer call, publish, withdraw, AI call, live draft save, new live draft, service restart, dependency change, settings change or credential change occurred.
+- Historical/published/archived and in-flight drafts remain non-editable. No history or ChannelListing was rewritten.
+
+### Tests And Build
+
+Implementation [Validation **43534577678**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43534577678) is **green on both lanes**:
+
+| Check | Result |
+| --- | --- |
+| SQLite job `132260360753` | **294 passed, 1 skipped** |
+| PostgreSQL job `132260360380` | **282 passed, 13 skipped** |
+| Frontend, 34 test files | **134 passed** |
+| Typecheck / production build | PASS |
+| CI collectstatic / deploy checks / Waitress-WhiteNoise smoke | PASS |
+| Local Django check / migration check | PASS; **No changes detected** |
+| Local collectstatic | PASS; production static files rebuilt; no restart performed |
+
+Thirty new backend cases cover field round trips, conditionless/required-condition and format-duration rules, required-only aspect blocking, real policy terms, D-129 source validation, unknown-currency/unrelated evidence rejection, local staged drift, reserved metadata, stale-save conflict, malformed JSON, immutable history, explicit metadata GET ports, offline reads and secret-free refresh failure. Eleven new frontend tests cover full editor save/resume, no mount-time write/remote operation, actual policy terms, explicit source selection, refresh, readiness focus, stale-response and refetch races, save failure, and read-only history. Prior canonical/partial-unique, copy-pack, AI review, photo, pricing and quantity regressions remain in the green suites.
+
+The local backend runner refuses outbound socket connections and uses an isolated SQLite test database and synthetic configuration. An initial concurrent frontend run timed out in an unchanged pricing-panel test; rerunning with one worker passed without changing or skipping that test or increasing its timeout. GitHub's ordinary frontend run also passed. The existing large-bundle warning remains non-blocking; no bundling/layout refactor was attempted.
+
+### Browser Proof - Isolated, Not Live Phone Acceptance
+
+Reproducible utility: `node scripts/sprint25_editor_check.mjs`, using temporary external Playwright tooling, the actual React editor and stylesheet, and `frontend/src/fixtures/listingEditor.json`. Every API request is intercepted. Unrecognised requests and all non-local browser destinations are blocked. The harness has no production API proxy or live database connection and closes its Vite/browser processes after checking.
+
+- **390 x 844:** document scroll width **390**, every editor field inside viewport, button targets at least **44px**.
+- **1440 x 1000:** document scroll width **1440**; fields and buttons fit.
+- Full human title saved through the UI and reloaded intact; staged-local-change notice shown. **0 unexpected requests, 0 page errors, no stage/publish/withdraw/preflight/read-back call.**
+- [Phone metadata and real-shaped policy terms](docs/evidence/sprint25/phase3/phone-metadata.png)
+- [Phone title, source and editor controls](docs/evidence/sprint25/phase3/phone-title-price.png)
+- [Desktop canonical editor](docs/evidence/sprint25/phase3/desktop-editor.png)
+
+These are browser-emulated fixture screenshots, **not** a claim of an iPhone or live-service save. Regan must still restart and try the real editor on his phone.
+
+### Live Data Was Not Saved
+
+Read-only ordered-row digests across **all 46 live tables** matched the pre-task baseline. Counts remain **8 drafts, 1 ChannelListing, 156 audit rows and 53 migration records**. The baseline already contained 156 audit rows at task start; the earlier Phase 2 entry's 155 was not rewritten, and this task created none. GOLD-00002's canonical `af013dd9-0611-431c-be4a-223c44ec4e06` and staged offer `356038014011` remain untouched.
+
+`ItemDetail.tsx` is byte-for-byte unchanged. Protected settings/credential/dependency/spec files and the pre-existing untracked `CLAUDE_STRUCTURAL_AUDIT.md` remain unchanged. The supplied handoff update and all changed files were scanned without exposing any secret value. No migration means no new live migration backup/restore operation was necessary in Phase 3; Phase 2's recorded installation/restore proof stands.
+
+### Stop For Regan
+
+Run `Restart-Service -Name Magpie` in Administrator PowerShell, then load the live port **8000** app and hard-refresh. On **GSP-00001**, open **Listings / channels -> Listing -> Open listing draft** (Create draft if none), then verify the fields on the phone. Search/refresh metadata explicitly, select category/condition/policies/location yourself, set or confirm the asking price, check photo order, wait for **Saved locally**, leave and reopen to confirm it resumes. On GOLD-00002, any later edits must remain visibly local to offer `356038014011`; **nothing is to be re-staged or published in this phase**.
+
+**Stop point:** awaiting Regan's Administrator restart and phone feedback. No Phase 4 defaults, Phase 5 publish work, Phase 6 top action/layout work or live listing acceptance is claimed.

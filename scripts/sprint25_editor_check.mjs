@@ -20,6 +20,7 @@ const server = await createServer({
   root: path.join(root, "frontend"),
   server: { host: "127.0.0.1", port: 5177, strictPort: true, proxy: {} },
   plugins: [{ name: "isolated-listing-editor", enforce: "pre",
+    configResolved(config) { config.server.proxy = undefined; },
     resolveId(id) { return id === virtual ? "\0" + virtual : undefined; },
     load(id) { return id === "\0" + virtual ? `
       import React from 'react'; import {createRoot} from 'react-dom/client';
@@ -38,6 +39,7 @@ const server = await createServer({
 let browser;
 const errors = [];
 try {
+  assert.equal(server.config.server.proxy, undefined);
   await server.listen();
   const origin = "http://127.0.0.1:5177";
   browser = await chromium.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: true });
