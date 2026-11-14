@@ -1,0 +1,10 @@
+{
+  "marketplace": "EBAY_AU",
+  "provenance": "Starter-ID registry; validated by Taxonomy when opened, not a complete category tree",
+  "categories": [
+    { "category_id": "1", "category_name": "Collectables" },
+    { "category_id": "260", "category_name": "Stamps" },
+    { "category_id": "11116", "category_name": "Coins & banknotes" },
+    { "category_id": "281", "category_name": "Jewellery & watches" }
+  ]
+}

@@ -4,6 +4,8 @@ from copy import deepcopy
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 import re
+import json
+from pathlib import Path
 
 from django.db import transaction
 from django.utils import timezone
@@ -17,6 +19,18 @@ from apps.listing.models import ListingDraft
 
 MARKETPLACE = "EBAY_AU"
 METADATA_KEY = "editor_metadata"
+BROWSE_STARTS_PATH = Path(__file__).with_name("category_browse_starts.json")
+
+
+def browse_starts():
+    registry = json.loads(BROWSE_STARTS_PATH.read_text(encoding="utf-8"))
+    if registry.get("marketplace") != MARKETPLACE:
+        return [], "Starter registry marketplace does not match EBAY_AU"
+    rows = []
+    for row in registry.get("categories", []):
+        if isinstance(row, dict) and text(row.get("category_id")).isdecimal() and int(row["category_id"]) > 0 and text(row.get("category_name")):
+            rows.append({"category_id": text(row["category_id"]), "category_name": text(row["category_name"])})
+    return rows, text(registry.get("provenance"))
 
 
 def mapping(value):
@@ -185,6 +199,7 @@ def editor_metadata(draft, *, category_id=None):
          "provenance": "Saved merchant-location record", "verified": row.created_on_ebay}
         for row in MerchantLocation.objects.filter(environment=environment)
     ]
+    starts, starts_provenance = browse_starts()
     return {
         "category_id": category_id, "category_snapshot": category,
         "category_stale": stale(category.get("fetched_at")) if category else True,
@@ -192,6 +207,7 @@ def editor_metadata(draft, *, category_id=None):
         "policies_provenance": "eBay Account API saved snapshot", "policies_stale": stale(fetched),
         "locations": locations,
         "category_search": mapping(mapping(data.get(METADATA_KEY)).get("search")),
+        "browse_starts": starts, "browse_starts_provenance": starts_provenance,
     }
 
 

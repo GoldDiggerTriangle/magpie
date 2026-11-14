@@ -256,3 +256,17 @@ test("browse is explicit, one level at a time, leaf-only, with a working breadcr
   await user.click(within(screen.getByRole("navigation", { name: "Category breadcrumb" })).getByRole("button", { name: "Jewellery" }));
   await waitFor(() => expect(mocks.browse).toHaveBeenLastCalledWith("draft", "281"));
 });
+
+test("registry starters appear next to search but cannot apply an unverified category", async () => {
+  const user = userEvent.setup();
+  context.metadata.browse_starts = [{ category_id: "260", category_name: "Stamps" }];
+  context.metadata.browse_starts_provenance = "Starter registry; checked when opened";
+  mocks.browse.mockResolvedValue({ category: { category_id: "260", category_name: "Live stamps name", is_leaf: false }, children: [], fetched_at: "2026-11-14T00:00:00Z", provenance: "Taxonomy fixture", marketplace: "EBAY_AU" });
+  open();
+  await user.click(await screen.findByRole("button", { name: "Browse categories" }));
+  expect(mocks.browse).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Browse Stamps" }));
+  expect(await screen.findByRole("button", { name: "Live stamps name" })).toBeInTheDocument();
+  expect(draft.channel_data.category_id).toBe("139965");
+  expect(mocks.save).not.toHaveBeenCalled();
+});

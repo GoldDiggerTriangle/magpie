@@ -35,6 +35,7 @@ export interface EditorPolicy {
 }
 export interface ListingEditorContext {
   metadata: {
+    browse_starts?: CategoryBranchNode[]; browse_starts_provenance?: string;
     category_id: string; category_stale: boolean; policies_stale: boolean;
     category_snapshot: null | {
       category: { category_id: string; category_name: string; category_tree_id: string; is_leaf: boolean };

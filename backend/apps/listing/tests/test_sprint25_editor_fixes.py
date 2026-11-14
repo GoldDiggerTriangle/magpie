@@ -99,3 +99,17 @@ def test_browse_endpoint_never_saves_draft(api, listing, monkeypatch):
     assert result.status_code == 200 and result.data["fetched_at"]
     listing.refresh_from_db()
     assert (listing.channel_data, listing.updated_at) == before
+
+
+def test_starter_registry_is_data_and_does_not_fetch_or_apply(api, listing, monkeypatch, tmp_path):
+    import json
+    from apps.listing import editor_metadata
+    monkeypatch.setattr(editor_metadata, "get_app_access_token", lambda: pytest.fail("Opening starter registry must not fetch"))
+    result = api.get(f"/api/listing-drafts/{listing.pk}/editor/")
+    assert {row["category_id"] for row in result.data["metadata"]["browse_starts"]} == {"1", "260", "11116", "281"}
+    registry = tmp_path / "starts.json"
+    registry.write_text(json.dumps({"marketplace": "EBAY_AU", "provenance": "Test data", "categories": [{"category_id": "123", "category_name": "Custom starter"}]}), encoding="utf-8")
+    monkeypatch.setattr(editor_metadata, "BROWSE_STARTS_PATH", registry)
+    assert editor_metadata.browse_starts()[0] == [{"category_id": "123", "category_name": "Custom starter"}]
+    listing.refresh_from_db()
+    assert listing.channel_data["category_id"] == "139965"
