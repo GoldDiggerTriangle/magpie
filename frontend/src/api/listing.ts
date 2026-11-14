@@ -31,7 +31,7 @@ export function getListingDraft(id: UUID) {
 }
 
 export interface EditorPolicy {
-  id: string; name: string; terms: string[]; summary: string; fetched_at: string | null; provenance: string;
+  id: string; name: string; terms: string[]; summary: string; headline?: string; fetched_at: string | null; provenance: string;
 }
 export interface ListingEditorContext {
   metadata: {
@@ -43,7 +43,7 @@ export interface ListingEditorContext {
       listing_types: null | { formats: Record<string, string[]> };
       fetched_at: string | null; provenance: string;
     };
-    category_search: { query?: string; fetched_at?: string; provenance?: string; suggestions?: Array<{ category_id: string; category_name: string; category_tree_id: string; is_leaf: boolean }> };
+    category_search: { query?: string; fetched_at?: string; provenance?: string; suggestions?: Array<{ category_id: string; category_name: string; category_tree_id: string; is_leaf: boolean; category_path?: string[]; ancestors?: CategoryBranchNode[] }> };
     policies: Record<"payment" | "fulfillment" | "return", EditorPolicy[]>;
     policies_fetched_at: string | null; policies_provenance: string;
     locations: Array<{ id: string; name: string; address: string; verified: boolean; fetched_at: string | null; provenance: string }>;
@@ -53,6 +53,7 @@ export interface ListingEditorContext {
   price_source: null | { kind?: string; label?: string; value?: string };
   checks: Array<ListingCheck & { field: string }>;
   read_only: boolean; staged_local_changes: boolean;
+  effective_duration?: string; duration_source?: string;
 }
 
 export function getListingEditor(id: UUID, categoryId?: string) {
@@ -64,6 +65,12 @@ export function refreshListingMetadata(id: UUID, options: { category_id?: string
   return apiRequest<{ draft: ListingDraft; editor: ListingEditorContext }>(`/api/listing-drafts/${id}/refresh-metadata/`, { method: "POST", body: options });
 }
 
+export interface CategoryBranchNode { category_id: string; category_name: string; category_tree_id?: string; is_leaf?: boolean | null }
+export interface CategoryBranch { category: CategoryBranchNode; children: CategoryBranchNode[]; fetched_at: string; provenance: string; marketplace: string }
+export function getListingCategoryChildren(id: UUID, categoryId: string) {
+  return apiRequest<CategoryBranch>(`/api/listing-drafts/${id}/category-children/?category_id=${encodeURIComponent(categoryId)}`);
+}
+
 export function updateListingDraft(id: UUID, payload: ListingDraftPayload) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/`, {
     method: "PATCH",
@@ -73,6 +80,10 @@ export function updateListingDraft(id: UUID, payload: ListingDraftPayload) {
 
 export function deleteListingDraft(id: UUID) {
   return apiRequest<void>(`/api/listing-drafts/${id}/`, { method: "DELETE" });
+}
+
+export function archiveListingDraft(id: UUID) {
+  return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/archive/`, { method: "POST", body: {} });
 }
 
 export function generateListingDraft(

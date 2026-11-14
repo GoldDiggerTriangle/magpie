@@ -34,7 +34,7 @@
       "category_search": {},
       "policies": {
         "payment": [{"id": "p1", "name": "Immediate payment", "terms": ["Immediate payment required", "Payment methods not recorded"], "summary": "Immediate payment required", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}],
-        "fulfillment": [{"id": "f4", "name": "Tracked parcel", "terms": ["DOMESTIC: AU Australia Post Parcel; AUD 12.50", "Handling: 2 day"], "summary": "AU Australia Post Parcel; AUD 12.50; Handling: 2 day", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}],
+        "fulfillment": [{"id": "f4", "name": "Tracked parcel", "headline": "$12.50", "terms": ["Domestic: Australia Post Parcel - $12.50", "Handling: 2 day"], "summary": "Australia Post Parcel - $12.50; Handling: 2 day", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}],
         "return": [{"id": "r5", "name": "30-day returns", "terms": ["Returns accepted", "Return window: 30 day", "Return postage: BUYER"], "summary": "30 day; Return postage: BUYER", "fetched_at": "2026-11-13T07:00:00Z", "provenance": "Saved Account API fixture"}]
       },
       "policies_fetched_at": "2026-11-13T07:00:00Z", "policies_provenance": "Saved Account API fixture",

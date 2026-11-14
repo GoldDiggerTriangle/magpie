@@ -79,11 +79,18 @@ class ListingDraftSerializer(serializers.ModelSerializer):
         return readiness_summary(obj)
 
     def validate(self, data):
+        if data.get("status") == ListingDraft.Status.ARCHIVED:
+            raise serializers.ValidationError({"status": "Use the confirmed Archive action; drafts with staged offers must be withdrawn first."})
         if self.instance is not None:
             try:
                 self.instance.assert_editable()
             except DjangoValidationError as exc:
                 raise serializers.ValidationError({"detail": exc.messages}) from None
+            if self.instance.channel_data.get("offer_id") and "channel_data" in data and not data.get("editor_save"):
+                incoming = data["channel_data"]
+                if not isinstance(incoming, dict) or ("offer_id" in incoming and incoming["offer_id"] != self.instance.channel_data["offer_id"]):
+                    raise serializers.ValidationError({"channel_data": "A staged offer cannot be erased by editing. Withdraw it through the publish flow."})
+                data["channel_data"] = {**self.instance.channel_data, **incoming}
         quantity = data.get(
             "quantity",
             self.instance.quantity if self.instance else ListingDraft._meta.get_field("quantity").default,

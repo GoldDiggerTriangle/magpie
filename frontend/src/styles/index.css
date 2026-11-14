@@ -2656,3 +2656,46 @@
   max-width: 100%;
   white-space: normal;
 }
+
+.listing-save-bar {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #475569;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 -3px 8px #0f172a12;
+}
+
+.listing-save-slot { min-height: 96px; }
+
+.listing-photo-row {
+  display: grid;
+  grid-template-columns: 44px 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+}
+
+.listing-photo-thumb {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+}
+
+.listing-photo-row > div:last-child:has(button) {
+  grid-column: 2 / -1;
+  justify-content: flex-end;
+}
+
+.listing-section-toggle {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0.75rem 0;
+  font-weight: 600;
+}

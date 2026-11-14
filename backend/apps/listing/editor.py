@@ -187,7 +187,17 @@ def readiness(draft, metadata=None):
 
 def editor_context(draft, *, category_id=None):
     metadata = editor_metadata(draft, category_id=category_id)
+    data = mapping(draft.channel_data)
+    duration = text(data.get("listing_duration"))
+    duration_source = "Saved draft" if duration else "Not set"
+    staged_offer = mapping(mapping(data.get("last_payload_snapshot")).get("offer"))
+    # Read-only recovery only: never write a missing local value merely by opening.
+    if not duration and draft.listing_format == "fixed" and staged_offer.get("format") == "FIXED_PRICE" and staged_offer.get("listingDuration") == "GTC" and text(staged_offer.get("categoryId")) == text(category_id or data.get("category_id")):
+        duration, duration_source = "GTC", "Saved staged offer (local duration is blank)"
+    candidate = copy(draft)
+    candidate.channel_data = {**data, "listing_duration": duration}
     return {"metadata": metadata, "sources": sources(draft), "price_options": price_options(draft),
+            "effective_duration": duration, "duration_source": duration_source,
             "price_source": mapping(draft.generated_meta).get("price_source"),
-            "checks": readiness(draft, metadata), "read_only": draft.is_read_only,
+            "checks": readiness(candidate, metadata), "read_only": draft.is_read_only,
             "staged_local_changes": staged_changes(draft)}

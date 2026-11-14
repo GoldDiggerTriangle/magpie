@@ -8,14 +8,14 @@ import {
   Pencil,
   Plus,
   RefreshCw,
-  Save,
+  Archive,
   Trash2
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import {
   createItemListingDraft,
-  deleteListingDraft,
+  archiveListingDraft,
   downloadListingZip,
   generateListingDraft,
   getListingDraft,
@@ -36,6 +36,8 @@ import { EmptyState } from "./EmptyState";
 import { PublishPanel } from "./PublishPanel";
 import { EditorReadiness, FieldSource, ListingMetadataFields, listingFieldId } from "./ListingMetadataFields";
 import { useDraftAutosave } from "./useDraftAutosave";
+import { ListingSpecifics } from "./ListingSpecifics";
+import { ListingSaveBar } from "./ListingSaveBar";
 
 const titleMax = 80;
 
@@ -81,7 +83,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
     }
   });
   const deleteMutation = useMutation({
-    mutationFn: (draft: ListingDraft) => deleteListingDraft(draft.id),
+    mutationFn: (draft: ListingDraft) => archiveListingDraft(draft.id),
     onSuccess: () => {
       setSelectedId(null);
       setDeleteTarget(null);
@@ -139,7 +141,9 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete listing draft?"
+        title="Archive listing draft?"
+        detail="The draft and its history are retained read-only. A staged offer must be withdrawn first."
+        confirmLabel="Archive"
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) {
@@ -147,6 +151,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
           }
         }}
       />
+      {deleteMutation.error ? <p role="alert">{deleteMutation.error instanceof Error ? deleteMutation.error.message : "Archive failed. Reload and retry."}</p> : null}
     </section>
   );
 }
@@ -167,7 +172,12 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   const [preview, setPreview] = useState(false);
   const [pendingGenerate, setPendingGenerate] = useState<"title" | "description" | null>(null);
 
-  const editor = useQuery({ queryKey: ["listing-editor", draft.id, String(local.channel_data.category_id ?? ""), local.updated_at], queryFn: () => getListingEditor(draft.id, String(local.channel_data.category_id ?? "")) });
+  const editor = useQuery({
+    queryKey: ["listing-editor", draft.id, String(local.channel_data.category_id ?? ""), local.updated_at],
+    queryFn: () => getListingEditor(draft.id, String(local.channel_data.category_id ?? "")),
+    // Refresh provenance after saves without unmounting the field being edited.
+    placeholderData: (previous, query) => query?.queryKey[2] === String(local.channel_data.category_id ?? "") ? previous : undefined
+  });
 
   const selectedBoilerplate = boilerplates.find((entry) => entry.id === local.boilerplate) ?? null;
   const titleDirty = local.title !== draft.title || draft.title_edited;
@@ -210,7 +220,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
 
   return (
     <div className="listing-editor min-w-0 space-y-5" id={`listing-editor-${item.id}`}>
-      <p role="status" className="font-semibold">{readOnly ? "Read-only history" : autosave.state}</p>
+      {readOnly ? <p className="font-semibold">Read-only history</p> : null}
       {editor.error ? <p role="alert">Saved metadata could not load. Check your session and retry. Your draft is not staged or published by saving.</p> : null}
       {local.channel_data.offer_id ? <div className="listing-staged-notice" role="status"><strong>Unpublished staged offer {String(local.channel_data.offer_id)}</strong><p>{editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p></div> : null}
       <fieldset disabled={readOnly} className="min-w-0 space-y-5">
@@ -220,13 +230,9 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
           {local.readiness_summary.fail_count > 0 ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Unready</span> : null}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary gap-2" disabled={saveMutation.isPending || readOnly} onClick={() => saveMutation.mutate()} type="button">
-            <Save className="h-4 w-4" aria-hidden="true" />
-            Save
-          </button>
-          <button className="btn-secondary gap-2" onClick={onDelete} type="button">
-            <Trash2 className="h-4 w-4" aria-hidden="true" />
-            Delete
+          <button className="btn-secondary gap-2" disabled={Boolean(local.channel_data.offer_id)} title={local.channel_data.offer_id ? "Withdraw the staged offer before archiving (Phase 5)" : "Archive draft"} onClick={() => { void persistLocal().then(onDelete).catch(() => undefined); }} type="button">
+            <Archive className="h-4 w-4" aria-hidden="true" />
+            Archive
           </button>
         </div>
       </div>
@@ -332,11 +338,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       </div>
 
       <div id={listingFieldId(local.id, "item_specifics")} className="listing-field-anchor">
-        {(editor.data?.metadata.category_snapshot?.aspects ?? []).map((aspect) => <label className="label mb-3" key={aspect.name}><span>{aspect.name} {aspect.required ? "(required by eBay)" : "(recommended, not a blocker)"}</span><input aria-label={`${aspect.name} (${aspect.required ? "required by eBay" : "recommended, not a blocker"})`} className="field" value={local.item_specifics.find((row) => row.name.toLowerCase() === aspect.name.toLowerCase())?.value ?? ""} onChange={(event) => {
-          const others = local.item_specifics.filter((row) => row.name.toLowerCase() !== aspect.name.toLowerCase());
-          setLocal({ ...local, item_specifics: [...others, { name: aspect.name, value: event.target.value }] });
-        }} />{aspect.values?.length ? <small className="listing-source">eBay values: {aspect.values.join(", ")}</small> : null}</label>)}
-        <SpecificsEditor rows={local.item_specifics} onChange={(item_specifics) => setLocal({ ...local, item_specifics })} />
+        <ListingSpecifics aspects={editor.data?.metadata.category_snapshot?.aspects ?? []} rows={local.item_specifics} onChange={(item_specifics) => setLocal({ ...local, item_specifics })} customRows={<SpecificsEditor rows={local.item_specifics.filter((row) => !editor.data?.metadata.category_snapshot?.aspects?.some((aspect) => aspect.name.toLowerCase() === row.name.toLowerCase()))} onChange={(custom) => setLocal({ ...local, item_specifics: [...local.item_specifics.filter((row) => editor.data?.metadata.category_snapshot?.aspects?.some((aspect) => aspect.name.toLowerCase() === row.name.toLowerCase())), ...custom] })} />} />
         <FieldSource context={editor.data} field="item_specifics" />
       </div>
       <div id={listingFieldId(local.id, "photos")} className="listing-field-anchor"><PhotoPicker photos={item.photos} selected={local.photo_ids} onChange={(photo_ids) => setLocal({ ...local, photo_ids })} /><FieldSource context={editor.data} field="photo_ids" /></div>
@@ -357,6 +359,12 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         }}
         persistDraft={persistLocal}
       />
+      <ListingSaveBar state={readOnly ? "Read-only history" : autosave.state} disabled={saveMutation.isPending || readOnly} onSave={() => {
+        if (!local.channel_data.listing_duration && editor.data?.effective_duration && local.listing_format === "fixed") {
+          setLocal({ ...local, channel_data: { ...local.channel_data, listing_duration: editor.data.effective_duration } });
+        }
+        saveMutation.mutate();
+      }} />
 
       <ConfirmDialog
         open={pendingGenerate !== null}
@@ -437,19 +445,18 @@ function PhotoPicker({ photos, selected, onChange }: { photos: PhotoAsset[]; sel
         {orderedPhotos.map((photo) => {
           const isSelected = selected.includes(photo.id);
           return (
-            <div className="flex items-center gap-3 rounded border border-slate-800 bg-slate-900 p-2" key={photo.id}>
+            <div className="listing-photo-row" key={photo.id}>
               <label className="flex h-11 w-11 shrink-0 items-center justify-center"><input checked={isSelected} type="checkbox" onChange={(event) => toggle(photo, event.target.checked)} aria-label={`Select photo ${photo.id}`} /></label>
-              {photo.thumb_url ? <img alt="" className="h-12 w-12 rounded object-cover" src={photo.thumb_url} /> : <div className="h-12 w-12 rounded bg-slate-800" />}
+              {photo.thumb_url ? <img alt={`${photo.role || "Item"} photo`} className="listing-photo-thumb" src={photo.thumb_url} /> : <div className="listing-photo-thumb bg-slate-100" />}
               <div className="min-w-0 flex-1 text-xs text-slate-400">
-                <p className="truncate">{photo.role}</p>
-                <p className="truncate">{photo.processed_path || "No processed image"}</p>
+                <p className="font-semibold">{isSelected ? `Photo ${selected.indexOf(photo.id) + 1}` : "Not selected"}</p><p>{photo.role}</p>
               </div>
               {isSelected ? (
                 <div className="flex gap-1">
-                  <button className="icon-button" onClick={() => move(photo.id, -1)} title="Move up" type="button">
+                  <button className="icon-button" disabled={selected.indexOf(photo.id) === 0} onClick={() => move(photo.id, -1)} title="Move up" type="button">
                     <ArrowUp className="h-4 w-4" aria-hidden="true" />
                   </button>
-                  <button className="icon-button" onClick={() => move(photo.id, 1)} title="Move down" type="button">
+                  <button className="icon-button" disabled={selected.indexOf(photo.id) === selected.length - 1} onClick={() => move(photo.id, 1)} title="Move down" type="button">
                     <ArrowDown className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>

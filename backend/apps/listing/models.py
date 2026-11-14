@@ -134,6 +134,7 @@ class ListingDraft(TimeStampedUUIDModel):
 def protect_listing_history(sender, instance, using, **kwargs):
     # The signal also covers queryset deletes and an inventory-item cascade.
     sender.objects.using(using).filter(pk=instance.pk).assert_mutable()
+    raise ValidationError("Listing drafts are retained as history. Archive instead of deleting.")
 
 
 class ChannelListing(TimeStampedUUIDModel):

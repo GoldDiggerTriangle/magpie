@@ -227,7 +227,7 @@ function FieldControl({
   );
 }
 
-function SuggestedTextField({
+export function SuggestedTextField({
   field,
   value,
   onChange
@@ -242,7 +242,8 @@ function SuggestedTextField({
   const [customMode, setCustomMode] = useState(Boolean(currentValue && !selectedSuggestion));
 
   useEffect(() => {
-    setCustomMode(Boolean(currentValue && !suggestions.includes(currentValue)));
+    // Choosing Other clears a seeded value; keep the newly opened custom input.
+    setCustomMode((previous) => currentValue ? !suggestions.includes(currentValue) : previous);
   }, [currentValue, suggestions]);
 
   const selectValue = customMode ? CUSTOM_VALUE : selectedSuggestion ? currentValue : "";

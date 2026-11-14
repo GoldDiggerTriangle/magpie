@@ -526,7 +526,8 @@ def test_boilerplate_api_read_only_crud_and_unauthenticated(api_client, categori
     )
     assert patch.status_code == 200
     delete = api_client.delete(f"/api/listing-drafts/{draft.id}/")
-    assert delete.status_code == 204
+    assert delete.status_code == 400
+    assert ListingDraft.objects.filter(pk=draft.id).exists()
 
     anon = APIClient()
     unauth = anon.get(f"/api/items/{item.id}/listing-drafts/")

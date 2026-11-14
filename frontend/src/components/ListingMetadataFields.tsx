@@ -3,6 +3,7 @@ import { RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
 import { refreshListingMetadata, type ListingEditorContext } from "../api/listing";
 import type { ListingDraft } from "../types";
+import { ListingCategoryBrowse } from "./ListingCategoryBrowse";
 
 export const listingFieldId = (id: string, field: string) => `listing-${id}-${field}`;
 export const channelValue = (draft: ListingDraft, key: string) => String(draft.channel_data[key] ?? "");
@@ -18,6 +19,7 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
 }) {
   const [search, setSearch] = useState("");
   const [requested, setRequested] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
   const metadata = context?.metadata;
   const category = metadata?.category_snapshot;
   const condition = category?.condition_policy;
@@ -43,8 +45,10 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
     <div id={listingFieldId(draft.id, "category_id")} tabIndex={-1} className="listing-field-anchor space-y-2">
       <label className="label"><span>Search eBay category</span><input className="field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="e.g. gold nugget" /></label>
       <button type="button" className="btn-secondary gap-2" disabled={!search.trim() || refresh.isPending} onClick={() => refresh.mutate(search.trim())}><Search size={18} />Search eBay</button>
-      {suggestions.map((option) => <button type="button" className="btn-secondary listing-category-option" key={option.category_id} disabled={option.is_leaf !== true} onClick={() => update({ category_id: option.category_id, category_name: option.category_name, category_tree_id: option.category_tree_id, condition_id: "", listing_duration: "" })}>
-        {option.category_name} · ID {option.category_id}{option.is_leaf !== true ? " (choose a leaf category)" : ""}
+      <button type="button" className="btn-secondary ml-2" aria-expanded={browsing} onClick={() => setBrowsing(!browsing)}>Browse categories</button>
+      {browsing ? <ListingCategoryBrowse draftId={draft.id} starts={Array.from(new Map(suggestions.flatMap((node) => node.ancestors ?? []).map((node) => [node.category_id, node])).values())} onSelect={(node) => { update({ category_id: node.category_id, category_name: node.category_name, category_tree_id: node.category_tree_id || "", ...(node.category_id !== channelValue(draft, "category_id") ? { condition_id: "" } : {}) }); setBrowsing(false); }} /> : null}
+      {suggestions.map((option) => <button type="button" className="btn-secondary listing-category-option" key={option.category_id} disabled={option.is_leaf !== true} onClick={() => update({ category_id: option.category_id, category_name: option.category_name, category_tree_id: option.category_tree_id, ...(option.category_id !== channelValue(draft, "category_id") ? { condition_id: "" } : {}) })}>
+        <span>{(option.category_path?.length ? option.category_path : [option.category_name]).join(" > ")} · ID {option.category_id}{option.is_leaf !== true ? " (choose a leaf category)" : ""}</span>
       </button>)}
       {metadata?.category_search.fetched_at ? <p className="listing-source">{metadata.category_search.provenance} · Fetched: {new Date(metadata.category_search.fetched_at).toLocaleString()}</p> : null}
       <label className="label"><span>Chosen eBay category ID</span><input className="field" inputMode="numeric" value={channelValue(draft, "category_id")} onChange={(event) => update({ category_id: event.target.value, category_name: "", condition_id: "", listing_duration: "" })} /></label>
@@ -63,11 +67,12 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
       <FieldSource context={context} field="condition_id" />
     </label>
     <label className="label listing-field-anchor" id={listingFieldId(draft.id, "listing_duration")}><span>Duration</span>
-      <select aria-label="Duration" className="field" value={channelValue(draft, "listing_duration")} onChange={(event) => update({ listing_duration: event.target.value })}>
+      <select aria-label="Duration" className="field" value={channelValue(draft, "listing_duration") || (draft.listing_format === "fixed" ? context?.effective_duration : "") || ""} onChange={(event) => update({ listing_duration: event.target.value })}>
         <option value="">Choose duration</option>
         {(category?.listing_types?.formats[draft.listing_format === "fixed" ? "FIXED_PRICE_ITEM" : "AUCTION"] ?? []).map((value) => <option key={value} value={value}>{value === "GTC" ? "Good 'Til Cancelled" : value.replace("DAYS_", "") + " days"}</option>)}
         {channelValue(draft, "listing_duration") && !(category?.listing_types?.formats[draft.listing_format === "fixed" ? "FIXED_PRICE_ITEM" : "AUCTION"] ?? []).includes(channelValue(draft, "listing_duration")) ? <option value={channelValue(draft, "listing_duration")}>Saved {channelValue(draft, "listing_duration")} (refresh to validate)</option> : null}
-      </select><FieldSource context={context} field="listing_duration" />
+        {!channelValue(draft, "listing_duration") && draft.listing_format === "fixed" && context?.effective_duration && !(category?.listing_types?.formats.FIXED_PRICE_ITEM ?? []).includes(context.effective_duration) ? <option value={context.effective_duration}>{context.effective_duration} (saved staged duration; refresh to validate)</option> : null}
+      </select><small className="listing-source">Source: {channelValue(draft, "listing_duration") ? context?.sources.listing_duration || "Saved draft" : context?.duration_source || "Not set"}</small>
     </label>
     <div className="grid gap-4">
       {(["payment", "fulfillment", "return"] as const).map((kind) => {
@@ -78,7 +83,7 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
           <label className="label"><span>{kind === "fulfillment" ? "Postage" : kind === "return" ? "Return" : "Payment"} policy</span>
             <select className="field" value={channelValue(draft, key)} onChange={(event) => update({ [key]: event.target.value })}>
               <option value="">Choose policy</option>
-              {options.map((row) => <option key={row.id} value={row.id}>{row.name} | {row.summary}</option>)}
+              {options.map((row) => <option key={row.id} value={row.id}>{row.name}{row.headline ? ` - ${row.headline}` : ""}</option>)}
               {channelValue(draft, key) && !chosen ? <option value={channelValue(draft, key)}>Saved {channelValue(draft, key)} (not in snapshot)</option> : null}
             </select>
           </label>

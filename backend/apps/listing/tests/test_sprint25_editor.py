@@ -91,7 +91,7 @@ def test_required_condition_and_format_duration_are_validated(listing):
 def test_policy_options_are_real_terms_not_names_only(listing):
     policies = editor_context(listing)["metadata"]["policies"]
     postage = policies["fulfillment"][0]
-    assert "AUD 12.50" in postage["summary"] and "2 day" in postage["summary"]
+    assert "$12.50" in postage["summary"] and "2 day" in postage["summary"]
     assert "Australia Post" in postage["summary"]
     assert "30 day" in policies["return"][0]["summary"] and "BUYER" in policies["return"][0]["summary"]
     assert "Immediate payment required" in policies["payment"][0]["summary"]

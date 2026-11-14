@@ -54,6 +54,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../api/listing", () => ({
+  archiveListingDraft: vi.fn(),
+  getListingCategoryChildren: vi.fn(),
   getListingEditor: (...args: unknown[]) => mocks.getListingEditor(...args),
   refreshListingMetadata: vi.fn(),
   createItemListingDraft: vi.fn(),

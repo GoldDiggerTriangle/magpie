@@ -12,7 +12,7 @@ const viteApi = await import(pathToFileURL(require.resolve("vite")));
 const createServer = viteApi.createServer || viteApi.default.createServer;
 const { chromium } = await import(pathToFileURL(process.env.MAGPIE_PLAYWRIGHT_MODULE || "D:/Magpie/scratch/phase3-browser/node_modules/playwright-core/index.mjs"));
 const fixture = JSON.parse(fs.readFileSync(path.join(root, "frontend/src/fixtures/listingEditor.json"), "utf8"));
-const output = path.join(root, "docs/evidence/sprint25/phase3");
+const output = path.join(root, "docs/evidence/sprint25/phase3-fixes");
 fs.mkdirSync(output, { recursive: true });
 const virtual = "virtual:phase3-editor.tsx";
 const html = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><div id="root"></div><script type="module" src="/@id/virtual:phase3-editor.tsx"></script></body></html>';
@@ -26,8 +26,11 @@ const server = await createServer({
       import React from 'react'; import {createRoot} from 'react-dom/client';
       import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
       import {ListingPanel} from '/src/components/ListingPanel.tsx';
+      import {AppShell} from '/src/components/AppShell.tsx';
+      import {MemoryRouter,Routes,Route} from 'react-router-dom';
       import fixture from '/src/fixtures/listingEditor.json'; import '/src/styles/index.css';
-      createRoot(document.getElementById('root')).render(React.createElement(QueryClientProvider,{client:new QueryClient({defaultOptions:{queries:{retry:false}}})},React.createElement('main',{style:{maxWidth:1200,margin:'auto',padding:16}},React.createElement('h1',{style:{fontSize:24,marginBottom:16}},'Isolated listing editor check'),React.createElement(ListingPanel,{item:fixture.item}))));
+      const content=React.createElement('div',{style:{maxWidth:1200,margin:'auto',padding:16}},React.createElement('h1',{style:{fontSize:24,marginBottom:16}},'Isolated listing editor check'),React.createElement(ListingPanel,{item:fixture.item}));
+      createRoot(document.getElementById('root')).render(React.createElement(QueryClientProvider,{client:new QueryClient({defaultOptions:{queries:{retry:false}}})},React.createElement(MemoryRouter,{initialEntries:['/__editor_check/']},React.createElement(Routes,null,React.createElement(Route,{element:React.createElement(AppShell)},React.createElement(Route,{path:'/__editor_check/',element:content}))))));
     ` : undefined; },
     configureServer(vite) { vite.middlewares.use(async (req, res, next) => {
       if (req.url?.split("?")[0] !== "/__editor_check/") return next();
@@ -57,6 +60,11 @@ try {
     if (/\/items\/[^/]+\/listing-drafts\/$/.test(url.pathname) && request.method() === "GET") body = { results: [fixture.draft] };
     else if (url.pathname === "/api/listing-boilerplates/") body = { results: [] };
     else if (url.pathname.endsWith("/editor/")) body = fixture.editor;
+    else if (url.pathname.endsWith("/category-children/")) {
+      const id = url.searchParams.get("category_id");
+      const nodes = { "281": { category_id: "281", category_name: "Jewellery & Watches", is_leaf: false }, "10210": { category_id: "10210", category_name: "Gold", is_leaf: false }, "139965": { category_id: "139965", category_name: "Nugget", is_leaf: true } };
+      body = { category: nodes[id], children: [id === "281" ? nodes["10210"] : nodes["139965"]], fetched_at: "2026-11-14T00:00:00Z", provenance: "Isolated Taxonomy branch fixture", marketplace: "EBAY_AU" };
+    }
     else if (url.pathname === "/api/ebay/status/") body = { connected: true, environment: "production" };
     else if (url.pathname.includes("merchant-location")) body = { location: null };
     else if (request.method() === "PATCH" && url.pathname === `/api/listing-drafts/${fixture.draft.id}/`) {
@@ -78,19 +86,33 @@ try {
   const checkFit = async () => {
     const measured = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth,
       fields: [...document.querySelectorAll(".listing-editor input,.listing-editor select,.listing-editor textarea")].every((node) => node.getBoundingClientRect().right <= innerWidth + 1),
-      buttons: [...document.querySelectorAll(".listing-editor button")].every((node) => node.getBoundingClientRect().height >= 43) }));
+      buttons: [...document.querySelectorAll(".listing-editor button")].filter((node) => node.getClientRects().length).every((node) => node.getBoundingClientRect().height >= 43),
+      save_bottom: document.querySelector('.listing-save-bar').getBoundingClientRect().bottom,
+      nav_top: document.querySelector('.mobile-bottom-nav').getBoundingClientRect().top }));
     assert.ok(measured.scroll <= measured.width, JSON.stringify(measured));
     assert.ok(measured.fields && measured.buttons, JSON.stringify(measured));
+    if (measured.width === 390) assert.ok(measured.save_bottom <= measured.nav_top + 1, JSON.stringify(measured));
     return measured;
   };
   const phone = await checkFit();
   await page.locator(".listing-metadata").screenshot({ path: path.join(output, "phone-metadata.png") });
+  await page.getByRole('button', { name: 'Browse categories' }).click();
+  await page.getByLabel('Browse from category ID').fill('281');
+  await page.getByRole('button', { name: 'Open branch', exact: true }).click();
+  await page.getByRole('button', { name: 'Open Gold', exact: true }).click();
+  await page.getByRole('button', { name: 'Select Nugget', exact: true }).waitFor();
+  await page.getByRole('region', { name: 'Browse eBay categories' }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(output, 'phone-category-browse.png') });
+  await page.getByRole('button', { name: 'Select Nugget', exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("Full human title survives save and resume");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await page.getByText("Saved locally", { exact: true }).waitFor();
+  await page.getByText("Saved", { exact: true }).waitFor();
   assert.equal(fixture.draft.title, "Full human title survives save and resume");
   await page.getByLabel("Title", { exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(output, "phone-title-price.png") });
+  await page.getByText('Photos', { exact: true }).scrollIntoViewIfNeeded();
+  await checkFit();
+  await page.screenshot({ path: path.join(output, 'phone-photos-save.png') });
   await page.reload();
   assert.equal(await page.getByLabel("Title", { exact: true }).inputValue(), "Full human title survives save and resume");
   await checkFit();

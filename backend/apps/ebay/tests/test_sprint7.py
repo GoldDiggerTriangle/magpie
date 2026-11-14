@@ -414,7 +414,8 @@ def test_stage_guards_zero_photo_many_photos_missing_fields_and_conflict(item, c
     with pytest.raises(Exception, match="At least one photo"):
         stage_draft(no_photo)
 
-    no_photo.delete()
+    no_photo.status = ListingDraft.Status.ARCHIVED
+    no_photo.save()
     for index in range(25):
         add_photo(item, f"processed/photo-{index}.jpg")
     too_many = make_draft(item)
@@ -423,12 +424,14 @@ def test_stage_guards_zero_photo_many_photos_missing_fields_and_conflict(item, c
 
     item.photos.all().delete()
     add_photo(item)
-    too_many.delete()
+    too_many.status = ListingDraft.Status.ARCHIVED
+    too_many.save()
     missing = make_draft(item, channel_data={"category_id": ""})
     with pytest.raises(Exception, match="category_id"):
         stage_draft(missing)
 
-    missing.delete()
+    missing.status = ListingDraft.Status.ARCHIVED
+    missing.save()
     # Preserve the pre-B legacy-collision guard test. B now rejects this state
     # at insertion; the constraint is restored by rolling back this savepoint.
     with transaction.atomic():
@@ -439,7 +442,6 @@ def test_stage_guards_zero_photo_many_photos_missing_fields_and_conflict(item, c
         conflict = make_draft(item)
         with pytest.raises(Exception, match="unresolved eBay state"):
             stage_draft(conflict)
-        staged.delete()
         transaction.set_rollback(True)
 
 

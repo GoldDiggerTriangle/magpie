@@ -109,6 +109,9 @@ class EbayTaxonomyAdapter(Protocol):
     def category_details(self, *, category_id: str) -> dict:
         ...
 
+    def category_children(self, *, category_id: str) -> dict:
+        ...
+
     def item_aspects(self, *, category_id: str) -> list[dict]:
         ...
 
@@ -486,6 +489,31 @@ class HttpEbayTaxonomyAdapter:
     def category_details(self, *, category_id: str) -> dict:
         tree_id = self.default_tree_id(marketplace="EBAY_AU")
         return self._category_details(category_id=category_id, tree_id=tree_id)
+
+    def category_children(self, *, category_id: str) -> dict:
+        if not category_id.isdecimal() or int(category_id) <= 0:
+            raise EbayUnavailable("Choose a non-root category branch.")
+        tree_id = self.default_tree_id(marketplace="EBAY_AU")
+        response = _request_json(
+            f"{_api_base(self.environment)}/commerce/taxonomy/v1/category_tree/{quote(tree_id, safe='')}/get_category_subtree?category_id={quote(category_id, safe='')}",
+            access_token=self.access_token, method="GET", headers={"Accept": "application/json"},
+            timeout_seconds=self.timeout_seconds, service_name="eBay taxonomy branch endpoint",
+        )
+        node = response.get("categorySubtreeNode")
+        if not isinstance(node, dict) or str((node.get("category") or {}).get("categoryId")) != category_id:
+            raise EbayUnavailable("eBay did not return the requested category branch.")
+        # eBay returns descendants too: discard those, never recurse or mirror.
+        children = []
+        for child in node.get("childCategoryTreeNodes") or []:
+            if isinstance(child, dict):
+                row = _normalize_category_node(child, tree_id=tree_id)
+                row["is_leaf"] = _leaf_value(child)
+                children.append(row)
+        parent = _normalize_category_node(node, tree_id=tree_id)
+        parent["is_leaf"] = _leaf_value(node)
+        return {"marketplace": "EBAY_AU", "category_tree_id": tree_id,
+                "category": parent,
+                "children": children}
 
     def _category_details(self, *, category_id: str, tree_id: str) -> dict:
         response = _request_json(
@@ -919,6 +947,11 @@ class FakeEbayTaxonomyAdapter:
             "conditions": [{"conditionId": "3000", "conditionDescription": "Used"}],
         }
 
+    def category_children(self, *, category_id: str) -> dict:
+        parent = {"category_id": category_id, "category_name": "Stamps", "category_tree_id": "15", "is_leaf": False}
+        child = {"category_id": "105848", "category_name": "Australian Stamps", "category_tree_id": "15", "is_leaf": True}
+        return {"marketplace": "EBAY_AU", "category_tree_id": "15", "category": parent, "children": [child]}
+
 
     def listing_type_policy(self, *, category_id: str) -> dict:
         return {"category_id": str(category_id), "formats": {
@@ -1190,6 +1223,7 @@ def _normalize_category_suggestion(entry: dict, *, tree_id: str) -> dict:
         "category_name": category_name,
         "name": category_name,
         "category_path": category_path,
+        "ancestors": [{"category_id": str(row.get("categoryId") or ""), "category_name": str(row.get("categoryName") or "")} for row in sorted(entry.get("categoryTreeNodeAncestors") or [], key=_category_node_level) if isinstance(row, dict) and row.get("categoryId") and row.get("categoryName")],
         "is_leaf": is_leaf,
         "child_count": None,
         "source": "ebay",

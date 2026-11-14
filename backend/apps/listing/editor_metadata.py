@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 import re
 
 from django.db import transaction
@@ -37,7 +38,35 @@ def flag(value):
 def money_term(value):
     value = mapping(value)
     amount = value.get("value")
-    return f"{text(value.get('currency'))} {amount}".strip() if amount is not None else "charge not recorded"
+    try:
+        amount = Decimal(str(amount))
+        if not amount.is_finite():
+            raise InvalidOperation
+    except InvalidOperation:
+        return "charge not recorded"
+    if amount == 0:
+        return "Free"
+    currency = text(value.get("currency"))
+    prefix = {"AUD": "$", "USD": "US$", "NZD": "NZ$"}.get(currency)
+    return f"{prefix}{amount:,.2f}" if prefix else f"{amount:,.2f} {currency or '(currency not recorded)'}"
+
+
+def shipping_charge(option, service):
+    if flag(service.get("freeShipping")) is True:
+        return "Free"
+    if option.get("costType") == "CALCULATED":
+        return "Calculated postage"
+    return money_term(service.get("shippingCost"))
+
+
+def domestic_headline(policy):
+    for option in policy.get("shippingOptions") or []:
+        if not isinstance(option, dict) or option.get("optionType") != "DOMESTIC":
+            continue
+        for service in option.get("shippingServices") or []:
+            if isinstance(service, dict):
+                return shipping_charge(option, service)
+    return ""
 
 
 def period(value):
@@ -52,19 +81,18 @@ def policy_terms(kind, policy):
         for option in options:
             if not isinstance(option, dict):
                 continue
-            scope = humanize(option.get("optionType"))
+            scope = humanize(option.get("optionType")).title()
             for service in option.get("shippingServices") or []:
                 if not isinstance(service, dict):
                     continue
-                charge = "free shipping" if flag(service.get("freeShipping")) is True else (
-                    "calculated postage" if option.get("costType") == "CALCULATED" else money_term(service.get("shippingCost"))
-                )
-                terms.append(f"{scope}: {humanize(service.get('shippingServiceCode')) or 'service not recorded'}; {charge}")
-                if service.get("additionalShippingCost") is not None:
+                charge = shipping_charge(option, service)
+                service_name = humanize(text(service.get("shippingServiceCode")).removeprefix("AU_"))
+                terms.append(f"{scope}: {service_name or 'service not recorded'} - {charge}")
+                if service.get("additionalShippingCost") is not None and money_term(service["additionalShippingCost"]) != "Free":
                     terms.append(f"Additional item: {money_term(service['additionalShippingCost'])}")
             if option.get("handlingTime"):
                 terms.append(f"Handling: {period(option['handlingTime'])}")
-        if not any("; " in line for line in terms):
+        if not any(" - " in line for line in terms):
             terms.append("Shipping services and charges not recorded")
         if policy.get("handlingTime"):
             terms.append(f"Handling: {period(policy['handlingTime'])}")
@@ -102,6 +130,7 @@ def policy_options(kind, policies, fetched_at):
         result.append({
             "id": policy_id, "name": text(policy.get("name")) or policy_id,
             "terms": terms, "summary": " | ".join(terms),
+            "headline": domestic_headline(policy) if kind == "fulfillment" else "",
             "fetched_at": fetched_at, "provenance": "eBay Account API saved snapshot",
         })
     return result

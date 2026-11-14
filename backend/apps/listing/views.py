@@ -227,13 +227,47 @@ class ListingDraftViewSet(ModelViewSet):
     def perform_destroy(self, instance):
         try:
             instance.assert_editable()
-            instance.delete()
+            raise ApiValidationError({"detail": "Hard deletion is disabled. Archive the draft to retain its history."})
         except ValidationError as exc:
             raise ApiValidationError(_validation_payload(exc)) from None
+
+    @action(detail=True, methods=["post"], url_path="archive")
+    def archive(self, request, pk=None):
+        from copy import deepcopy
+        from apps.audit.services import record
+        from apps.listing.canonical import completeness_components
+        with transaction.atomic():
+            draft = self.mutable_draft()
+            if str((draft.channel_data or {}).get("offer_id") or "").strip():
+                return Response({"detail": "This draft holds a staged offer. Withdraw it before archiving (Phase 5)."}, status=400)
+            prior = draft.status
+            score = sum(completeness_components(draft).values())
+            data = deepcopy(draft.channel_data or {})
+            data["archived_at"] = timezone.now().isoformat()
+            claimed = ListingDraft.objects.filter(pk=draft.pk, updated_at=draft.updated_at).update(status=ListingDraft.Status.ARCHIVED, channel_data=data, updated_at=timezone.now())
+            if not claimed:
+                return Response({"detail": "Draft changed elsewhere. Reload before archiving."}, status=409)
+            record(actor=request.user, action="listing.draft.archived", target_type="listing_draft", target_id=str(draft.pk), payload={"pre_archive_status": prior, "offer_id": None, "score": score})
+            draft.refresh_from_db()
+        return Response(self.get_serializer(draft).data)
 
     @action(detail=True, methods=["get"], url_path="editor")
     def editor(self, request, pk=None):
         return Response(editor_context(self.get_object(), category_id=request.query_params.get("category_id")))
+
+    @action(detail=True, methods=["get"], url_path="category-children")
+    def category_children(self, request, pk=None):
+        from apps.ebay.services import get_app_access_token
+        import integrations.ebay as ebay
+        self.mutable_draft()
+        category_id = request.query_params.get("category_id", "")
+        if len(category_id) > 30 or not category_id.isdecimal() or int(category_id) <= 0:
+            return Response({"detail": "Choose a non-root category ID to browse."}, status=400)
+        try:
+            result = ebay.get_ebay_taxonomy_adapter(access_token=get_app_access_token()).category_children(category_id=category_id)
+        except EbayUnavailable:
+            return Response({"detail": "Category browse unavailable. Keep the current mapping and retry the metadata connection."}, status=503)
+        return Response({**result, "fetched_at": timezone.now().isoformat(), "provenance": "eBay AU Taxonomy subtree GET; immediate children only"})
 
     @action(detail=True, methods=["post"], url_path="refresh-metadata")
     def refresh_metadata(self, request, pk=None):
