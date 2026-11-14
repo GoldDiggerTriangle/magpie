@@ -1477,3 +1477,80 @@ Read-only ordered-row digests across **all 46 live tables** matched the pre-task
 Run `Restart-Service -Name Magpie` in Administrator PowerShell, then load the live port **8000** app and hard-refresh. On **GSP-00001**, open **Listings / channels -> Listing -> Open listing draft** (Create draft if none), then verify the fields on the phone. Search/refresh metadata explicitly, select category/condition/policies/location yourself, set or confirm the asking price, check photo order, wait for **Saved locally**, leave and reopen to confirm it resumes. On GOLD-00002, any later edits must remain visibly local to offer `356038014011`; **nothing is to be re-staged or published in this phase**.
 
 **Stop point:** awaiting Regan's Administrator restart and phone feedback. No Phase 4 defaults, Phase 5 publish work, Phase 6 top action/layout work or live listing acceptance is claimed.
+
+## 2026-11-14 - Phase 3 Phone Fix Round
+
+**Owner check received:** Regan tested GOLD-00002 / `af013dd9` on his phone and confirmed autosave and the staged-offer warning. This round addresses his follow-up before Phase 4. **New Administrator restart and phone re-check are required. Sprint 25 remains OPEN; no Phase 4 work started.**
+
+Implementation: **`e1b686744fcd5eb8f28114f30067acb526145c9a`**. [Validation **43597158719**](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43597158719) is green on both lanes: SQLite job `132454010357` **303 passed / 1 skipped**, PostgreSQL job `132454010231` **291 passed / 13 skipped**, frontend **139 passed / 34 files**, typecheck/build/collectstatic/deploy/smoke PASS. Local full backend also **303 passed / 1 skipped**, frontend **139 passed**, typecheck/build PASS; Django check PASS and **No changes detected**. Local collectstatic copied 7 files, retained 155 and post-processed 425. No dependency, setting or schema change; no migration, service restart, live save or eBay call by Codex.
+
+### Fixes And Limits
+
+1. **Category Browse:** explicit Browse beside search, breadcrumb, one chosen branch per request, only explicit leaf results selectable; immediate children only are returned to the browser, with provenance/fetched_at. No root-tree request, recursive traversal, database mirror or implicit category selection. Search now renders the full ancestor path and exposes ancestor IDs as browse starting points. Browse starts from a search ancestor or an entered known category ID.
+   **API limitation / open owner choice:** eBay's [Taxonomy OpenAPI](https://developer.ebay.com/api-docs/master/commerce/taxonomy/openapi/3/commerce_taxonomy_v1_oas3.json) has no depth-limited subtree parameter, and subtree calls do not accept the tree root. Each selected branch can therefore contain deeper descendants on the wire; the adapter discards them rather than recursing or storing them. This is one-level UI/storage, not a falsely claimed one-level eBay response. Codex asked whether a small data registry of AU top-level starting IDs is acceptable; no answer was received in this round, so no guessed starter registry or complete-tree download was added. A literal one-level-from-root fetch is **not claimed**.
+2. **Policy pickers:** option text is policy name plus only its first recorded domestic-service price headline, where present. Full actual terms stay in a readable block below: one service per line, handling, return and payment terms. AUD amounts render as **$23.95**, explicit zero as **Free**, not `AUD 0.0`; zero additional-item noise is omitted. Missing charges still say not recorded. No shipping price is inferred or substituted from another policy.
+3. **Specifics:** required aspects render first. eBay value lists reuse the Sprint 23 native select/chevron plus **Other / custom...** control; no raw value-list dumps. Recommended fields are collapsed under **Recommended (n)**, and additional/custom rows remain available separately. The seeded-value-to-custom regression was fixed in the shared picker. Metadata/provenance refresh after autosave retains the current field DOM, so the picker/focus does not disappear while editing. Existing custom values remain untouched; **Maryborough was not corrected by Codex**.
+4. **Photos:** 88px contained thumbnails, visible selected order and role, 44px selection/reorder targets, up/down buttons with edge disabling, no filesystem paths. Order saves/resumes; only the item's own photo IDs are accepted. No image content processing was changed.
+5. **Save:** a bottom-of-editor action bar keeps Save and **Saved** together. While this editor is visible it remains above the actual measured bottom navigation; it hides when the editor leaves view. The browser check initially caught a non-working CSS-only sticky footer, which was replaced with measured positioning. In the 390px proof, Save bottom and navigation top both measure **707px**.
+6. **Delete -> Archive:** previously the button issued HTTP DELETE, and `perform_destroy` physically deleted an editable draft. A staged-but-unpublished draft was considered editable, so that old path could remove its local record without withdrawing its eBay offer. It was **not** an eBay take-down action. Now there is a confirmed **Archive** action, no hard-delete button, API DELETE refuses, and model/queryset/cascade deletion is also guarded. Archive retains the row read-only and records an audit row. A draft holding any offer ID is disabled in the UI and rejected server-side; generic PATCH cannot erase the offer ID or bypass the archive action. The later path is withdraw-then-archive in Phase 5, not an automatic withdraw here. Pending human edits are saved before opening archive confirmation.
+7. **Duration cause and repair:** the live local value is actually blank, not merely unread. The Phase 3 category-selection handler unconditionally cleared `listing_duration`, including same-category selection. The saved Phase 0 offer payload still records **FIXED_PRICE / GTC**, and the cached category policy permits GTC. Selection no longer clears duration. The editor shows GTC recovered from the matching saved staged payload, with an explicit **local duration is blank** source label; a GET performs no repair write. Human Save confirms it into the local draft. An explicit local duration wins; auction or mismatched-category state does not silently inherit GTC.
+
+### Read-Only Comparison With Phase 0
+
+Reference: this file's **Phase 0: Diagnostic Staging Passed - 13 November 2026**, **Live Metadata And Regan's Explicit Picks** table, and the matching saved `last_payload_snapshot` for offer `356038014011`. **No fresh eBay read or write was made**; this comparison is against what was staged then, not an assertion of today's remote eBay state.
+
+| Field | Phase 0 staged value | Local value at start of this fix round |
+| --- | --- | --- |
+| Price | AUD $360.00, Regan's figure | **AUD $355.00** |
+| Postage policy | F4 `186497669020`, **express 1 day reg inter.** | **`90915942020`, Default Postage, Standard, Express, New Zealand.** |
+| Duration | **GTC** | **Blank**; recovered in the view only, awaiting a human Save |
+| Item specifics | Metal = gold; Form = nugget; Weight = 1.4 g | Same three, plus **Region of Origin = Australia; Country of Origin = Maryborough; Composition = Gold** |
+| Title | **1.4g gold nugget** | Same |
+| Description | Saved Phase 0 HTML | Exact same content, 474 characters |
+| Format / currency / quantity | FIXED_PRICE / AUD / 1 | Same |
+| Category | **139965 Nugget**, tree 15 | Same |
+| Condition | Not required, no condition sent | Local condition ID blank; same no-condition category |
+| Payment / returns | P1 `82010246020` / R5 `272504343020` | Same IDs |
+| Merchant location | **MARYBOROUGH-AU** | Same |
+| Photos | Six EPS image URLs | Six selected own photos. The saved payload has no local-ID/order crosswalk, so exact original local-ID order is **not asserted** |
+| Draft / offer | `af013dd9-0611-431c-be4a-223c44ec4e06` / **356038014011**, staged unpublished at Phase 0 | Same local identifiers; no restage or publish performed |
+
+Regan explicitly confirmed Maryborough was his own entry, not a prefill bug. Every value above was preserved. No price, policy, specific, duration or photo was changed in the live draft by this task.
+
+### Itemised Phase 3 Confirmation
+
+| Original requirement | Implementation / proof |
+| --- | --- |
+| Title editable, source, 80-character counter | PASS: full-string round-trip and in-flight-response/refetch regressions remain green |
+| Category live search, chosen ID/name | PASS: explicit metadata search, complete result path, ID/name; leaf-only bounded browse added, with the root/depth API limitation above |
+| Condition valid for chosen category; conditionless 139965 | PASS: snapshot options or **Not used by this category**; conditionless, required-condition and unused legacy-condition tests |
+| Required/recommended specifics; only required aspects block | PASS: required-first controls, collapsed optional fields, required-only backend gate; native picker and custom-save tests |
+| Format and valid duration | PASS: fixed/auction controls, category-policy options, no same-category reset; GTC read-only recovery and explicit-save regression |
+| Price from D-129 sources with label | PASS: explicit human asking or human-picked owned evidence; unknown basis/unrelated currency/record rejection, no AI/valuation default or regeneration |
+| Quantity editable | PASS: positive quantity save/resume; remaining-stock defaults remain Phase 8, not claimed here |
+| Photos select/reorder, at least one | PASS: own-ID validation, large thumbnails/44px controls, order save/resume, required-photo gate and 390px proof |
+| Payment / postage / return dropdowns with real terms | PASS: short picker plus complete recorded terms beneath; price/free/missing-cost formatter regressions |
+| Merchant location | PASS: explicit dropdown of existing verified records, ID/name/address and provenance; no Inventory API calls |
+| Editable description, copy-pack default | PASS: privacy-filtered template default, editable body/preview and full-field resume tests; live description untouched |
+| Offline snapshots, fetched_at/provenance, explicit refresh | PASS: cached context reads are offline; missing/stale state labelled; refresh is deliberate and metadata-only; browse snapshots are transient/current-level only |
+| Every readiness blocker named, jump links | PASS: named checks/counts, focus links, required-only aspects and missing-field regressions |
+| Autosave and resume | PASS: Regan's GOLD-00002 phone note plus automated full-field/price/custom-specific/photo-order resume, conflict and stale-response tests; metadata refresh no longer remounts the active picker |
+| Staged edits stay local and visibly not yet on eBay | PASS: Regan's phone note, retained drift warning/ID, API no-auto-stage tests, unchanged live-table digests |
+| Entry points use canonical draft | PASS: item Listing create/open and Quick card's **Edit canonical listing draft** use the canonical endpoint; backend reuse and both shared-query refresh paths remain tested. Legacy preview/hub consolidation remains Phases 5-6, not prematurely claimed |
+| No item-page layout change | PASS: `ItemDetail.tsx` byte digest unchanged; no top action or tabs added |
+
+### Screenshots And Preservation
+
+These are isolated browser/fixture proofs using the real editor, stylesheet and AppShell navigation, **not new live iPhone acceptance**:
+
+- [Phone category browse and breadcrumb](docs/evidence/sprint25/phase3-fixes/phone-category-browse.png)
+- [Phone policy pickers and full terms](docs/evidence/sprint25/phase3-fixes/phone-metadata.png)
+- [Phone photos and Save above navigation](docs/evidence/sprint25/phase3-fixes/phone-photos-save.png)
+- [Phone title / price](docs/evidence/sprint25/phase3-fixes/phone-title-price.png)
+- [Desktop editor](docs/evidence/sprint25/phase3-fixes/desktop-editor.png)
+
+Browser widths: **390 / scroll 390** and **1440 / scroll 1440**, fields fit and visible button targets >=44px, Save above navigation, full title saved/reloaded, **zero unexpected requests / zero page errors**. Every API was intercepted; the harness explicitly disables the production proxy and blocks non-local destinations.
+
+All **46 live table digests** match this round's pre-task baseline: **8 drafts, 1 ChannelListing, 156 audit rows, 53 migration records**. Protected environment/dependency/spec files and the pre-existing untracked `CLAUDE_STRUCTURAL_AUDIT.md` remain untouched; the previous evidence is preserved verbatim. Secret scan PASS. No migration or new encrypted-data operation was needed.
+
+**Stop:** Regan restarts Magpie as Administrator and re-checks GOLD-00002 on his phone. In particular: Browse/search path, actual policy terms, Country of Origin picker/custom value, recommended folding, photo order, Save above nav, disabled Archive and recovered GTC. Regan corrects Maryborough himself. Do not stage, withdraw or publish; Phase 4 has not begun. Root starting-point registry remains an explicit owner choice, not a silently invented mapping.
