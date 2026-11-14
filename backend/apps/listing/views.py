@@ -427,7 +427,10 @@ def create_generated_draft(item, *, channel="ebay_au") -> ListingDraft:
     currency = item.currency or "AUD"
     title = item.title
     description = description_default(item)
-    meta["editor_sources"] = {"title": "Item title", "description_html": "eBay copy-pack template", "item_specifics": "Allowlisted item fields", "photo_ids": "Item's own photos", "quantity": "Draft default (confirm remaining stock)"}
+    from apps.listing.defaults import apply_new_defaults
+    defaults = apply_new_defaults(item) if channel == "ebay_au" else {"listing_format": "fixed", "quantity": item.quantity_remaining, "channel_data": {}, "origins": {}, "checks": []}
+    meta["editor_sources"] = {"title": "Item title", "description_html": "eBay copy-pack template", "item_specifics": "Allowlisted item fields", "photo_ids": "Item's own photos", **defaults.pop("origins")}
+    meta["listing_defaults_review"] = defaults.pop("checks")
     photo_ids = [
         str(photo.id)
         for photo in item.photos.order_by("order_index", "created_at")
@@ -443,6 +446,7 @@ def create_generated_draft(item, *, channel="ebay_au") -> ListingDraft:
         price=price,
         currency=currency,
         generated_meta=meta,
+        **defaults,
     )
 
 

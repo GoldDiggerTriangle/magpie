@@ -1,12 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
-import { getListingCategoryChildren, type CategoryBranchNode } from "../api/listing";
+import { getListingCategoryChildren, type CategoryBranchNode, type CategoryBranch } from "../api/listing";
 
-export function ListingCategoryBrowse({ draftId, starts, onSelect }: { draftId: string; starts: CategoryBranchNode[]; onSelect: (node: CategoryBranchNode) => void }) {
+export function ListingCategoryBrowse({ draftId, starts, onSelect, browseCategory }: { draftId: string; starts: CategoryBranchNode[]; onSelect: (node: CategoryBranchNode) => void; browseCategory?: (id: string) => Promise<CategoryBranch> }) {
   const [trail, setTrail] = useState<CategoryBranchNode[]>([]);
   const [categoryId, setCategoryId] = useState("");
-  const browse = useMutation({ mutationFn: ({ node }: { node: CategoryBranchNode; next: CategoryBranchNode[] }) => getListingCategoryChildren(draftId, node.category_id),
+  const browse = useMutation({ mutationFn: ({ node }: { node: CategoryBranchNode; next: CategoryBranchNode[] }) => browseCategory ? browseCategory(node.category_id) : getListingCategoryChildren(draftId, node.category_id),
     onSuccess: (branch, variables) => setTrail([...variables.next, branch.category]) });
   const open = (node: CategoryBranchNode, next = trail) => browse.mutate({ node, next });
   return <section aria-label="Browse eBay categories" className="space-y-3 border-t pt-3">

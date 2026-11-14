@@ -211,8 +211,7 @@ def editor_metadata(draft, *, category_id=None):
     }
 
 
-def refresh_editor_metadata(draft, *, category_id="", query="", actor=None):
-    draft.assert_editable()
+def fetch_editor_metadata(*, category_id="", query="", actor=None, allow_nonleaf=False):
     category_id, query = text(category_id), text(query)
     adapter = ebay.get_ebay_taxonomy_adapter(access_token=get_app_access_token())
     fetched = timezone.now().isoformat()
@@ -225,15 +224,26 @@ def refresh_editor_metadata(draft, *, category_id="", query="", actor=None):
         details = adapter.category_details(category_id=category_id)
         if details.get("is_leaf") is not True:
             from django.core.exceptions import ValidationError
-            raise ValidationError({"category_id": "Choose a leaf eBay category."})
+            if not (allow_nonleaf and details.get("is_leaf") is False):
+                raise ValidationError({"category_id": "Choose a leaf eBay category."})
         category = {
             "category": details, "aspects": adapter.item_aspects(category_id=category_id),
             "condition_policy": {**adapter.item_condition_policy(category_id=category_id), "marketplace": MARKETPLACE, "fetched_at": fetched},
             "listing_types": adapter.listing_type_policy(category_id=category_id),
             "fetched_at": fetched, "provenance": "eBay Taxonomy + Sell Metadata API GETs",
+            "environment": ebay.effective_environment(), "marketplace": MARKETPLACE,
+        } if details.get("is_leaf") is True else {
+            "category": details, "fetched_at": fetched, "provenance": "eBay Taxonomy API GET: category is not a leaf",
+            "environment": ebay.effective_environment(), "marketplace": MARKETPLACE,
         }
     if not query:
         refresh_account_snapshot(actor=actor)
+    return category, search
+
+
+def refresh_editor_metadata(draft, *, category_id="", query="", actor=None):
+    draft.assert_editable()
+    category, search = fetch_editor_metadata(category_id=category_id, query=query, actor=actor)
     # Network work is complete before the short local update. Preserve any newer
     # human edits; refreshing metadata must never replace listing field values.
     with transaction.atomic():

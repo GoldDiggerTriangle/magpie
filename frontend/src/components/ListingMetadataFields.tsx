@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
-import { refreshListingMetadata, type ListingEditorContext } from "../api/listing";
+import { refreshListingMetadata, type ListingEditorContext, type CategoryBranch } from "../api/listing";
 import type { ListingDraft } from "../types";
 import { ListingCategoryBrowse } from "./ListingCategoryBrowse";
 
@@ -12,10 +12,11 @@ export function FieldSource({ context, field }: { context?: ListingEditorContext
   return <small className="listing-source">Source: {context?.sources[field] || "Saved draft; source not recorded"}</small>;
 }
 
-export function ListingMetadataFields({ draft, context, onChange, flush, onRefreshed }: {
+export function ListingMetadataFields({ draft, context, onChange, flush, onRefreshed, metadataPort }: {
   draft: ListingDraft; context?: ListingEditorContext;
   onChange: (draft: ListingDraft) => void; flush: () => Promise<ListingDraft>;
   onRefreshed: (draft: ListingDraft) => void;
+  metadataPort?: { refresh: (options: { category_id: string; query?: string }) => Promise<ListingEditorContext>; browse: (id: string) => Promise<CategoryBranch> };
 }) {
   const [search, setSearch] = useState("");
   const [requested, setRequested] = useState(false);
@@ -27,6 +28,7 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
   const refresh = useMutation({
     mutationFn: async (query?: string) => {
       await flush();
+      if (metadataPort) return { draft, editor: await metadataPort.refresh({ category_id: channelValue(draft, "category_id"), ...(query ? { query } : {}) }) };
       return refreshListingMetadata(draft.id, { category_id: channelValue(draft, "category_id"), ...(query ? { query } : {}) });
     },
     onSuccess: (result) => { onRefreshed(result.draft); setRequested(true); }
@@ -46,7 +48,7 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
       <label className="label"><span>Search eBay category</span><input className="field" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="e.g. gold nugget" /></label>
       <button type="button" className="btn-secondary gap-2" disabled={!search.trim() || refresh.isPending} onClick={() => refresh.mutate(search.trim())}><Search size={18} />Search eBay</button>
       <button type="button" className="btn-secondary ml-2" aria-expanded={browsing} onClick={() => setBrowsing(!browsing)}>Browse categories</button>
-      {browsing ? <><p className="listing-source">{metadata?.browse_starts_provenance}</p><ListingCategoryBrowse draftId={draft.id} starts={Array.from(new Map([...(metadata?.browse_starts ?? []), ...suggestions.flatMap((node) => node.ancestors ?? [])].map((node) => [node.category_id, node])).values())} onSelect={(node) => { update({ category_id: node.category_id, category_name: node.category_name, category_tree_id: node.category_tree_id || "", ...(node.category_id !== channelValue(draft, "category_id") ? { condition_id: "" } : {}) }); setBrowsing(false); }} /></> : null}
+      {browsing ? <><p className="listing-source">{metadata?.browse_starts_provenance}</p><ListingCategoryBrowse draftId={draft.id} browseCategory={metadataPort?.browse} starts={Array.from(new Map([...(metadata?.browse_starts ?? []), ...suggestions.flatMap((node) => node.ancestors ?? [])].map((node) => [node.category_id, node])).values())} onSelect={(node) => { update({ category_id: node.category_id, category_name: node.category_name, category_tree_id: node.category_tree_id || "", ...(node.category_id !== channelValue(draft, "category_id") ? { condition_id: "" } : {}) }); setBrowsing(false); }} /></> : null}
       {suggestions.map((option) => <button type="button" className="btn-secondary listing-category-option" key={option.category_id} disabled={option.is_leaf !== true} onClick={() => update({ category_id: option.category_id, category_name: option.category_name, category_tree_id: option.category_tree_id, ...(option.category_id !== channelValue(draft, "category_id") ? { condition_id: "" } : {}) })}>
         <span>{(option.category_path?.length ? option.category_path : [option.category_name]).join(" > ")} · ID {option.category_id}{option.is_leaf !== true ? " (choose a leaf category)" : ""}</span>
       </button>)}

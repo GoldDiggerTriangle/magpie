@@ -39,6 +39,7 @@ def has_failures(draft) -> bool:
 def _fail_checks(draft) -> list[Check]:
     photo_resolution = resolve_photo_ids(draft)
     return [
+        _check("listing_format", draft.listing_format in {"fixed", "auction"}, "Listing format is set.", "Choose a listing format."),
         _check(
             "no_photos",
             bool(draft.photo_ids),

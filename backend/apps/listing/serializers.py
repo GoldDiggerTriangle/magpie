@@ -173,6 +173,23 @@ class ListingDraftSerializer(serializers.ModelSerializer):
         return self._save_fields(instance, validated_data)
 
     def _save_fields(self, instance, validated_data):
+        meta = deepcopy(validated_data.get("generated_meta", instance.generated_meta) or {})
+        origins = meta.setdefault("editor_sources", {})
+        changed = set()
+        for key in LISTING_FIELDS:
+            if key in validated_data and validated_data[key] != getattr(instance, key):
+                changed.add(key)
+                origins[key] = "Human edit in listing editor"
+        incoming = validated_data.get("channel_data", {})
+        if "channel_data" in validated_data and isinstance(incoming, dict):
+            for key in EDITABLE_CHANNEL_FIELDS:
+                if incoming.get(key) != instance.channel_data.get(key):
+                    changed.add(key)
+                    origins[key] = "Human selection in listing editor"
+        if "category_id" in changed and "condition_id" not in changed:
+            origins.pop("condition_id", None)
+        meta["listing_defaults_review"] = [row for row in meta.get("listing_defaults_review", []) if row.get("field") not in changed]
+        validated_data["generated_meta"] = meta
         if "title" in validated_data and validated_data["title"] != instance.title:
             validated_data["title_edited"] = True
         if (

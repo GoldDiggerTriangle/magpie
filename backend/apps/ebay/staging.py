@@ -184,6 +184,8 @@ def _locked_draft(pk) -> ListingDraft:
 
 
 def _guard_stageable(draft: ListingDraft) -> dict | None:
+    if draft.listing_format not in {ListingDraft.Format.FIXED, ListingDraft.Format.AUCTION}:
+        raise ValidationError("Choose a listing format before staging; an empty format is not an auction.")
     if draft.status == ListingDraft.Status.PUBLISHED:
         raise ValidationError("Published drafts cannot be staged again.")
     if draft.item.status in {InventoryItem.Status.SOLD, InventoryItem.Status.ARCHIVED}:

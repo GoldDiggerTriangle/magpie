@@ -35,6 +35,7 @@ import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { EmptyState } from "../../components/EmptyState";
 import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncResult, EbayStatus, ProfitSettings, RoiBasis, SellerMode } from "../../types";
 import { formatUsd } from "../../utils/currency";
+import { ListingDefaultsPanel } from "../../components/ListingDefaultsPanel";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -205,6 +206,7 @@ export function EbaySettings() {
             status={status.data}
             error={errorText(policyMutation.error)}
           />
+          <ListingDefaultsPanel />
           <AIProviderPanel
             apiKey={aiApiKey}
             configureError={errorText(aiConfigureMutation.error)}

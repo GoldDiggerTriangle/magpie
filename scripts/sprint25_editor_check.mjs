@@ -16,7 +16,12 @@ const starters = JSON.parse(fs.readFileSync(path.join(root, "backend/apps/listin
 fixture.editor.metadata.browse_starts = starters.categories;
 fixture.editor.metadata.browse_starts_provenance = starters.provenance;
 const starterOnly = process.env.MAGPIE_STARTER_PROOF_ONLY === "1";
-const output = path.join(root, "docs/evidence/sprint25/phase3-fixes");
+const defaultsOnly = process.env.MAGPIE_DEFAULTS_PROOF_ONLY === "1";
+const output = path.join(root, "docs/evidence/sprint25", defaultsOnly ? "phase4-defaults" : "phase3-fixes");
+const defaultKeys = ["category_id", "category_name", "category_tree_id", "condition_id", "payment_policy_id", "fulfillment_policy_id", "return_policy_id", "merchant_location_key", "listing_format", "listing_duration"];
+let defaultValues = Object.fromEntries(defaultKeys.map((key) => [key, key === "listing_format" ? fixture.draft.listing_format : String(fixture.draft.channel_data[key] ?? "")]).filter(([, value]) => value));
+let defaultRevision = "fixture-defaults-1";
+const defaultPayload = () => ({ category: fixture.item.category, category_name: fixture.item.category_name, values: defaultValues, revision: defaultRevision, updated_at: null, editor: { ...fixture.editor, sources: Object.fromEntries(defaultKeys.map((key) => [key, `Human-set ${fixture.item.category_name} defaults`])) }, validation: [] });
 fs.mkdirSync(output, { recursive: true });
 const virtual = "virtual:phase3-editor.tsx";
 const html = '<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><div id="root"></div><script type="module" src="/@id/virtual:phase3-editor.tsx"></script></body></html>';
@@ -30,10 +35,11 @@ const server = await createServer({
       import React from 'react'; import {createRoot} from 'react-dom/client';
       import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
       import {ListingPanel} from '/src/components/ListingPanel.tsx';
+      import {ListingDefaultsPanel} from '/src/components/ListingDefaultsPanel.tsx';
       import {AppShell} from '/src/components/AppShell.tsx';
       import {MemoryRouter,Routes,Route} from 'react-router-dom';
       import fixture from '/src/fixtures/listingEditor.json'; import '/src/styles/index.css';
-      const content=React.createElement('div',{style:{maxWidth:1200,margin:'auto',padding:16}},React.createElement('h1',{style:{fontSize:24,marginBottom:16}},'Isolated listing editor check'),React.createElement(ListingPanel,{item:fixture.item}));
+      const content=React.createElement('div',{style:{maxWidth:1200,margin:'auto',padding:16}},React.createElement('h1',{style:{fontSize:24,marginBottom:16}},'Isolated ${defaultsOnly ? "listing defaults" : "listing editor"} check'),${defaultsOnly ? "React.createElement(ListingDefaultsPanel)" : "React.createElement(ListingPanel,{item:fixture.item})"});
       createRoot(document.getElementById('root')).render(React.createElement(QueryClientProvider,{client:new QueryClient({defaultOptions:{queries:{retry:false}}})},React.createElement(MemoryRouter,{initialEntries:['/__editor_check/']},React.createElement(Routes,null,React.createElement(Route,{element:React.createElement(AppShell)},React.createElement(Route,{path:'/__editor_check/',element:content}))))));
     ` : undefined; },
     configureServer(vite) { vite.middlewares.use(async (req, res, next) => {
@@ -61,7 +67,23 @@ try {
     const key = `${request.method()} ${url.pathname}`;
     calls.push(key);
     let body;
-    if (/\/items\/[^/]+\/listing-drafts\/$/.test(url.pathname) && request.method() === "GET") body = { results: [fixture.draft] };
+    if (url.pathname.startsWith("/api/listing-defaults/")) {
+      if (url.pathname === "/api/listing-defaults/") body = { categories: [{ id: fixture.item.category, name: fixture.item.category_name, configured: true }] };
+      else if (url.pathname.endsWith("/preview/")) {
+        const values = Object.fromEntries(Object.entries(request.postDataJSON().values).filter(([, value]) => value));
+        assert.ok(Object.keys(values).every((key) => defaultKeys.includes(key)));
+        body = { values, expected_revision: defaultRevision, category_name: fixture.item.category_name,
+          changes: defaultKeys.filter((key) => (defaultValues[key] || "") !== (values[key] || "")).map((key) => ({ field: key, label: ({ listing_format: "Format", listing_duration: "Duration" })[key] || key.replaceAll("_", " "), before: defaultValues[key] || "", after: values[key] || "", clears: Boolean(defaultValues[key] && !values[key]) })) };
+      } else if (request.method() === "PUT") {
+        const submitted = request.postDataJSON();
+        assert.equal(submitted.expected_revision, defaultRevision);
+        defaultValues = submitted.values;
+        defaultRevision += "-saved";
+        body = defaultPayload();
+      } else if (request.method() === "GET") body = defaultPayload();
+      else { unexpected.push(key); return route.abort(); }
+    }
+    else if (/\/items\/[^/]+\/listing-drafts\/$/.test(url.pathname) && request.method() === "GET") body = { results: [fixture.draft] };
     else if (url.pathname === "/api/listing-boilerplates/") body = { results: [] };
     else if (url.pathname.endsWith("/editor/")) body = fixture.editor;
     else if (url.pathname.endsWith("/category-children/")) {
@@ -85,6 +107,46 @@ try {
     return route.fulfill({ json: body });
   });
   await page.goto(origin + "/__editor_check/");
+  if (defaultsOnly) {
+    await page.getByRole("button", { name: `${fixture.item.category_name} · Set` }).click();
+    await page.getByLabel("Default format").waitFor();
+    const fit = async () => {
+      const measured = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth,
+        fields: [...document.querySelectorAll("input,select,textarea")].filter((node) => node.getClientRects().length).every((node) => node.getBoundingClientRect().right <= innerWidth + 1),
+        buttons: [...document.querySelectorAll("button")].filter((node) => node.getClientRects().length).every((node) => node.getBoundingClientRect().height >= 43) }));
+      assert.ok(measured.width === measured.scroll && measured.fields && measured.buttons, JSON.stringify(measured));
+      return measured;
+    };
+    const phone = await fit();
+    await page.screenshot({ path: path.join(output, "phone-defaults.png") });
+    await page.getByLabel("Default format").selectOption("auction");
+    await page.getByRole("button", { name: "Review and save defaults" }).click();
+    await page.getByText("Clears existing default", { exact: true }).waitFor();
+    const preview = page.getByRole("region", { name: `${fixture.item.category_name} defaults change preview` });
+    await preview.scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: "Confirm defaults changes" }).scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const button = [...document.querySelectorAll("button")].find((node) => node.textContent === "Cancel");
+      const nav = document.querySelector(".mobile-bottom-nav");
+      if (button && nav) window.scrollBy(0, Math.max(0, button.getBoundingClientRect().bottom - nav.getBoundingClientRect().top + 16));
+    });
+    await fit();
+    await page.screenshot({ path: path.join(output, "phone-defaults-clearing-preview.png") });
+    assert.ok(!calls.some((key) => key.startsWith("PUT ")));
+    await page.getByRole("button", { name: "Confirm defaults changes" }).click();
+    await page.getByText(/defaults saved. Existing drafts are unchanged/).waitFor();
+    assert.equal(defaultValues.listing_format, "auction");
+    assert.equal(defaultValues.listing_duration, undefined);
+    await page.reload();
+    await page.getByRole("button", { name: `${fixture.item.category_name} · Set` }).click();
+    assert.equal(await page.getByLabel("Default format").inputValue(), "auction");
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const desktop = await fit();
+    await page.screenshot({ path: path.join(output, "desktop-defaults.png") });
+    assert.deepEqual(unexpected, []); assert.deepEqual(errors, []);
+    assert.ok(!calls.some((key) => /stage|publish|withdraw|listing-drafts/.test(key)));
+    console.log(JSON.stringify({ phone, desktop, defaults_confirm_and_resume: true, price_or_quantity_defaults: false, unexpected_requests: unexpected.length, page_errors: errors.length, live_database_access: false }));
+  } else {
   await page.getByLabel("Title", { exact: true }).waitFor();
   await page.getByText("Not used by this category", { exact: true }).waitFor();
   const checkFit = async () => {
@@ -128,6 +190,7 @@ try {
   assert.deepEqual(errors, []);
   assert.ok(!calls.some((value) => /stage|publish|withdraw|aspects-check|staged-review/.test(value)));
   console.log(JSON.stringify({ phone, desktop, local_save_and_resume: true, unexpected_requests: unexpected.length, page_errors: errors.length, api_requests: calls.length, live_database_access: false }));
+  }
 } catch (error) {
   console.error(JSON.stringify({ browser_errors: errors }));
   throw error;

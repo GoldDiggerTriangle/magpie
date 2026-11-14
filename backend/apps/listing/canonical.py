@@ -180,5 +180,8 @@ def get_or_create_canonical_draft(item, *, channel="ebay_au", create_new):
             }
             fields["channel_data"] = {key: deepcopy(value) for key, value in mapping(source.channel_data).items() if key in RELIST_CHANNEL_FIELDS}
             fields["generated_meta"] = {"relisted_from": str(source.pk)}
+            fields["quantity"] = item.quantity_remaining
+            fields["generated_meta"]["editor_sources"] = {key: "Published draft relisting seed" for key in (*fields, *RELIST_CHANNEL_FIELDS) if key != "generated_meta"}
+            fields["generated_meta"]["editor_sources"]["quantity"] = "Item remaining stock (total minus sold)"
             return ListingDraft.objects.create(item=item, channel=channel, **fields), True
         return create_new(), True

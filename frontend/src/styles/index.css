@@ -2699,3 +2699,6 @@
   padding: 0.75rem 0;
   font-weight: 600;
 }
+/* Defaults reuse the listing pickers, including comfortable review targets. */
+.listing-defaults-panel button,
+.listing-default-save button { min-height: 44px; }

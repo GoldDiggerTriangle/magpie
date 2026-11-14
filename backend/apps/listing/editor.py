@@ -140,7 +140,7 @@ def readiness(draft, metadata=None):
     checks = []
     targets = {"no_photos": "photos", "photos_unresolvable": "photos", "title_missing": "title",
                "title_too_long": "title", "description_missing": "description_html", "price_invalid": "price",
-               "quantity_invalid": "quantity", "item_unavailable": "quantity"}
+               "quantity_invalid": "quantity", "item_unavailable": "quantity", "listing_format": "listing_format"}
     for check in check_readiness(draft):
         # Legacy valuation comparisons and global grading are not listing metadata.
         if check.level == "fail":
@@ -182,6 +182,18 @@ def readiness(draft, metadata=None):
         and price.get("currency") == draft.currency, "Confirm the price source: human asking price or human-picked evidence.", "price")
     add("metadata_age", not metadata["category_stale"] and not metadata["policies_stale"],
         "Metadata is missing or older than 7 days; refresh before final review.", "category_id", warning=True)
+    review = mapping(draft.generated_meta).get("listing_defaults_review", [])
+    if any(row.get("state") == "unchecked" for row in review if isinstance(row, dict)):
+        from apps.listing.defaults import DEFAULT_FIELDS, evaluate_defaults
+        current = {key: text(draft.listing_format if key == "listing_format" else data.get(key)) for key in DEFAULT_FIELDS}
+        _, rechecked = evaluate_defaults({key: value for key, value in current.items() if value}, metadata)
+        by_field = {row["field"]: row for row in rechecked}
+        review = [row if row.get("state") != "unchecked" else by_field.get(row["field"]) for row in review]
+    for row in review:
+        if isinstance(row, dict) and row.get("state") in {"invalid", "unchecked"}:
+            checks.append({"key": f"default:{row['field']}", "field": row["field"],
+                           "level": "fail" if row["state"] == "invalid" else "warn",
+                           "message": row["message"] + f" Snapshot: {row.get('fetched_at') or 'unavailable'}. Refresh from eBay to check."})
     return checks
 
 

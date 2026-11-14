@@ -9,7 +9,11 @@ import { ListingPanel } from "./ListingPanel";
 import { useDraftAutosave } from "./useDraftAutosave";
 import { ListingCategoryBrowse } from "./ListingCategoryBrowse";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), list: vi.fn(), save: vi.fn(), refresh: vi.fn(), stage: vi.fn(), publish: vi.fn(), aspects: vi.fn(), archive: vi.fn(), browse: vi.fn() }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), list: vi.fn(), save: vi.fn(), refresh: vi.fn(), stage: vi.fn(), publish: vi.fn(), aspects: vi.fn(), archive: vi.fn(), browse: vi.fn(), defaultsPreview: vi.fn(), defaultsSave: vi.fn() }));
+vi.mock("../api/listingDefaults", async (original) => ({ ...await original<typeof import("../api/listingDefaults")>(),
+  previewListingDefaults: (...args: unknown[]) => mocks.defaultsPreview(...args),
+  saveListingDefaults: (...args: unknown[]) => mocks.defaultsSave(...args)
+}));
 vi.mock("../api/listing", () => ({
   listItemListingDrafts: (...args: unknown[]) => mocks.list(...args),
   listListingBoilerplates: () => Promise.resolve({ results: [] }),
@@ -59,6 +63,38 @@ test("opens offline without autosave or remote inventory calls and explains stag
   expect(mocks.aspects).not.toHaveBeenCalled();
   expect(mocks.stage).not.toHaveBeenCalled();
   expect(mocks.publish).not.toHaveBeenCalled();
+});
+
+test("editor save-as-defaults previews only D-135 values and never saves the live draft", async () => {
+  const user = userEvent.setup();
+  mocks.defaultsPreview.mockImplementation(async (_id, values) => ({ values, expected_revision: "reviewed-revision", category_name: "Gold", changes: [{ field: "category_id", label: "eBay category", before: "", after: "139965", clears: false }] }));
+  mocks.defaultsSave.mockResolvedValue({ category_name: "Gold" });
+  open();
+  await screen.findByLabelText("Title", { exact: true });
+  await user.click(screen.getByRole("button", { name: "Save these as Gold defaults" }));
+  await screen.findByRole("region", { name: "Gold defaults change preview" });
+  expect(mocks.defaultsSave).not.toHaveBeenCalled();
+  const submitted = mocks.defaultsPreview.mock.calls[0][1];
+  expect(submitted).toHaveProperty("category_id", "139965");
+  for (const key of ["price", "quantity", "item_specifics", "title", "photo_ids", "offer_id"]) expect(submitted).not.toHaveProperty(key);
+  await user.click(screen.getByRole("button", { name: "Confirm defaults changes" }));
+  await screen.findByText("Gold defaults saved. Existing drafts are unchanged.");
+  expect(mocks.defaultsSave).toHaveBeenCalledWith(item.category, expect.objectContaining({ expected_revision: "reviewed-revision" }));
+  expect(mocks.save).not.toHaveBeenCalled();
+  expect(mocks.stage).not.toHaveBeenCalled();
+});
+
+test("default provenance and remaining-stock source survive resume and description preview", async () => {
+  const user = userEvent.setup();
+  context.sources.listing_format = "from Gold defaults";
+  context.sources.quantity = "Item remaining stock (total minus sold)";
+  open();
+  const format = await screen.findByLabelText("Format", { exact: true });
+  await waitFor(() => expect(format.closest("label")).toHaveTextContent("Source: from Gold defaults"));
+  expect(screen.getByLabelText("Quantity", { exact: true }).closest("label")).toHaveTextContent("Item remaining stock (total minus sold)");
+  await user.click(screen.getByRole("button", { name: "Preview", exact: true }));
+  expect(format.closest("label")).toHaveTextContent("Source: from Gold defaults");
+  expect(mocks.save).not.toHaveBeenCalled();
 });
 
 test("edits every listing field, autosaves full strings, and resumes after remount", async () => {

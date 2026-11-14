@@ -24,6 +24,17 @@ class ListingBoilerplate(TimeStampedUUIDModel):
         return f"{self.channel}: {self.name} ({state})"
 
 
+class CategoryListingDefaults(TimeStampedUUIDModel):
+    category = models.ForeignKey("catalog.ProductCategory", on_delete=models.CASCADE, related_name="listing_defaults")
+    environment = models.CharField(max_length=12)
+    marketplace = models.CharField(max_length=20, default="EBAY_AU")
+    values = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["category", "environment", "marketplace"], name="one_listing_default_category")]
+
+
 class ListingDraftQuerySet(models.QuerySet):
     def assert_mutable(self):
         if self.filter(read_only_draft_filter()).exists():
@@ -75,6 +86,7 @@ class ListingDraft(TimeStampedUUIDModel):
         max_length=10,
         choices=Format.choices,
         default=Format.FIXED,
+        blank=True,
     )
     price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default="AUD")

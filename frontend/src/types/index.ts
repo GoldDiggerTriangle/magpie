@@ -786,7 +786,7 @@ export interface ListingDraft {
   title: string;
   subtitle: string;
   description_html: string;
-  listing_format: "fixed" | "auction";
+  listing_format: "" | "fixed" | "auction";
   price: string | null;
   currency: string;
   quantity: number;

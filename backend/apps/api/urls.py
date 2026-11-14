@@ -47,6 +47,7 @@ from apps.listing.views import (
     ListingBoilerplateViewSet,
     ListingDraftViewSet,
 )
+from apps.listing.defaults_views import CategoryListingDefaultsViewSet
 from apps.locations.views import StorageLocationViewSet
 from apps.photos.views import PhotoAssetViewSet
 from apps.profit.views import (
@@ -87,6 +88,7 @@ router.register("comparables", ComparableViewSet, basename="comparable")
 router.register("research-records", ResearchRecordViewSet, basename="research-record")
 router.register("fee-schedules", FeeScheduleViewSet, basename="fee-schedule")
 router.register("listing-drafts", ListingDraftViewSet, basename="listing-draft")
+router.register("listing-defaults", CategoryListingDefaultsViewSet, basename="listing-defaults")
 router.register("channel-listings", ChannelListingViewSet, basename="channel-listing")
 router.register(
     "listing-boilerplates",

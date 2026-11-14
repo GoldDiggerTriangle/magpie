@@ -38,6 +38,8 @@ import { EditorReadiness, FieldSource, ListingMetadataFields, listingFieldId } f
 import { useDraftAutosave } from "./useDraftAutosave";
 import { ListingSpecifics } from "./ListingSpecifics";
 import { ListingSaveBar } from "./ListingSaveBar";
+import { SaveListingDefaults } from "./ListingDefaultsPanel";
+import { defaultValues } from "../api/listingDefaults";
 
 const titleMax = 80;
 
@@ -271,7 +273,8 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="label">
           <span>Format</span>
-          <select aria-label="Format" className="field" value={local.listing_format} onChange={(event) => setLocal({ ...local, listing_format: event.target.value as ListingDraft["listing_format"], channel_data: { ...local.channel_data, listing_duration: "" } })}>
+          <select aria-label="Format" id={listingFieldId(local.id, "listing_format")} className="field" value={local.listing_format} onChange={(event) => setLocal({ ...local, listing_format: event.target.value as ListingDraft["listing_format"], channel_data: { ...local.channel_data, listing_duration: "" } })}>
+            <option value="">Choose format</option>
             <option value="fixed">Fixed price</option>
             <option value="auction">Auction</option>
           </select>
@@ -305,6 +308,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       }}><option value="">Choose owned evidence or item asking price</option>{editor.data?.price_options.map((row) => <option value={row.id} key={row.id}>{local.currency} {row.value} | {row.label}</option>)}</select></label>
 
       <ListingMetadataFields draft={local} context={editor.data} onChange={setLocal} flush={persistLocal} onRefreshed={(updated) => { autosave.acceptExternal(updated); onSaved(); void editor.refetch(); }} />
+      {item.category && item.category_name ? <SaveListingDefaults categoryId={item.category} categoryName={item.category_name} values={defaultValues(local)} /> : null}
 
       <label className="label">
         <span>Shipping note</span>
