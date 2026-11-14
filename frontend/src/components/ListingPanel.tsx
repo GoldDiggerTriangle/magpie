@@ -182,6 +182,12 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
   });
 
   const selectedBoilerplate = boilerplates.find((entry) => entry.id === local.boilerplate) ?? null;
+  const defaultsValues = defaultValues(local);
+  if (local.listing_format === "fixed" && !defaultsValues.listing_duration && editor.data?.effective_duration) {
+    defaultsValues.listing_duration = editor.data.effective_duration;
+  }
+  const conditionPolicy = editor.data?.metadata.category_snapshot?.condition_policy;
+  if (conditionPolicy && !conditionPolicy.required && !conditionPolicy.conditions.length) defaultsValues.condition_id = "";
   const titleDirty = local.title !== draft.title || draft.title_edited;
   const descriptionDirty = local.description_html !== draft.description_html || draft.description_edited;
 
@@ -308,7 +314,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       }}><option value="">Choose owned evidence or item asking price</option>{editor.data?.price_options.map((row) => <option value={row.id} key={row.id}>{local.currency} {row.value} | {row.label}</option>)}</select></label>
 
       <ListingMetadataFields draft={local} context={editor.data} onChange={setLocal} flush={persistLocal} onRefreshed={(updated) => { autosave.acceptExternal(updated); onSaved(); void editor.refetch(); }} />
-      {item.category && item.category_name ? <SaveListingDefaults categoryId={item.category} categoryName={item.category_name} values={defaultValues(local)} /> : null}
+      {item.category && item.category_name ? <SaveListingDefaults categoryId={item.category} categoryName={item.category_name} values={defaultsValues} /> : null}
 
       <label className="label">
         <span>Shipping note</span>

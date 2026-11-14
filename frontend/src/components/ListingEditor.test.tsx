@@ -67,15 +67,21 @@ test("opens offline without autosave or remote inventory calls and explains stag
 
 test("editor save-as-defaults previews only D-135 values and never saves the live draft", async () => {
   const user = userEvent.setup();
+  draft.channel_data.listing_duration = "";
+  draft.channel_data.condition_id = "3000";
+  context.effective_duration = "GTC";
   mocks.defaultsPreview.mockImplementation(async (_id, values) => ({ values, expected_revision: "reviewed-revision", category_name: "Gold", changes: [{ field: "category_id", label: "eBay category", before: "", after: "139965", clears: false }] }));
   mocks.defaultsSave.mockResolvedValue({ category_name: "Gold" });
   open();
   await screen.findByLabelText("Title", { exact: true });
+  await screen.findByText("Not used by this category");
   await user.click(screen.getByRole("button", { name: "Save these as Gold defaults" }));
   await screen.findByRole("region", { name: "Gold defaults change preview" });
   expect(mocks.defaultsSave).not.toHaveBeenCalled();
   const submitted = mocks.defaultsPreview.mock.calls[0][1];
   expect(submitted).toHaveProperty("category_id", "139965");
+  expect(submitted).toHaveProperty("listing_duration", "GTC");
+  expect(submitted).toHaveProperty("condition_id", "");
   for (const key of ["price", "quantity", "item_specifics", "title", "photo_ids", "offer_id"]) expect(submitted).not.toHaveProperty(key);
   await user.click(screen.getByRole("button", { name: "Confirm defaults changes" }));
   await screen.findByText("Gold defaults saved. Existing drafts are unchanged.");
