@@ -1699,3 +1699,189 @@ Known-secret scan passed; repeated before commit. `CLAUDE_STRUCTURAL_AUDIT.md` s
 - Final isolated browser recheck: **390px fits; 1440px fits; >=44px review controls; no unexpected requests or real eBay calls**. Equivalent UTC timestamp formats and unsaved visible edits have explicit frontend regressions.
 - Final live read-only verification still matches **all 47 table digests**, all seven protected files and GOLD-00002. Identity pre-check remains **0 violations / 1 row**. Secret scan: **77 files checked, zero known-secret matches, zero protected-file changes**.
 - Remaining deployment step is unchanged: **approve migration 0007 first**, then fresh B-verified pre/post backups, approved additive migration and restore spot-check, live collectstatic, and Administrator restart. No backup/migration/restart or live eBay write has been performed in this Phase 5 build. The later supervised session must explicitly confirm the exact item/SKU/price/postage/preview before any update or listing.
+
+## 2026-11-15 - Migration 0007 Approval Gate: STOPPED Before Deployment
+
+**Controlling instruction:** Regan conditionally approved 0007 only if all four conditions pass, including "nothing dropped, renamed or rewritten." Inspecting the actual SQLite SQL shows that the first condition is **not met literally**. **0007 has NOT been applied. No backup, live restore, collectstatic or restart was performed in this task.** Code/settings/.env unchanged; no eBay calls.
+
+### Approval Checks
+
+| Condition | Finding | Result |
+| --- | --- | --- |
+| 1. Additive only; nothing dropped, renamed or rewritten | Logically additive model operations, but Django's SQLite SQL uses **eight table rebuilds**, each copying rows into a replacement table, dropping the old table and renaming the replacement. This is not permission to proceed under the literal condition. | **STOP / explicit clarification required** |
+| 2. ChannelListing pre-check | Read-only pre-check on the actual live SQLite database: **1 row, STM-00003, channel ebay, 0 violations**. | PASS |
+| 3. GOLD-00002 must remain unverified | Current keeper **af013dd9-0611-431c-be4a-223c44ec4e06**, status **staged**, offer **356038014011**. Six legacy EPS URLs, **0 per-photo EPS records / 0 known per-photo upload times**. 0007 would set new fingerprint/state fields to empty strings (semantically UNKNOWN/unverified), not derive a fingerprint or times from current values or legacy staged_at. The publish gate requires verified staging and a nonempty matching fingerprint; absent dates fail EPS freshness. | PASS by inspection; live post-migration check NOT performed |
+| 4. Other draft values/statuses unchanged | The Python data operation does not update any ListingDraft row. Existing column values are copied verbatim by the SQLite rebuilds, with defaults added only to new columns. No status/title/price/offer/history edit is requested by this migration. | PASS for logical data operations; physical copies are the condition-1 blocker |
+
+Only pending migration: **listing.0007_reviewed_publish_protocol**. HEAD **a338760438c46bb9111c0dab777ea3a11f8083d6**. Live counts at inspection: **8 drafts / 158 audit rows / 1 ChannelListing / 54 migration records**. Current schema still ends at listing.0006. All checks used read-only SQLite connections; outbound socket connections were forbidden in the inspection process.
+
+### Complete Logical Schema Inventory
+
+**New table: listing_publishreview (13 columns).** Unless noted nullable, fields are NOT NULL. Values below are model defaults used when new records are created; no review records are seeded by 0007.
+
+| Column | Type | Null/default and constraint |
+| --- | --- | --- |
+| id | UUID (SQLite char(32)) | Primary key, new UUID |
+| created_at | datetime | auto_now_add |
+| updated_at | datetime | auto_now |
+| draft_revision | datetime | Required |
+| field_fingerprint | varchar(64) | Required |
+| validation_fingerprint | varchar(64) | Required |
+| staged_fingerprint | varchar(64) | Empty string default |
+| offer_id | varchar(100) | Empty string default |
+| mode | varchar(10) | full default |
+| snapshot | JSON (SQLite text) | Empty object default; JSON-validity check |
+| expires_at | datetime | Required |
+| actor_id | FK to auth_user.id | Nullable; automatic FK index; application SET_NULL on actor deletion |
+| draft_id | FK to listing_listingdraft.id | Required; automatic FK index; application PROTECT on draft deletion |
+
+**Existing table: listing_listingdraft (11 new columns).**
+
+| Column | Type | Value supplied to existing rows |
+| --- | --- | --- |
+| publish_attempt | UUID | NULL |
+| publish_call_started_at | datetime | NULL |
+| publish_error | JSON | Empty object; JSON-validity check |
+| publish_prior_status | varchar(20) | Empty string |
+| publish_started_at | datetime | NULL |
+| stage_create_started | boolean | False |
+| staged_fingerprint | varchar(64) | Empty string: UNKNOWN, not trusted |
+| staging_attempt | UUID | NULL |
+| staging_started_at | datetime | NULL |
+| staging_state | varchar(24) | Empty string: UNKNOWN/unverified, not verified |
+| publish_review_id | FK to listing_publishreview.id | NULL; automatic FK index; application PROTECT |
+
+**Existing table: listing_channellisting (one new column).**
+
+| Column | Type | Value supplied to existing rows |
+| --- | --- | --- |
+| external_listing_id | varchar(100), NOT NULL | Initially empty; the Python operation then fills this new column from existing owned listing identity where unambiguous |
+
+No existing model field is logically removed, renamed or altered. New foreign keys are emitted as deferred SQLite references; Django's on_delete semantics are application-level, not new database ON DELETE action clauses.
+
+**New constraints and indexes:**
+
+- Primary key on listing_publishreview.id.
+- Foreign keys for listing_publishreview.actor_id, listing_publishreview.draft_id and listing_listingdraft.publish_review_id; corresponding new indexes **listing_publishreview_actor_id_499d9409**, **listing_publishreview_draft_id_55b5cca0**, **listing_listingdraft_publish_review_id_77896725**.
+- **channel_external_listing_unique**: unique (channel, external_listing_id) where external_listing_id is not the empty string; SQLite partial unique index.
+- **channel_draft_unique**: unique (channel, source_listing_draft_id). The existing one-to-one uniqueness of source_listing_draft_id is retained, not replaced.
+- SQLite JSON-validity checks on the new snapshot and publish_error fields, plus NOT NULL requirements above.
+- Existing PKs/FKs/checks and the one-active-draft constraint are retained logically. SQLite rebuilds recreate the existing indexes: **listing_one_active_draft**, **listing_listingdraft_boilerplate_id_3fd3068f**, **listing_listingdraft_item_id_5345e6ee**, **listing_lis_item_id_8c1843_idx**, **listing_lis_status_efc7a5_idx**, **listing_channellisting_item_id_7842f7f0**, **chan_list_item_active_idx**, **chan_list_chan_active_idx**, **channel_listing_listed_idx**. Existing automatic primary-key/one-to-one indexes are also reconstructed.
+
+### Physical SQLite Operations That Block This Approval
+
+| Target table | Replacement-table copies / drops / renames |
+| --- | --- |
+| listing_listingdraft | **5** |
+| listing_channellisting | **2** |
+| listing_publishreview (new table, rebuilt while its FKs are added) | **1** |
+| Total | **8** |
+
+Each is an INSERT INTO new__... SELECT ... -> DROP TABLE old -> ALTER TABLE new__... RENAME TO old sequence. This is Django's standard SQLite schema-emulation strategy, not a requested loss of business data, but **it still exceeds the literal no-drop/no-rename/no-rewrite approval**. No generated SQL was executed. No migration was modified to bypass the approval gate.
+
+### Data Writes 0007 Would Make
+
+1. SQLite copies all existing draft/listing row values during the rebuilds and supplies the new-column defaults listed above. No current local values are hashed into a staged fingerprint, and no EPS upload timestamp is fabricated.
+2. **precheck_and_fill_identity** executes UPDATE only on the **new external_listing_id column** for existing ChannelListing rows, using the unambiguous identity already in the owned published draft/URL. On this database that is the single STM-00003 row. Old columns, dates, source linkage, status and audit history are not edited.
+3. Normal Django bookkeeping would add **one django_migrations record**, **one publishreview content type** and **four permissions** (add/change/delete/view). The new review table remains empty. Expected tables **47 -> 48**; migration records **54 -> 55**; drafts/audit/ChannelListing counts unchanged. These are projections, **not applied results**.
+
+### All 16 Phase 5 Points: Itemised Implementation Evidence
+
+References below are to the unchanged implemented code tested at **eb9254fcbe1fb3e54d9c7154e639b258001e2cc5**, final documentation head a3387604. [Validation 43645574244](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43645574244) and [final-head Validation 43646033951](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43646033951) passed both lanes: **SQLite 407/1 skipped; PostgreSQL 395/13 skipped; frontend 155**. These are mocked/isolated implementation results, not live-publish validation.
+
+| Point | Confirmation | Test / evidence reference |
+| --- | --- | --- |
+| 1 | Single status-based conditional claim checks reviewed revision, staged fingerprint, offer and no listing; captures prior status in that UPDATE; one winner calls publishOffer. | [SQL claim](backend/apps/ebay/tests/test_sprint25_publish.py#L113), [simultaneous publish](backend/apps/ebay/tests/test_sprint25_publish.py#L506); publish_state.claim |
+| 2 | Definite failure restores prior status; named error separate; unknown blocks retry; 60s deadline / 10min stale recovery at startup, before claim and management command; health lists stuck attempts. | [failure](backend/apps/ebay/tests/test_sprint25_publish.py#L256), [deadline](backend/apps/ebay/tests/test_sprint25_publish.py#L304), [startup/command](backend/apps/ebay/tests/test_sprint25_publish.py#L138), [health](frontend/src/components/PublishHealthPanel.test.tsx#L11) |
+| 3 | Completion/failure/reconcile writes are attempt-UUID-fenced, including late-response rejection. | [late attempt](backend/apps/ebay/tests/test_sprint25_publish.py#L413), [concurrent reconcile](backend/apps/ebay/tests/test_sprint25_publish.py#L547) |
+| 4 | Server blocks edits, staging, archive and new claims while publishing/unknown. | [mutability](backend/apps/ebay/tests/test_sprint25_publish.py#L400), [API guards](backend/apps/ebay/tests/test_sprint25_publish.py#L336), [edit/archive races](backend/apps/ebay/tests/test_sprint25_publish.py#L521) |
+| 5 | Preview and server-side publish validate current category, required-only aspects/condition, policies/terms, location, format/duration, D-129 source, photos and stock; changed terms/content require new review. | [named gates](backend/apps/ebay/tests/test_sprint25_publish.py#L80), [price/conditionless](backend/apps/ebay/tests/test_sprint25_publish.py#L90), [required enum](backend/apps/ebay/tests/test_sprint25_publish.py#L127), [term drift](backend/apps/ebay/tests/test_sprint25_publish.py#L162) |
+| 6 | Local/staged drift blocks publish; explicit update uses inventory upsert + updateOffer, then a fresh review with getListingFees. No silent restage. | [drift](backend/apps/ebay/tests/test_sprint25_publish.py#L177), [explicit UI update](frontend/src/components/ListingWorkflow.test.tsx#L57), review.prepare_review / staging.stage_draft |
+| 7 | EPS records include per-photo upload time/hash. Unknown, expired or known-missing references require re-upload in the explicit update step; checked again before publishOffer. | [expiry after preview](backend/apps/ebay/tests/test_sprint25_publish.py#L192), review.eps_checks, staging.stage_draft, publish_state._publish_worker. Legacy GOLD inspection above confirms 0 known per-photo times; no fingerprint/time backfill. |
+| 8 | Full review/stage/staged-review/SKU path and quick reviewed Post without SKU share canonical draft and service. Quick cannot silently stage a drifted draft. | [full path](frontend/src/components/ListingWorkflow.test.tsx#L27), [quick](frontend/src/components/ListingWorkflow.test.tsx#L41), [quick blockers](frontend/src/components/ListingWorkflow.test.tsx#L50), [canonical quick entry](frontend/src/components/QuickPublishPanel.test.tsx#L14) |
+| 9 | createOffer timeout reconciles SKU offers before a new create; empty/ambiguous outcome stays blocked. Partial staging is unverified. | [create timeout](backend/apps/ebay/tests/test_sprint25_publish.py#L220), [partial update](backend/apps/ebay/tests/test_sprint25_publish.py#L207) |
+| 10 | Removal requires confirmation/current UNPUBLISHED identity/confirmed 404. Published or ambiguous offers stop; archive stays blocked until reference cleared; in-flight archive forbidden. | [removal guards](backend/apps/ebay/tests/test_sprint25_publish.py#L427), [API confirmation](backend/apps/ebay/tests/test_sprint25_publish.py#L336), [UI confirmation](frontend/src/components/ListingWorkflow.test.tsx#L82). **Caveat:** eBay has no atomic conditional-delete protection against simultaneous changes outside Magpie; provider limitation recorded in prior Phase 5 evidence. |
+| 11 | Conservative idempotent reconcile records published success, restores only conclusively unsent/unpublished work, and leaves missing/unreachable/ambiguous/in-flight outcomes unknown. Timeout is not cancellation. | [reconcile matrix/crash](backend/apps/ebay/tests/test_sprint25_publish.py#L383), [deadline](backend/apps/ebay/tests/test_sprint25_publish.py#L304), [concurrent reconcile](backend/apps/ebay/tests/test_sprint25_publish.py#L547) |
+| 12 | Success writes draft/item/ChannelListing/audit in one transaction; remote success plus failed local persistence reconciles without a second publishOffer. | [DB failure](backend/apps/ebay/tests/test_sprint25_publish.py#L269), [atomic rollback](backend/apps/ebay/tests/test_sprint25_publish.py#L284), [success/history](backend/apps/ebay/tests/test_sprint25_publish.py#L242) |
+| 13 | Existing publication/history guards retained; new identity uniqueness plus migration pre-check implemented/tested, not installed live. | [constraints/pre-check](backend/apps/ebay/tests/test_sprint25_publish.py#L354), [history guards](backend/apps/ebay/tests/test_sprint25_publish.py#L242); live pre-check above. **Deployment held at condition 1.** |
+| 14 | Required concurrency, race, late response, DB failure, stale crash, reconcile, drift, partial-stage, timeout, photo expiry, gate-name and quick-drift scenarios are covered. | test_sprint25_publish.py and ListingWorkflow.test.tsx; both Validation runs linked above. File-backed SQLite and PostgreSQL, publishOffer mocked. |
+| 15 | No live eBay writes; no layout/config/credential changes; no migration without approval. This task did not apply 0007 because approval condition 1 failed. | Read-only inspection/baseline counts above; outbound sockets denied in inspection; all protected files and original live tables verified unchanged. No backup/restore/restart performed. |
+| 16 | Implementation/report stop point observed. GOLD restaging and supervised real listing remain later owner-present work; no exact listing values have been approved for publication here. | Implementation eb9254f, final head a3387604, Validations above; current **STOP before 0007**, not a live-close claim. |
+
+**Next decision needed:** either expressly allow Django's preservation-only SQLite table rebuilds for this migration, including the disclosed new-column identity fill, or request a migration variant that avoids those operations. **Do not restart yet: 0007 is still unapplied.** After any later approved application, pre/post B-verified backups, schema/count/restore verification and then the immediate Administrator restart are still required. Post-restart health/version/canonical-draft/drift checks have not been claimed.
+
+## 2026-11-15 - Explicit Rebuild Approval: Pre-Backup Complete, Waiting for Service Stop
+
+Regan expressly approved 0007's disclosed preservation-only SQLite rebuilds and the single STM-00003 identity-column fill. The literal-operation approval hold above is superseded **only** by this approval and his new deployment order: verified pre-backup -> Regan stops Magpie -> migration/verification -> verified post-backup/restore -> Regan starts Magpie -> read-only live checks -> commit evidence/handoff.
+
+**Step 1 PASS.** Fresh encrypted pre-backup, using the unchanged Windows user-level **B**, with the app's existing backup/restore commands:
+
+| Archive | Location | Verification |
+| --- | --- | --- |
+| magpie-backup-20261115-015057.tar.gz.enc | D:\Magpie\backups\sprint25-phase5\pre | **27,962,202 bytes; B restores 47 tables / 739 rows / 64 media files.** Every database row digest, complete schema digest and media-file hash matches the captured live baseline; integrity_check OK; foreign_key_check empty. |
+
+- Read B directly from the Windows user variable; compared the process value without outputting either. B and all protected configuration/source files remain unchanged.
+- Explicit **--no-upload** invocation; no rclone/upload or eBay call. Outbound sockets and child-process launches were denied during the successful backup/restore run.
+- Restored plaintext and temporary backup payloads were confined to a checked scratch directory outside the repo and deleted. **Final successful run confirms scratch removal.** Encrypted archive and a secret-free verification manifest (column names/counts/hashes only) are retained outside the repo for original-column comparison and rollback.
+- An initial wrapper option mistake selected upload instead of no-upload; the existing command refused locally because no upload destination was configured, before launching rclone or making a network call. Corrected to the explicit CLI flag. A scratch file lock during the first restore check was cleared after the helper exited; plaintext cleanup was verified. The fresh successful archive above supersedes that rehearsal.
+- Live pre-check still **one STM-00003 ChannelListing / zero identity violations**. Baseline: **8 drafts / 158 audit rows / 1 ChannelListing / 54 migration records**. No schema or live row change.
+- **Step 2 WAITING:** Regan has been asked to run Stop-Service -Name Magpie in Administrator PowerShell and confirm Stopped. **0007 is not applied, and no service operation has been performed by Codex.** Before applying, verify both the actual service stop and unchanged backup baseline; after applying, verify original-column digests, schema/indexes, integrity/FKs, identities and unknown GOLD fingerprints/times before permitting a start.
+- Post-backup, migration checks, restart/live checks and the final commit are **not yet claimed**. Existing inspection notes and the all-16 evidence matrix remain in this file; commit is deferred until the ordered deployment completes.
+
+## 2026-11-15 - Approved Migration 0007 Installed; Restart Requested
+
+Regan confirmed **Stopped**. The actual Windows service check before migration showed **Stopped / PID 0 / no port 8000 listener**. Migration ran only after the encrypted pre-backup's schema, original-row digests, media hashes and protected-file hashes were rechecked against live. The only pending migration was listing.0007_reviewed_publish_protocol.
+
+**Applied and verified at 2026-11-15 01:54:39 UTC.** No eBay calls, test rows, draft edits or manual business-data changes.
+
+| Required check | Result |
+| --- | --- |
+| Every original column preserved | **PASS:** original-column row counts and digests match for **all 47 pre-existing tables**, including every original column of both rebuilt existing tables. Only new migration/content-type/permission bookkeeping is excluded from the original-row comparison. |
+| Business row counts | **PASS:** 8 drafts / 158 audit rows / 1 ChannelListing unchanged. |
+| Migration records | **PASS:** 54 -> 55; only listing.0007 added. |
+| Normal Django bookkeeping | **PASS:** 1 content type and 4 permissions added; new PublishReview table has 0 rows. Total 47 -> 48 tables, 739 -> 745 rows. |
+| Existing active-draft constraint | **PASS:** listing_one_active_draft remains unique and partial, with the identical predicate and item/channel columns. Schema inspection only; no live test inserts. |
+| New ChannelListing constraints | **PASS:** channel_external_listing_unique is unique and partial; channel_draft_unique and its unique backing index exist. |
+| Database integrity | **PASS:** PRAGMA integrity_check = ok; foreign_key_check empty. |
+| STM-00003 identity | **PASS:** new external_listing_id equals its own pre-existing published listing identity. All old columns and history unchanged. |
+| GOLD-00002 | **PASS:** af013dd9-0611-431c-be4a-223c44ec4e06 remains staged, offer 356038014011 unchanged. Staged fingerprint UNKNOWN, staging unverified, 0 known per-photo EPS upload times. No fingerprint or timestamp inferred from current local values. Publishing remains blocked until an explicit Update staged offer. |
+| Media and protected files | **PASS:** all 64 media-file hashes and protected configuration/source hashes unchanged. |
+| Service during verification | **PASS:** still Stopped; no rollback needed. |
+
+**Post-backup and restore PASS**, using unchanged **B** and existing commands with --no-upload:
+
+| Archive | Location | Verification |
+| --- | --- | --- |
+| magpie-backup-20261115-015631.tar.gz.enc | D:\Magpie\backups\sprint25-phase5\post | **27,972,755 bytes; B restores 48 tables / 745 rows / 64 media files.** Full table/schema digests and all media hashes match post-migration live, including new columns, new empty review table and indexes. Integrity and FK checks pass. |
+
+Restored plaintext was confined to checked scratch paths outside the repo and deleted immediately after verification. Successful pre/post runs confirm scratch removal. Encrypted archives and secret-free hash/count manifests remain outside the repo.
+
+**Live collectstatic PASS at 01:57:06 UTC**, while stopped: **7 copied / 155 unmodified / 425 post-processed**. Collected index and asset hashes match frontend/dist: index-8L8BrL8o.js and index-D5nxfZ3K.css. Database digests remain unchanged. Source, settings, credentials and dependencies were not edited.
+
+The earlier all-16 Phase 5 implementation/test matrix still applies. Its deployment holds (points 13, 15 and 16) are superseded by the explicit rebuild approval and verified installation above; they are not erased from history. Previously green implementation/final-head Validations: **43645574244 / 43646033951**, SQLite **407 passed / 1 skipped**, PostgreSQL **395 passed / 13 skipped**, frontend **155 passed**. This deployment changes documentation and runtime schema/static output only.
+
+**Restart requested from Regan.** No start performed by Codex. Post-restart port 8000 health/build/canonical-draft/drift checks, final evidence commit and deployment completion remain pending. No live publishing/restaging/removal is authorised or claimed.
+
+## 2026-11-15 - Migration 0007 Post-Restart Verification: PASS
+
+Regan ran Start-Service and supplied Get-Service output showing **Running**. Actual service inspection confirmed **Magpie Running**, NSSM PID **20512**, Python child PID **16960**, both started **02:04:31 UTC / 13:04:31 Australia/Sydney** after migration verification and live collectstatic. NSSM AppDirectory remains **D:\Magpie\app\backend**.
+
+**Actual live HTTP checks at 02:06:24 UTC / 13:06:24 Australia/Sydney**, against port **8000**, not a temporary server:
+
+| Read-only request/check | Result |
+| --- | --- |
+| GET /api/health/ | **200**, status ok. |
+| GET / and both referenced JS/CSS assets | **200**; exact index and asset hashes match the verified Phase 5 build collected before restart: index-8L8BrL8o.js and index-D5nxfZ3K.css. |
+| Runtime version | Checkout **a338760438c46bb9111c0dab777ea3a11f8083d6**, containing implementation **eb9254fcbe1fb3e54d9c7154e639b258001e2cc5**. New Phase 5 serializer fields and publish-health route are served by the restarted process. |
+| GET GOLD-00002's item listing-drafts collection | **200**, first/canonical draft **af013dd9-0611-431c-be4a-223c44ec4e06**; no new draft created. |
+| GET /api/listing-drafts/af013dd9-0611-431c-be4a-223c44ec4e06/ | **200**, status staged, offer **356038014011**, fingerprint UNKNOWN and staging unverified, no per-photo EPS timestamp backfill. |
+| GET the same draft's /editor/ | **200**, offline staged_local_changes = true. |
+| GET /api/listing-drafts/publish-health/ | **200**, 0 stuck publishing/unknown drafts. |
+| Publication remains blocked | **PASS:** saved staging_state is unverified and staged_fingerprint empty, and editor reports drift. The unchanged review.live_validation staged_drift guard requires explicit Update staged offer before review/publication. This proof is read-only state plus the tested gate: **no preview, publish, restage, reconcile or metadata-refresh endpoint was invoked**. |
+| Read-only guarantee | **PASS:** complete database digests before/after these GETs match. Original business rows also match the post-migration verification. Still **8 drafts / 158 audit rows / 1 ChannelListing / 55 migration records / 0 PublishReview rows**. |
+
+Authenticated requests reused a valid existing Django session in memory; no new session, login, credential disclosure or cookie file. The verification process allowed HTTP connections only to 127.0.0.1:8000. The selected service GET paths use owned data/offline snapshots, with no eBay calls or live saves. An initial verification wrapper expected the non-installed requests package; it stopped before HTTP checks and was rerun using the standard-library HTTP client. No dependency was installed or changed.
+
+**Deployment complete at the requested stop-and-report point.** The full all-16 implementation/test matrix above remains the Phase 5 checklist, now supplemented by installed constraints, B-verified pre/post backups, original-column preservation proof, owner restart and actual-service checks. Latest pre-commit main Validation **43646033951** was rechecked: **PostgreSQL 132603902952 success; SQLite 132603903275 success**. No source changes required a new local test run in this deployment; implementation suites/counts are recorded above. Final documentation commit/Validation identifiers are reported with the deployment handoff.
+
+**Not a supervised live-publish claim or Sprint 25 closure.** No eBay writes or reads occurred in this deployment. GOLD restaging and one real listing require a later owner-present session and explicit final-value approval. Phase 6 onward awaits separate instruction. Evidence/handoff notes are the only files to commit; the pre-existing untracked CLAUDE_STRUCTURAL_AUDIT.md remains untouched.
