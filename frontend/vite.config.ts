@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { configDefaults } from "vitest/config";
 
 import { PWA_NAVIGATION_FALLBACK_DENYLIST } from "./src/pwaRouting";
 
@@ -37,6 +38,7 @@ export default defineConfig({
     }
   },
   test: {
+    exclude: [...configDefaults.exclude, "e2e/**"],
     environment: "jsdom",
     setupFiles: ["src/test/setup.ts"],
     globals: true

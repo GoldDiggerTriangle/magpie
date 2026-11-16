@@ -2588,6 +2588,11 @@
   }
 }
 
+.listing-panel,
+.listing-panel .grid,
+.listing-panel .flex,
+.listing-panel .label,
+.listing-review > *,
 .listing-editor,
 .listing-editor fieldset,
 .listing-metadata,
@@ -2596,16 +2601,30 @@
   max-width: 100%;
 }
 
+.listing-panel {
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.listing-title {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .listing-editor input,
 .listing-editor select,
-.listing-editor textarea {
+.listing-editor textarea,
+.listing-review input,
+.listing-review select,
+.listing-review textarea {
   width: 100%;
   min-width: 0;
   max-width: 100%;
   color: #0f172a;
   background: #fff;
   border-color: #475569;
-  font-size: 1rem;
+  font-size: max(16px, 1rem);
 }
 
 .listing-editor input[type="checkbox"] {

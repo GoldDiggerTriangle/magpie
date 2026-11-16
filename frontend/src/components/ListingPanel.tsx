@@ -94,7 +94,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
   });
 
   return (
-    <section className="rounded border border-slate-800 bg-slate-950/40 p-4">
+    <section className="listing-panel min-w-0 rounded border border-slate-800 bg-slate-950/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="section-title">Listing</h2>
@@ -110,17 +110,17 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
       {!drafts.isLoading && draftList.length === 0 ? <EmptyState title="No listing drafts" /> : null}
 
       {draftList.length > 0 ? (
-        <div className="mt-4 grid gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
-          <div className="space-y-2">
+        <div className="mt-4 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 xl:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-2">
             {draftList.map((draft) => (
               <button
-                className={`w-full rounded border px-3 py-2 text-left text-sm transition ${selectedDraft?.id === draft.id ? "border-cyan-400/60 bg-cyan-400/10 text-cyan-100" : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600"}`}
+                className={`listing-draft-row min-w-0 w-full rounded border px-3 py-2 text-left text-sm transition ${selectedDraft?.id === draft.id ? "border-cyan-400/60 bg-cyan-400/10 text-cyan-100" : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-600"}`}
                 key={draft.id}
                 onClick={() => setSelectedId(draft.id)}
                 type="button"
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="truncate font-semibold">{draft.title || "Untitled draft"}</span>
+                <span className="flex min-w-0 items-start justify-between gap-2">
+                  <span className="listing-title min-w-0 flex-1 font-semibold">{draft.title || "Untitled draft"}</span>
                   <StatusPill status={draft.status} />
                 </span>
                 <span className="mt-1 block text-xs text-slate-500">{draft.currency} {draft.price ?? "-"}</span>
@@ -247,9 +247,9 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
 
       <div className="grid gap-3">
         <label className="label">
-          <span className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <span>Title</span>
-            <span className={Array.from(local.title).length > titleMax ? "text-rose-300" : "text-slate-500"}>{Array.from(local.title).length}/{titleMax}</span>
+            <span className={`shrink-0 ${Array.from(local.title).length > titleMax ? "text-rose-300" : "text-slate-500"}`}>{Array.from(local.title).length}/{titleMax}</span>
           </span>
           <input aria-label="Title" id={listingFieldId(local.id, "title")} className={Array.from(local.title).length > titleMax ? "field border-rose-400 focus:border-rose-300 focus:ring-rose-300/20" : "field"} value={local.title} onChange={(event) => setLocal({ ...local, title: event.target.value })} />
           <FieldSource context={editor.data} field="title" />
@@ -540,5 +540,5 @@ function StatusPill({ status }: { status: ListingDraft["status"] }) {
       : status === "publish_failed"
         ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
         : "border-slate-600 bg-slate-800 text-slate-200";
-  return <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{status}</span>;
+  return <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{status}</span>;
 }
