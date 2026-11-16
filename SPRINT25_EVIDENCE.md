@@ -1934,3 +1934,88 @@ Current paths at the implementation head; none was consolidated, renamed or remo
 - Implementation [GitHub Validation 43798685867](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43798685867) **PASS on both lanes**: SQLite job **133073343513**, **422 passed / 1 skipped**; PostgreSQL job **133073343283**, **410 passed / 13 skipped**; frontend **165 passed / 37 files**. Typecheck/build, Django/migration checks, URL-only confinement, collectstatic and production smoke steps all green. Secrets scan and diff whitespace check passed before the implementation push. Scratch-only local test artifacts were removed after the suites completed.
 
 **Stop point:** implementation ready for owner restart/re-check after green CI, not live-closed and not permission to re-stage or publish GOLD-00002. Regan should verify headings/line breaks and Name: value rows, compact fees + Show all fees, one six-photo warning, the Update staged offer jump and local reviewed time; he edits any saved placeholder text himself.
+
+## 2026-11-16 - Supervised GOLD-00002 Session: STOP Before Final-Value Approval
+
+First applied MASTER_HANDOFF_UPDATE_2026-11-16_PHASE5_CLOSE.md **verbatim**, all **13 Find strings matched exactly once**, v4.69 -> **v4.70**. Before adding this session's log, the complete resulting handoff matched the exact sequential replacements' digest. No implementation changes. Owner is present; each approval/update/publish stop remains mandatory.
+
+### Step 0 - Read-Only Preconditions
+
+- HEAD **e0f35e469f04df9c2f7c700ba91c0117ddacf25c**, remote main same. [Validation 43798951585](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43798951585) rechecked **success**, SQLite **133074202621** / PostgreSQL **133074202941** success.
+- Actual NSSM service **Running**, PID **21500**, Python child **25008**, started **2026-11-16 09:39:04 UTC / 20:39:04 Australia/Sydney**. AppDirectory D:\Magpie\app\backend.
+- Actual port **8000** health **200 / ok**; served index and asset hashes match the preview-fix build **index-JiXPkfIl.js / index-5zB5Wlob.css**. The live offline editor returns the new named placeholder gate, also proving the new backend loaded.
+- GOLD-00002 canonical **af013dd9-0611-431c-be4a-223c44ec4e06**, **staged**, existing offer **356038014011**, **no listing ID**, exactly **one active eBay draft**. No draft created/modified by Codex.
+- Local eBay status: configured, connected, production, no missing scopes and no recorded refresh error. Saved policy snapshot fetched_at **2026-11-14 20:12:25 UTC**. **Do not overstate remote health:** the access token expired **2026-11-16 05:02:28 UTC**; refresh credential metadata remains valid. No automatic refresh or provider call was made by Codex. Regan's next explicit phone Review listing performs the existing validation/automatic refresh path; its success must be confirmed before proceeding. No reconnect requested unless that normal path fails.
+
+### Step 1 - Per-Photo Diagnosis
+
+This diagnosis reads local owned files and saved EPS metadata only. No remote EPS availability claim or request. All six selected original processed display files exist; their saved legacy EPS URLs are present and use real eBay image hosts. There are **no per-photo upload timestamps**, deliberately not inferred/backfilled by 0007. No locally recorded missing flag, expiry or placeholder URL was found.
+
+| Selected order | Photo ID | Blocking reason |
+| --- | --- | --- |
+| 1 | ee3f5d1b-b59f-4d5f-89ee-0de4368c3ef4 | Unknown upload time |
+| 2 | e1ad4aea-bd67-4dc1-bbf2-600775211104 | Unknown upload time |
+| 3 | ccc36da3-20fb-4d7d-97ee-91c6ce243b89 | Unknown upload time |
+| 4 | 035bdfec-fdf5-483a-b0bc-95adbe6c8029 | Unknown upload time |
+| 5 | 22f2df39-f698-4c0d-821a-4f85be62ce4e | Unknown upload time |
+| 6 | 4f104eb4-2aaf-4812-866a-cc06f8dc4975 | Unknown upload time |
+
+**Expected diagnosis confirmed; no photo defect refreshed around.** Current remote image existence has not been queried. Only Regan's later approved Update staged offer may re-upload and establish trusted times.
+
+### Step 2 - STOP
+
+The current saved description still contains **PLACEHOLDER wording**. The live editor names **description_html** as the blocker. A compliant complete proposal cannot yet be presented for approval. Current local asking price is **AUD 375.00**, explicitly recorded as Human asking price on seller_receives basis; it is **not** assumed to retain the older Phase 0 price approval. No final values have been approved in this session.
+
+Regan is asked to remove the placeholder paragraph himself in the full draft editor, Save locally, then open **Review listing only** (not Update staged offer, remove, or publish). This also exercises normal token refresh without a marketplace listing write. After his confirmation, reread and present **all** final values and the complete clean description for explicit approved, as requested. Do not take the pre-backup or advance to steps 3-7 until that approval.
+
+Complete database/table/schema digests before/after these local HTTP GETs match. Authentication reused an existing session in memory. Codex made **no eBay calls, live saves, staging, publishing, backup, service restart, commit or push** in this stopped portion. Handoff/evidence edits remain uncommitted until the supervised session can proceed or Regan gives separate instructions.
+
+## 2026-11-16 - Listing Editor Long-Title Mobile Layout Fix
+
+This intervening owner-requested layout fix does **not** resume the supervised listing or authorise staging/publishing. Implementation **c2343699aa235a42bccbd15fade80d35bd54fb60**. No backend/model changes, migrations, real draft saves or eBay calls.
+
+### Reproduction And Cause
+
+An isolated Playwright fixture renders the **real ListingPanel, ListingWorkflow, AppShell and application CSS**, with GOLD-like fixture data and mocked in-memory API responses. Both 80-character spaced and 80-character unbroken titles are entered and saved to the mock only. The fixture Vite server has **no API/media proxy**; browser routes reject other origins and unexpected API operations. Port 8000 is never used by these browser tests.
+
+Before the fix, an 80-character unbroken title made the draft row and editor **918.375px wide at a 390px viewport**, pushing Archive, the counter and field edges off-screen. The mobile grid's implicit auto minimum expanded to the non-wrapping draft title; the title span used truncate/nowrap and could impose its min-content width. **Existing page clipping still reported document scrollWidth = clientWidth = 390**, so that metric alone would have incorrectly passed. The new regression also checks all visible element rectangles; it failed before the fix.
+
+The fix sets an explicit **minmax(0, 1fr)** mobile grid track, adds scoped min-width: 0/max-width constraints to listing flex/grid/label containers, and replaces title truncation with **overflow-wrap: anywhere / white-space: normal**. Status pills and the title counter retain their own space. Preview/staged-review titles use the same wrapping rule; archived history shares the fixed rows. Input values are not truncated or rewritten. Listing editor/review controls use **font-size: max(16px, 1rem)**. **No overflow-hiding rule was added**, no item-page sections moved, and no listing entry point was consolidated.
+
+### Browser Proof And Screenshots
+
+`npm run test:layout`: **4 Playwright tests PASS**, covering both title kinds in editor, preview, staged review and archived history. Across **10 state measurements**, document width remains **390 == 390** and no rendered element extends beyond the viewport (pixel-rounding tolerance only). Tests also verify Archive/counter bounds, complete saved title text in the history row, non-truncating title styles and visible form-control font size >=16px. A mock staged review uses matching revision/photo selection; no stage/publish endpoint is called.
+
+Test command/config: frontend/playwright.config.ts, frontend/e2e/listing-layout.spec.ts. **@playwright/test 1.65.1 is a pinned development dependency**, not an app/cloud dependency. CI installs Chromium and runs the browser gate alongside existing unit/typecheck/build checks. Vitest excludes the separate e2e directory, retaining all 37 existing unit-test files. Test fixture code/HTML is not part of the production dist build.
+
+These are **synthetic 390px Chromium mobile screenshots, not live iPhone or real-listing proof**. The real iPhone check remains Regan's step after restart; fixture prices/photos/IDs are not approvals for GOLD-00002.
+
+- [Before: clipped unbroken title](docs/evidence/sprint25/phase5-layout-before-390-unbroken.png)
+- [After: editor, visible Archive/counter/field edges](docs/evidence/sprint25/phase5-layout-editor-390-unbroken.png)
+- [After: spaced-title editor](docs/evidence/sprint25/phase5-layout-editor-390-spaced.png)
+- [After: listing preview](docs/evidence/sprint25/phase5-layout-preview-390-unbroken.png)
+- [After: staged review](docs/evidence/sprint25/phase5-layout-staged-review-390-unbroken.png)
+- [After: archived history](docs/evidence/sprint25/phase5-layout-archived-390-unbroken.png)
+
+### Current Unready Reasons - Read Only
+
+Actual local service GETs for af013dd9's readiness/serializer/offline editor, with an existing authenticated session and no provider call, returned **1 failure / 3 warnings / 18 passes**:
+
+| Level | Current reason |
+| --- | --- |
+| **Blocking: Unready** | **Description contains PLACEHOLDER text. Remove it before staging or publishing.** |
+| Warning only | Condition is missing or unknown. This is the global condition warning, not an eBay condition requirement for the conditionless Nugget category. |
+| Warning only | No boilerplate selected. This is not a reason to select the old placeholder boilerplate again. |
+| Warning only | Description lacks the What's included heading. |
+
+The current real title has **69 characters**; it was not changed to either test title. Draft remains **staged**, offer **356038014011**. The publish-specific drift/EPS freshness gates are separate from this legacy Unready summary; no live preview was requested by Codex to refresh them.
+
+### Validation And Stop Point
+
+- Frontend unit tests **165 passed / 37 files**; Playwright **4 passed**; typecheck and production build PASS. Screenshots visually inspected. Existing bundle-size and React Router future warnings remain non-blocking.
+- Django check / makemigrations --check --dry-run / live collectstatic PASS: **7 copied / 155 unmodified / 425 post-processed**. Built and collected **index-DOL1Wrqg.js / index-BagfC46u.css** match. No migration exists or was applied; no backup/restore required for this layout-only change.
+- All **48 live table row digests and the complete schema digest** match the start-of-task baseline after the read-only queries, mocked browser runs and collectstatic. Protected .env, backend requirements, ItemDetail layout and the pre-existing structural audit unchanged. No live save or eBay call. No service restart by Codex.
+- Implementation [Validation 43854109679](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43854109679) **PASS on both lanes**: SQLite **133253853010**, **422 passed / 1 skipped**; PostgreSQL **133253853416**, **410 passed / 13 skipped**; frontend **165 passed / 37 files** and new Playwright gate **4 passed**. Typecheck, build, migration consistency, URL-only confinement, collectstatic and production smoke green. Secret scan and diff whitespace check passed before the implementation push.
+- The preceding v4.70 handoff update and stopped supervised-session notes were preserved. Phase 6 and supervised listing remain separate work. **Stop for Regan's Administrator restart, hard refresh and real-phone fit check. No stage/update/publish approval is implied.**
+
+The intervening layout task commits the earlier applied handoff update and stopped-session notes together with these results/screenshots. That records history only: it does not retroactively approve any listing value or complete the supervised session.
