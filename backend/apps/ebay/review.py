@@ -16,6 +16,7 @@ from apps.ebay.conditions import CONDITION_ENUMS
 from apps.listing.editor import EDITABLE_CHANNEL_FIELDS, LISTING_FIELDS, readiness, sources
 from apps.listing.editor_metadata import MARKETPLACE, mapping, policy_options, text
 from apps.listing.models import ListingDraft, PublishReview
+from apps.listing.readiness import placeholder_checks
 from apps.photos.models import PhotoAsset
 from integrations.storage import LocalFileStorageAdapter
 
@@ -97,8 +98,9 @@ def eps_checks(draft, photos, *, remote_urls=None, now=None):
         except (ValueError, TypeError):
             stamp = None
         if not stamp or timezone.is_naive(stamp) or stamp > now or stamp <= now - EPS_LIFETIME or not row.get("url") or row.get("missing") or (remote_urls is not None and row.get("url") not in remote_urls):
-            issues.append(check("photo_freshness", "Photo upload is expired, missing or has no known upload date. Use Update staged offer.", "photos"))
-    return issues
+            issues.append(photo["id"])
+    count = len(issues)
+    return [check("photo_freshness", f"{count} {'photo needs' if count == 1 else 'photos need'} re-uploading: expired, missing or unknown upload date. Use Update staged offer.", "staging")] if count else []
 
 
 def _offer_state(offer):
@@ -128,6 +130,8 @@ def _contains(expected, actual):
 def live_validation(draft, *, actor=None):
     data = mapping(draft.channel_data)
     photos, checks = photo_state(draft)
+    # This local gate survives failed metadata reads and is re-run at stage/publish.
+    checks.extend({**row.as_dict(), "field": row.key.split(":", 1)[1]} for row in placeholder_checks(draft))
     metadata = None
     offer = inventory_item = None
     raw_policies = {}
@@ -210,16 +214,17 @@ def live_validation(draft, *, actor=None):
     fp = field_fingerprint(draft, photos)
     publish_checks = []
     if not data.get("offer_id"):
-        publish_checks.append(check("stage_required", "Stage this reviewed listing before publishing."))
+        publish_checks.append(check("stage_required", "Stage this reviewed listing before publishing.", "staging"))
     if draft.staging_state != "verified" or not draft.staged_fingerprint or draft.staged_fingerprint != fp:
-        publish_checks.append(check("staged_drift", "Local content is changed or staging is unverified. Explicitly Update staged offer, then review again."))
+        publish_checks.append(check("staged_drift", "Local content is changed or staging is unverified. Explicitly Update staged offer, then review again.", "staging"))
     if offer is not None and inventory_item is not None:
         saved = mapping(data.get("last_payload_snapshot"))
         if not _contains(mapping(saved.get("offer")), offer) or not _contains(mapping(saved.get("inventory_item")), inventory_item):
-            publish_checks.append(check("remote_drift", "The remote offer or inventory differs from the staged snapshot. Update staged offer and review again."))
+            publish_checks.append(check("remote_drift", "The remote offer or inventory differs from the staged snapshot. Update staged offer and review again.", "staging"))
         publish_checks.extend(eps_checks(draft, photos, remote_urls=mapping(inventory_item.get("product")).get("imageUrls", [])))
     else:
         publish_checks.extend(eps_checks(draft, photos))
+    checks = list({(row["key"], row["field"], row["message"]): row for row in checks}.values())
     return {"metadata": metadata, "checks": checks, "publish_checks": publish_checks, "field_fingerprint": fp,
             "validation_fingerprint": digest(without_times(validation_basis)), "photos": photos}
 
@@ -281,6 +286,9 @@ def reviewed(draft, review_id, *, actor=None, for_publish=False):
     review = PublishReview.objects.using(draft._state.db).filter(pk=review_id, draft=draft).first() if review_id else None
     if review is None or review.actor_id != getattr(actor, "pk", None):
         raise WorkflowError("review_required", "Open and review this exact listing before continuing.")
+    text_issues = [{**row.as_dict(), "field": row.key.split(":", 1)[1]} for row in placeholder_checks(draft)]
+    if text_issues:
+        raise WorkflowError("listing_blocked", "Remove the named PLACEHOLDER text before continuing.", checks=text_issues)
     if review.expires_at <= timezone.now() or review.draft_revision != draft.updated_at:
         raise WorkflowError("review_changed", "The reviewed draft changed or review expired. Review again.")
     result = live_validation(draft, actor=actor)

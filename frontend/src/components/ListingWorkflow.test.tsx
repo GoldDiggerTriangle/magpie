@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 import fixture from "../fixtures/listingEditor.json";
@@ -30,7 +30,7 @@ test("full path reviews exact values, policy terms, price source and fees before
   await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByText("Australia Post: $23.95")).toBeInTheDocument();
   expect(screen.getByText("Source: Human asking price")).toBeInTheDocument();
-  expect(screen.getByText("InsertionFee: AUD 0.06")).toBeInTheDocument();
+  expect(screen.getAllByText("Insertion Fee: $0.06")[0]).toBeVisible();
   const post = screen.getByRole("button", { name: "Confirm publish to eBay" });
   expect(post).toBeDisabled();
   await userEvent.type(screen.getByRole("textbox", { name: `Type ${item.sku} to confirm` }), item.sku);
@@ -97,4 +97,80 @@ test("unsaved visible edits invalidate Post even before the server revision chan
   rerender(<ListingWorkflow draft={{ ...draft, title: "Unsaved human title" }} item={item} mode="quick" onUpdated={updated} />);
   expect(screen.getByRole("button", { name: "Post live to eBay" })).toBeDisabled();
   expect(mocks.publish).not.toHaveBeenCalled();
+});
+
+test("preview preserves description headings, paragraphs and breaks without active HTML", async () => {
+  draft.description_html = "<h2>Overview</h2><p>Own nugget.<br>Wear retained.</p><h3>Details</h3><p>Second paragraph.</p><img src='https://example.invalid/tracker'><script>window.injected = true</script>";
+  review.listing.description_html = draft.description_html;
+  review.specifics = [{ name: "Metal", value: "Gold" }, { name: "Form", value: "Nugget" }, { name: "Weight", value: "1.4 g" }];
+  draft.item_specifics = review.specifics;
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  const description = await screen.findByLabelText("Listing description");
+  expect(within(description).getByRole("heading", { name: "Overview", level: 2 })).toBeVisible();
+  expect(within(description).getByRole("heading", { name: "Details", level: 3 })).toBeVisible();
+  expect(description.querySelectorAll("p")).toHaveLength(2);
+  expect(description.querySelector("br")).not.toBeNull();
+  expect(description.querySelector("img,script")).toBeNull();
+  const specifics = screen.getByLabelText("Item specifics");
+  expect(specifics.children[0]).toHaveTextContent("Metal: Gold");
+  expect(specifics.children[1]).toHaveTextContent("Form: Nugget");
+  expect(specifics.children[2]).toHaveTextContent("Weight: 1.4 g");
+});
+
+test("fee estimate shows nonzero fees and exact total with full breakdown collapsed", async () => {
+  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0.06" }, { type: "UpgradeFee", currency: "AUD", value: "0.10" }, { type: "GalleryFee", currency: "AUD", value: "0.00" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("AUD listing fee total: $0.16")).toBeVisible();
+  const zero = screen.getByText("Gallery Fee: $0.00");
+  expect(zero).not.toBeVisible();
+  const toggle = screen.getByText("Show all fees");
+  expect(toggle.parentElement).not.toHaveAttribute("open");
+  await userEvent.click(toggle);
+  expect(toggle.parentElement).toHaveAttribute("open");
+  expect(zero).toBeVisible();
+  expect(screen.getByRole("heading", { name: "eBay listing fee estimate" }).parentElement?.querySelector(".font-mono")).toBeNull();
+  expect(screen.getByText("Listing fees only; final selling fees depend on the sale.")).toBeVisible();
+});
+
+test("zero fees still show an honest zero total, without zero fee rows in the summary", async () => {
+  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("AUD listing fee total: $0.00")).toBeVisible();
+  expect(screen.getByText("Insertion Fee: $0.00")).not.toBeVisible();
+});
+
+test("repeated photo blockers group once and drift jumps to Update staged offer without staging", async () => {
+  review.can_publish = false;
+  review.publish_checks = [
+    ...Array.from({ length: 6 }, () => ({ key: "photo_freshness", field: "photos", message: "Photo upload date unknown" })),
+    { key: "staged_drift", field: "category_id", message: "Local staging is unverified" },
+  ];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("6 photos need re-uploading. Use Update staged offer.")).toBeVisible();
+  expect(screen.queryByText("Photo upload date unknown")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
+  await userEvent.click(screen.getAllByRole("button", { name: "Go to Update staged offer" })[1]);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Update staged offer" })).toHaveFocus());
+  expect(screen.getByLabelText("Reviewed listing")).toBeVisible();
+  expect(mocks.stage).not.toHaveBeenCalled(); expect(mocks.publish).not.toHaveBeenCalled();
+});
+
+test.each(["title", "subtitle", "description_html", "est_shipping_note", "item_specifics"])("placeholder blocker jumps to the named %s editor field", async (fieldName) => {
+  review.can_stage = false; review.can_publish = false;
+  review.checks = [{ key: `placeholder:${fieldName}`, field: fieldName, message: "Remove PLACEHOLDER text before staging or publishing." }];
+  const field = document.createElement("textarea"); field.id = `listing-${draft.id}-${fieldName}`; document.body.append(field);
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  await userEvent.click(await screen.findByRole("button", { name: `Go to ${fieldName.replace(/_/g, " ")}` }));
+  await waitFor(() => expect(field).toHaveFocus());
+  expect(mocks.stage).not.toHaveBeenCalled(); expect(mocks.publish).not.toHaveBeenCalled(); field.remove();
+});
+
+test("reviewed revision renders the browser-local date and time, not ISO prose", async () => {
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  await screen.findByLabelText("Reviewed listing");
+  const time = document.querySelector("time");
+  const expected = new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(draft.updated_at));
+  expect(time).toHaveTextContent(`Reviewed ${expected}`);
+  expect(time).toHaveAttribute("dateTime", draft.updated_at);
+  expect(screen.queryByText(`Reviewed revision ${draft.updated_at}`)).not.toBeInTheDocument();
 });

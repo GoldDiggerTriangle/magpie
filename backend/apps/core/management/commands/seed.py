@@ -519,19 +519,14 @@ class Command(BaseCommand):
         )
 
     def seed_listing(self, items: dict[str, InventoryItem]) -> None:
-        # Placeholder wording only. Replace with Regan's real postage, returns,
-        # and payment wording in Django admin before relying on exports.
+        # eBay displays the chosen business policies; do not seed policy claims.
         ListingBoilerplate.objects.update_or_create(
             channel="ebay_au",
             name="eBay AU — PLACEHOLDER boilerplate",
             defaults={
                 "is_active": True,
-                "body_html": (
-                    "<h2>Postage, returns and payment</h2>"
-                    "<p>PLACEHOLDER wording: confirm postage, returns, and payment "
-                    "terms in eBay before listing. No external links are included.</p>"
-                ),
-                "notes": "Placeholder seed boilerplate; edit in admin.",
+                "body_html": "",
+                "notes": "Optional local boilerplate; eBay displays the selected business policies.",
             },
         )
 

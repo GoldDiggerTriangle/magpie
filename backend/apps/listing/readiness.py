@@ -1,5 +1,8 @@
 from dataclasses import asdict, dataclass
 from decimal import Decimal, InvalidOperation
+from html import unescape
+
+from django.utils.html import strip_tags
 
 from apps.inventory.models import InventoryItem
 from apps.listing.constants import EBAY_TITLE_MAX
@@ -36,9 +39,28 @@ def has_failures(draft) -> bool:
     return any(check.level == "fail" for check in check_readiness(draft))
 
 
+def placeholder_checks(draft) -> list[Check]:
+    def contains(value):
+        if isinstance(value, dict):
+            return any(contains(part) for part in value.values())
+        if isinstance(value, list):
+            return any(contains(part) for part in value)
+        raw = unescape(str(value or ""))
+        return "placeholder" in raw.casefold() or "placeholder" in strip_tags(raw).casefold()
+
+    fields = {
+        "title": "Title", "subtitle": "Subtitle", "description_html": "Description",
+        "est_shipping_note": "Shipping note", "item_specifics": "Item specifics",
+        "currency": "Currency", "listing_format": "Listing format",
+    }
+    return [Check(f"placeholder:{field}", "fail", f"{label} contains PLACEHOLDER text. Remove it before staging or publishing.")
+            for field, label in fields.items() if contains(getattr(draft, field, ""))]
+
+
 def _fail_checks(draft) -> list[Check]:
     photo_resolution = resolve_photo_ids(draft)
     return [
+        *placeholder_checks(draft),
         _check("listing_format", draft.listing_format in {"fixed", "auction"}, "Listing format is set.", "Choose a listing format."),
         _check(
             "no_photos",

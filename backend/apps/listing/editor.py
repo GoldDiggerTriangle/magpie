@@ -144,7 +144,7 @@ def readiness(draft, metadata=None):
     for check in check_readiness(draft):
         # Legacy valuation comparisons and global grading are not listing metadata.
         if check.level == "fail":
-            checks.append({**check.as_dict(), "field": targets.get(check.key, "description_html")})
+            checks.append({**check.as_dict(), "field": check.key.split(":", 1)[1] if check.key.startswith("placeholder:") else targets.get(check.key, "description_html")})
 
     def add(key, ok, message, field, *, warning=False):
         checks.append({"key": key, "level": "pass" if ok else "warn" if warning else "fail", "message": message, "field": field})

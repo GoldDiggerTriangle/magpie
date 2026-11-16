@@ -3,6 +3,7 @@ import { CheckCircle2, ExternalLink, Eye, RefreshCw, Send, ShieldCheck, Trash2, 
 import { publishListingDraft, stageListingDraft, withdrawListingDraft } from "../api/listing";
 import { getWorkflowDraft, reconcileListing, reviewListing, type ListingReview } from "../api/listingWorkflow";
 import type { InventoryItemDetail, ListingDraft } from "../types";
+import { groupedBlockers, ListingDescription, ListingFees, reviewedTime } from "./ListingPreviewContent";
 
 export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: {
   draft: ListingDraft; item: InventoryItemDetail; mode: "full" | "quick";
@@ -48,20 +49,20 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
     });
   }
   function fix(field: string) {
-    setOpen(false);
+    if (field !== "staging" || mode === "quick") setOpen(false);
     window.location.hash = "listings-channels";
     window.dispatchEvent(new Event(`magpie:open-draft:${item.id}`));
     window.setTimeout(() => {
       const node = document.getElementById(`listing-${draft.id}-${field}`);
       node?.scrollIntoView?.({ block: "center" });
       const control = node?.matches("input,select,textarea,button") ? node : node?.querySelector("input,select,textarea,button");
-      (control as HTMLElement | null)?.focus();
+      ((control ?? node) as HTMLElement | null)?.focus();
     }, 100);
   }
   if (terminal) return <div className="rounded border border-slate-400 p-4"><strong>{draft.status === "archived" ? "Archived history" : "Published listing"}</strong>{draft.channel_data.listing_id ? <a className="row-link mt-3" href={`https://www.ebay.com.au/itm/${encodeURIComponent(String(draft.channel_data.listing_id))}`} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" size={18} />Open live listing</a> : null}</div>;
   return <section className="min-w-0 space-y-3" aria-label={mode === "quick" ? "Quick eBay review" : "eBay review and publish"}>
     <div className="flex flex-wrap gap-3">
-      <button className="btn-primary gap-2" disabled={busy || inflight} onClick={() => void preview()} type="button"><Eye aria-hidden="true" size={18} />{mode === "quick" ? "Preview eBay listing" : "Review listing"}</button>
+      <button id={mode === "full" && !open ? `listing-${draft.id}-staging` : undefined} className="btn-primary gap-2" disabled={busy || inflight} onClick={() => void preview()} type="button"><Eye aria-hidden="true" size={18} />{mode === "quick" ? "Preview eBay listing" : "Review listing"}</button>
       {draft.channel_data.offer_id && !inflight && mode === "full" ? <button className="btn-secondary gap-2" disabled={busy} onClick={() => setRemove(true)} type="button"><Trash2 aria-hidden="true" size={18} />Remove unpublished offer</button> : null}
     </div>
     {inflight ? <div role="alert" className="rounded border-2 border-amber-700 bg-amber-50 p-4"><strong>Publish outcome needs reconciliation</strong><p>Do not retry or edit this draft. A timeout does not cancel a request.</p><button className="btn-secondary mt-3 gap-2" disabled={busy} onClick={() => void run(async () => { onUpdated(await reconcileListing(draft.id)); })} type="button"><RefreshCw aria-hidden="true" size={18} />Reconcile offer</button></div> : null}
@@ -87,16 +88,16 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
         const photo = item.photos.find((own) => own.id === p.id);
         return photo ? <img className="aspect-square w-full rounded border border-slate-400 object-contain" key={p.id} src={p.url || (p.derivative ? photo.derivatives.find((d) => d.id === p.derivative)?.fixed_url : photo.processed_url) || photo.thumb_url || ""} alt={photo.role || "Selected own photo"} /> : null;
       })}</div>
-      <dl>{review.specifics?.map((r, i) => <Row label={r.name} value={r.value} key={i} />)}</dl>
-      <div><h4 className="font-semibold">Description</h4><p className="whitespace-pre-wrap break-words">{new DOMParser().parseFromString(review.listing.description_html, "text/html").body.textContent}</p><small>{review.sources.description_html}</small></div>
-      {review.fees.length ? <div><h4 className="font-semibold">eBay listing fee estimate</h4>{review.fees.map((f, i) => <p className="font-mono" key={i}>{f.type}: {f.currency} {f.value}</p>)}<p>Listing fees only; final selling fees depend on the sale.</p></div> : null}
-      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{[...review.checks, ...review.publish_checks].map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p><button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field.replace(/_/g, " ")}</button></div>)}</div> : null}
-      {mode === "full" && review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : null}
+      <dl aria-label="Item specifics">{review.specifics?.map((r, i) => <div className="min-w-0 break-words border-b border-slate-300 py-2" key={i}><dt className="inline font-semibold">{r.name}:</dt>{" "}<dd className="inline">{r.value}</dd></div>)}</dl>
+      <div><h4 className="font-semibold">Description</h4><ListingDescription html={review.listing.description_html} /><small>{review.sources.description_html}</small></div>
+      {review.fees.length ? <ListingFees fees={review.fees} /> : null}
+      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p><button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button></div>)}</div> : null}
+      {mode === "full" ? <div id={`listing-${draft.id}-staging`} tabIndex={-1} className="listing-field-anchor">{review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : <p>Resolve the listing blockers above before {review.offer_id ? "Update staged offer" : "Stage reviewed listing"}.</p>}</div> : null}
       {mode === "quick" && !review.can_publish ? <button className="btn-secondary" onClick={() => fix("title")} type="button">Open full editor to update and review</button> : null}
       {mode === "full" && review.can_publish ? <label className="label">Type {review.sku} to confirm<input autoComplete="off" className="field" value={sku} onChange={(e) => setSku(e.target.value)} /></label> : null}
       <button className="btn-primary gap-2" disabled={busy || !review.can_publish || !sameRevision || expired || (mode === "full" && sku !== review.sku)} onClick={() => void run(async () => { const updated = await publishListingDraft(draft.id, mode === "full" ? sku : "", { review_id: review.id, mode }); onUpdated(updated); setReview(null); setOpen(false); })} type="button"><Send aria-hidden="true" size={18} />{mode === "quick" ? "Post live to eBay" : "Confirm publish to eBay"}</button>
       {expired || !sameRevision ? <p role="alert">Review expired or draft changed. Review again before continuing.</p> : null}
-      <p className="flex items-start gap-2 text-sm"><ShieldCheck size={18} aria-hidden="true" />{busy ? "Waiting for a confirmed response. Do not send again." : `Reviewed revision ${review.draft_revision}`}</p>
+      <p className="flex items-start gap-2 text-sm"><ShieldCheck size={18} aria-hidden="true" />{busy ? "Waiting for a confirmed response. Do not send again." : <time dateTime={review.draft_revision}>{reviewedTime(review.draft_revision)}</time>}</p>
     </div> : null}
     {draft.status === "ready" && !open ? <span className="sr-only"><CheckCircle2 />Ready for review</span> : null}
   </section>;

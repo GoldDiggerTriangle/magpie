@@ -272,7 +272,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
 
       <label className="label">
         <span>Subtitle</span>
-        <input aria-label="Subtitle" className="field" value={local.subtitle} onChange={(event) => setLocal({ ...local, subtitle: event.target.value })} />
+        <input aria-label="Subtitle" id={listingFieldId(local.id, "subtitle")} className="field" value={local.subtitle} onChange={(event) => setLocal({ ...local, subtitle: event.target.value })} />
         <FieldSource context={editor.data} field="subtitle" />
       </label>
 
@@ -293,7 +293,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         </label>
         <label className="label">
           <span>Currency</span>
-          <input aria-label="Currency" className="field" maxLength={3} value={local.currency} onChange={(event) => setLocal({ ...local, currency: event.target.value.toUpperCase() })} />
+          <input aria-label="Currency" id={listingFieldId(local.id, "currency")} className="field" maxLength={3} value={local.currency} onChange={(event) => setLocal({ ...local, currency: event.target.value.toUpperCase() })} />
           <FieldSource context={editor.data} field="currency" />
         </label>
         <label className="label">
@@ -318,7 +318,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
 
       <label className="label">
         <span>Shipping note</span>
-        <input aria-label="Shipping note" className="field" value={local.est_shipping_note} onChange={(event) => setLocal({ ...local, est_shipping_note: event.target.value })} />
+        <input aria-label="Shipping note" id={listingFieldId(local.id, "est_shipping_note")} className="field" value={local.est_shipping_note} onChange={(event) => setLocal({ ...local, est_shipping_note: event.target.value })} />
         <FieldSource context={editor.data} field="est_shipping_note" />
       </label>
 
