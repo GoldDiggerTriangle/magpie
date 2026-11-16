@@ -19,7 +19,7 @@ beforeEach(() => {
     sources: { price: "Human asking price", category_id: "from Gold defaults" }, mapping: draft.channel_data as Record<string, string>,
     specifics: draft.item_specifics, photos: draft.photo_ids.map((id) => ({ id, sha256: "owned-sha", derivative: "" })),
     metadata: { category_snapshot: { condition_policy: { required: false, conditions: [] } }, policies: { fulfillment: [{ id: "f4", name: "Tracked", terms: ["Australia Post: $23.95", "Handling: 2 business days"] }] } },
-    checks: [], publish_checks: [], fees: [{ type: "InsertionFee", currency: "AUD", value: "0.06" }], can_stage: true, can_publish: true };
+    checks: [], publish_checks: [], fees: [{ type: "ListingFee", currency: "AUD", value: "0.06" }, { type: "InsertionFee", currency: "AUD", value: "0.06" }], can_stage: true, can_publish: true };
   mocks.review.mockImplementation(async () => structuredClone(review));
   mocks.publish.mockResolvedValue({ ...draft, status: "published" });
 });
@@ -118,7 +118,7 @@ test("preview preserves description headings, paragraphs and breaks without acti
 });
 
 test("fee estimate shows nonzero fees and exact total with full breakdown collapsed", async () => {
-  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0.06" }, { type: "UpgradeFee", currency: "AUD", value: "0.10" }, { type: "GalleryFee", currency: "AUD", value: "0.00" }];
+  review.fees = [{ type: "ListingFee", currency: "AUD", value: "0.16" }, { type: "InsertionFee", currency: "AUD", value: "0.06" }, { type: "UpgradeFee", currency: "AUD", value: "0.10" }, { type: "GalleryFee", currency: "AUD", value: "0.00" }];
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByText("AUD listing fee total: $0.16")).toBeVisible();
   const zero = screen.getByText("Gallery Fee: $0.00");
@@ -133,10 +133,56 @@ test("fee estimate shows nonzero fees and exact total with full breakdown collap
 });
 
 test("zero fees still show an honest zero total, without zero fee rows in the summary", async () => {
-  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0" }];
+  review.fees = [{ type: "ListingFee", currency: "AUD", value: "0" }, { type: "InsertionFee", currency: "AUD", value: "0" }];
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByText("AUD listing fee total: $0.00")).toBeVisible();
   expect(screen.getByText("Insertion Fee: $0.00")).not.toBeVisible();
+});
+
+test("eBay ListingFee total includes InsertionFee and rendering changes no listing or review values", async () => {
+  const returned = structuredClone(review);
+  const before = structuredClone({ draft, review: returned });
+  returned.fees.forEach(Object.freeze); Object.freeze(returned.fees); Object.freeze(returned);
+  mocks.review.mockResolvedValue(returned);
+  const { updated } = open();
+  await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  const total = await screen.findByText("AUD listing fee total: $0.06");
+  expect(total).toBeVisible();
+  expect(screen.queryByText("AUD listing fee total: $0.12")).not.toBeInTheDocument();
+  const component = screen.getAllByText("Insertion Fee: $0.06").find((el) => !el.closest("details"))!;
+  expect(component).toBeVisible();
+  expect(total.compareDocumentPosition(component) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByText("Listing Fee: $0.06")).not.toBeVisible();
+  await userEvent.click(screen.getByText("Show all fees"));
+  expect(screen.getByText("Listing Fee: $0.06")).toBeVisible();
+  expect({ draft, review: returned }).toEqual(before);
+  expect(updated).not.toHaveBeenCalled();
+  expect(mocks.stage).not.toHaveBeenCalled(); expect(mocks.publish).not.toHaveBeenCalled();
+  expect(mocks.remove).not.toHaveBeenCalled(); expect(mocks.reconcile).not.toHaveBeenCalled();
+});
+
+test("component fees without an eBay total do not invent a total", async () => {
+  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0.06" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("AUD listing fee total unavailable: not returned by eBay.")).toBeVisible();
+  expect(screen.queryByText("AUD listing fee total: $0.06")).not.toBeInTheDocument();
+  expect(screen.getAllByText("Insertion Fee: $0.06")[0]).toBeVisible();
+});
+
+test("conflicting aggregate fees stay uncertain instead of being summed or arbitrarily selected", async () => {
+  review.fees = [{ type: "ListingFee", currency: "AUD", value: "0.06" }, { type: "ListingFee", currency: "AUD", value: "0.10" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("AUD listing fee total unavailable: conflicting eBay totals.")).toBeVisible();
+  expect(screen.queryByText("AUD listing fee total: $0.16")).not.toBeInTheDocument();
+});
+
+test("eBay totals stay per currency and are not replaced by component sums", async () => {
+  review.fees = [{ type: "InsertionFee", currency: "AUD", value: "0.06" }, { type: "ListingFee", currency: "AUD", value: "0.05" },
+    { type: "ListingFee", currency: "USD", value: "0.20" }, { type: "InsertionFee", currency: "USD", value: "0.20" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByText("AUD listing fee total: $0.05")).toBeVisible();
+  const usd = new Intl.NumberFormat("en-AU", { style: "currency", currency: "USD" }).format(0.20);
+  expect(screen.getByText(`USD listing fee total: ${usd}`.replace(/\s+/g, " "))).toBeVisible();
 });
 
 test("repeated photo blockers group once and drift jumps to Update staged offer without staging", async () => {

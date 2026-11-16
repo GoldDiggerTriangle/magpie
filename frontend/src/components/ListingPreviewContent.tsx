@@ -33,8 +33,8 @@ export function ListingDescription({ html }: { html: string }) {
 
 export function ListingFees({ fees }: { fees: ListingReview["fees"] }) {
   const valid = fees.filter((fee) => Number.isFinite(Number(fee.value)) && Number(fee.value) >= 0);
-  const totals = new Map<string, number>();
-  for (const fee of valid) totals.set(fee.currency, (totals.get(fee.currency) ?? 0) + Math.round(Number(fee.value) * 100));
+  const currencies = Array.from(new Set(valid.map((fee) => fee.currency)));
+  const components = valid.filter((fee) => fee.type !== "ListingFee" && Number(fee.value) > 0);
   function money(value: number, currency: string) {
     try { return new Intl.NumberFormat("en-AU", { style: "currency", currency }).format(value); }
     catch { return `${currency} ${value.toFixed(2)}`; }
@@ -43,9 +43,16 @@ export function ListingFees({ fees }: { fees: ListingReview["fees"] }) {
   function line(fee: ListingReview["fees"][number], index: number) {
     return <p key={index}>{name(fee.type)}: {money(Number(fee.value), fee.currency)}</p>;
   }
+  function total(currency: string) {
+    // ListingFee already includes the components. Never manufacture a total from them.
+    const amounts = Array.from(new Set(valid.filter((fee) => fee.currency === currency && fee.type === "ListingFee").map((fee) => Number(fee.value))));
+    return <p className="font-semibold" key={currency}>{currency} listing fee total{amounts.length === 1
+      ? `: ${money(amounts[0], currency)}`
+      : ` unavailable: ${amounts.length ? "conflicting eBay totals" : "not returned by eBay"}.`}</p>;
+  }
   return <div className="font-sans tabular-nums"><h4 className="font-semibold">eBay listing fee estimate</h4>
-    {valid.filter((fee) => Number(fee.value) > 0).map(line)}
-    {Array.from(totals, ([currency, cents]) => <p className="font-semibold" key={currency}>{currency} listing fee total: {money(cents / 100, currency)}</p>)}
+    {currencies.map(total)}
+    {components.length ? <div aria-label="Listing fee breakdown"><h5 className="font-semibold">Fee breakdown</h5>{components.map(line)}</div> : null}
     <details className="my-2"><summary className="min-h-11 cursor-pointer py-2 font-semibold">Show all fees</summary>{valid.map(line)}</details>
     <p>Listing fees only; final selling fees depend on the sale.</p>
   </div>;

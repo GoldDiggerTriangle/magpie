@@ -32,7 +32,7 @@ async function isolatedListing(page: Page, state: "preview" | "staged" | "archiv
       sku: fixture.item.sku, price: draft.price, sources: context.sources, mapping: draft.channel_data,
       listing: { title: draft.title, description_html: draft.description_html, listing_format: draft.listing_format, quantity: draft.quantity, currency: draft.currency },
       specifics: draft.item_specifics, photos: draft.photo_ids.map((id: string) => ({ id, sha256: "isolated-own-photo", derivative: "" })), metadata: context.metadata, checks: [], publish_checks: [],
-      fees: [{ type: "InsertionFee", currency: "AUD", value: "0.06" }], can_stage: true, can_publish: state === "staged",
+      fees: [{ type: "ListingFee", currency: "AUD", value: "0.06" }, { type: "InsertionFee", currency: "AUD", value: "0.06" }], can_stage: true, can_publish: state === "staged",
     });
     forbidden.push(`${request.method()} ${url.pathname}`);
     return route.abort();
@@ -83,7 +83,11 @@ for (const [kind, title] of Object.entries(titles)) {
       expect(counter!.x + counter!.width).toBeLessThanOrEqual(390);
       await page.getByRole("button", { name: "Review listing", exact: true }).click();
       await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+      await expect(page.getByText("AUD listing fee total: $0.06", { exact: true })).toBeVisible();
+      await expect(page.getByLabel("Listing fee breakdown")).toContainText("Insertion Fee: $0.06");
+      await expect(page.getByText("AUD listing fee total: $0.12", { exact: true })).toHaveCount(0);
       await fitsPhone(page, info, `${kind}-${state}-review`);
+      if (kind === "spaced" && state === "staged") await page.getByRole("heading", { name: "eBay listing fee estimate" }).locator("..").screenshot({ path: info.outputPath("fee-total-390.png") });
       for (const control of await page.locator(".listing-review input, .listing-review select, .listing-review textarea").all()) {
         if (await control.isVisible()) expect(await control.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
       }
