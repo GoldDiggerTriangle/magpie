@@ -1885,3 +1885,52 @@ Authenticated requests reused a valid existing Django session in memory; no new 
 **Deployment complete at the requested stop-and-report point.** The full all-16 implementation/test matrix above remains the Phase 5 checklist, now supplemented by installed constraints, B-verified pre/post backups, original-column preservation proof, owner restart and actual-service checks. Latest pre-commit main Validation **43646033951** was rechecked: **PostgreSQL 132603902952 success; SQLite 132603903275 success**. No source changes required a new local test run in this deployment; implementation suites/counts are recorded above. Final documentation commit/Validation identifiers are reported with the deployment handoff.
 
 **Not a supervised live-publish claim or Sprint 25 closure.** No eBay writes or reads occurred in this deployment. GOLD restaging and one real listing require a later owner-present session and explicit final-value approval. Phase 6 onward awaits separate instruction. Evidence/handoff notes are the only files to commit; the pre-existing untracked CLAUDE_STRUCTURAL_AUDIT.md remains untouched.
+
+## 2026-11-16 - Phase 5 Phone Preview Fix Round
+
+Owner report: GOLD-00002 preview contained seeded PLACEHOLDER policy prose, flattened description/specifics, noisy fee rows, repeated EPS blockers, a drift link to category ID and raw ISO revision text. This is the approved small Phase 5 fix round, **not Phase 6 consolidation**. Implementation: **4aa67d8263f02aa767b44a94ff14ad53855b7c64**. No migrations, live draft/default/boilerplate saves, eBay calls or service restart by Codex.
+
+### Fixes And Tests
+
+| Requirement | Implemented result | Regression evidence |
+| --- | --- | --- |
+| Remove default policy placeholder; block text at stage and publish | The copy-pack JSON description already has no policy-placeholder line. The reported exact prose originates in seed_listing's default boilerplate; its seeded body is now empty (no invented payment/postage/return terms). **Seed was not run on live; stored descriptions and existing boilerplate are untouched.** Shared local checks scan title, subtitle, description, shipping note, item-specific names/values, currency and format case-insensitively, including HTML/entity-split visible text. Preview names the offending field once. Both stage and publish re-run the text gate before provider writes, including an out-of-band edit without a revision bump. | test_sprint25_preview.py: test_placeholder_blocks_stage_and_publish_with_named_field_without_provider_write (12 cases); test_placeholder_preview_is_named_once_and_survives_unavailable_metadata; test_new_defaults_have_no_policy_placeholder_and_do_not_rewrite_drafts. Frontend placeholder jump tests cover title/subtitle/description/shipping/specifics; missing subtitle/shipping/currency anchor IDs added without changing labels or save behavior. |
+| Description and specifics | Headings, paragraphs, breaks, lists and tables retain structure. An inert template is rebuilt into allowlisted React formatting elements; original HTML attributes, executable content and media are not inserted. Specifics render separate **Name: value** rows, not concatenated strings. Stored/sent HTML is unchanged. | ListingWorkflow.test.tsx: preview preserves description headings, paragraphs and breaks without active HTML. Includes three specifics and rejects script/image elements. |
+| Fee summary | Normal type, non-zero rows and per-currency cent-exact totals. Zero-only estimates honestly show a zero total. All rows, including zero amounts, remain behind **Show all fees** (closed by default). Existing listing-fees-only note retained; no fee-engine changes. | ListingWorkflow.test.tsx: fee estimate shows nonzero fees and exact total with full breakdown collapsed; zero fees still show an honest zero total. |
+| Blocker grouping and destination | EPS validation emits one counted warning (six photos -> one warning); duplicate readiness rows are deduplicated. Preview also groups legacy repeated photo warnings. Drift/remote-drift/photo-freshness target the **staging** anchor, not category ID. Full preview stays open and focuses Update staged offer; if blocked, its step explains the prerequisites. Quick preview uses the existing full-editor entry and focuses its staging/review step. Links never perform staging. | test_photo_reupload_blocker_counts_all_six_and_points_to_update_step covers unknown/fresh/expired uploads and singular/plural. ListingWorkflow.test.tsx: repeated photo blockers group once and drift jumps to Update staged offer without staging. |
+| Reviewed revision | Browser-local en-AU date/time in prose, **Reviewed ...**, with machine-readable ISO only on the time element's datetime attribute. No raw ISO revision prose. | ListingWorkflow.test.tsx: reviewed revision renders the browser-local date and time, not ISO prose. |
+
+Existing immutable-review, explicit staging, exact-revision publish, timeout/reconcile, photo freshness and SKU-confirmation regressions remain green. No automatic cleanup of the saved GOLD description: **Regan removes its placeholder text himself and reviews the resulting change.** Selecting or regenerating from a previously stored placeholder boilerplate can still insert its old content; the server gate blocks it rather than silently rewriting that human-owned data.
+
+### Item-Page Listing Entry Inventory For Phase 6
+
+Current paths at the implementation head; none was consolidated, renamed or removed in this fix round. `I` = item -> **Listings / channels** (or existing desktop section-index / #listings-channels link).
+
+| Visible entry/control | Exact current home / purpose |
+| --- | --- |
+| Open eBay draft / Create eBay draft | I -> QuickPublishPanel; existing canonical create-or-open API, then the full editor via the existing open-draft event. |
+| Preview eBay listing | I -> QuickPublishPanel -> ListingWorkflow, quick mode; opens the canonical draft's quick review. |
+| Open listing draft / Create draft | I -> ListingPanel header; canonical create-or-open, selects the returned draft. |
+| Draft title/status row (Untitled draft fallback) | I -> ListingPanel draft/history list; selects that editor/history row. |
+| Review listing | I -> selected draft editor -> nested PublishPanel -> ListingWorkflow, full mode; persists local editor changes via the existing save path, then review. |
+| Open full editor to update and review | Quick preview when publishing is blocked -> existing full editor, focused title. |
+| Go to <field> / Go to Update staged offer / Go to Stage reviewed listing | Preview blocker links -> named editor field or staging step. Staging/drift destination fixed as requested; no marketplace action from the link itself. |
+| Stage reviewed listing / Update staged offer | Full reviewed preview -> explicit staging step; no automatic update. Existing flow step, not another independent draft. |
+| Reconcile offer | Full/quick workflow when publishing/publish_unknown -> existing explicit reconcile flow. |
+| Remove unpublished offer -> Confirm removal | Full workflow for an unpublished staged offer; existing explicit confirmation flow, unchanged. |
+| Confirm publish to eBay / Post live to eBay | Full SKU-confirmed / quick reviewed final action respectively; existing gates and pipeline, unchanged. No actual call made. |
+| Open live listing | Published workflow/history -> public eBay URL, view-only. |
+| Description Preview / Edit | Selected draft's Description toolbar. **Description-only toggle**, not the composed listing review/publish entry. |
+
+**Not found as a current rendered literal:** Edit canonical listing draft (historical owner/audit wording). There is still **no top-of-item List on eBay action**; adding it and consolidating the above belongs to Phase 6. CopyPackPanel remains copy/export only, not a separate publish path. Existing item sections/layout and all entry-point labels remain unchanged.
+
+### Validation And Live Preservation
+
+- Targeted backend preview/publish tests: **81 passed**. Full local backend: **422 passed / 1 skipped**, 14 existing Pillow deprecation warnings, outbound sockets forbidden, fake provider configuration and scratch-only test databases/media.
+- Frontend: **165 passed / 37 files** (including 23 workflow tests). Typecheck and production build passed. Existing React Router future warnings / bundle-size warning remain non-blocking.
+- Django check and makemigrations --check --dry-run passed: **no model/schema changes**. Live collectstatic **7 copied / 155 unmodified / 425 post-processed**. Final artifacts: **index-JiXPkfIl.js / index-5zB5Wlob.css**; collected hashes match the build. Service restart remains Regan's step.
+- All **48 live table original-row digests** and schema digest match the start-of-round baseline. Counts: **8 drafts / 159 audit rows / 1 ChannelListing / 55 migrations**. The 159 audit rows were already present at this round's baseline (the previous deployment's 158 is historical), not added by this task. GOLD-00002/af013dd9 and all other live rows unchanged.
+- Protected .env, requirements, package manifests, ItemDetail layout and the pre-existing structural audit match their starting hashes. No configuration/dependency changes, live saves or eBay calls. No migration backup/restore is required because no migration exists; prior 0007 backup/restore evidence remains above.
+- Implementation [GitHub Validation 43798685867](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43798685867) **PASS on both lanes**: SQLite job **133073343513**, **422 passed / 1 skipped**; PostgreSQL job **133073343283**, **410 passed / 13 skipped**; frontend **165 passed / 37 files**. Typecheck/build, Django/migration checks, URL-only confinement, collectstatic and production smoke steps all green. Secrets scan and diff whitespace check passed before the implementation push. Scratch-only local test artifacts were removed after the suites completed.
+
+**Stop point:** implementation ready for owner restart/re-check after green CI, not live-closed and not permission to re-stage or publish GOLD-00002. Regan should verify headings/line breaks and Name: value rows, compact fees + Show all fees, one six-photo warning, the Update staged offer jump and local reviewed time; he edits any saved placeholder text himself.
