@@ -2019,3 +2019,58 @@ The current real title has **69 characters**; it was not changed to either test 
 - The preceding v4.70 handoff update and stopped supervised-session notes were preserved. Phase 6 and supervised listing remain separate work. **Stop for Regan's Administrator restart, hard refresh and real-phone fit check. No stage/update/publish approval is implied.**
 
 The intervening layout task commits the earlier applied handoff update and stopped-session notes together with these results/screenshots. That records history only: it does not retroactively approve any listing value or complete the supervised session.
+
+## 2026-11-16 - Supervised Session Resumed: Clean Saved Review, Fee Display STOP
+
+Regan confirmed: "its saved and im in review". Read-only verification at **2026-11-16 11:16:39 UTC** found his full review created at **11:14:31 UTC**, matching the saved draft revision. The review expires at **11:24:31 UTC**; these are observations at verification time, not a claim that the review remains valid indefinitely.
+
+- Actual port **8000** health **200 / ok**; served assets **index-DOL1Wrqg.js / index-BagfC46u.css** match the collected layout-fix build. HEAD **c392d458e2fbc555819aca8799fd06163e3d4335**; [Validation 43854785721](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43854785721) green on SQLite and PostgreSQL.
+- Canonical draft **af013dd9-0611-431c-be4a-223c44ec4e06** remains **staged**, offer **356038014011**, no listing ID, exactly one active eBay draft for GOLD-00002. Current human asking price **AUD 375.00**, quantity **1**. The complete final-value proposal still requires Regan's separate explicit approval; saving/reviewing is not approval to update or publish.
+- **PLACEHOLDER fields: zero. Offline readiness blockers: zero.** Saved full review reports **can_stage true / can_publish false**. The two expected publish blockers are staged drift/unverified staging and the grouped six-photo re-upload requirement. All six photos still have unknown upload times; no missing-file/placeholder/expiry defect was found locally.
+- Regan's normal Review listing refreshed the connection: local metadata shows connected production, no scope gaps or refresh error, access expiry **2026-11-16 13:14:22 UTC**. The chosen policies' terms in his saved review were fetched at **11:14:25 UTC**. Codex did not request a provider refresh or live preview.
+- The clean saved description is Overview / 1.4g gold nugget; Condition / Ungraded / unknown; What's included / Item pictured only.; Item specifics / Metal: gold, Form: nugget, Weight: 1.4 g. No draft text was rewritten by Codex.
+
+### New Surprise: Aggregate Listing Fee Counted Twice
+
+The owner's saved fee response contains **ListingFee AUD 0.06** and **InsertionFee AUD 0.06**, with every other returned component zero. **ListingPreviewContent.tsx / ListingFees currently sums every returned row**, so this response produces a misleading **AUD 0.12** total. The component and aggregate are not two separate charges. eBay's [fee documentation](https://developer.ebay.com/api-docs/user-guides/static/trading-user-guide/fees.html) defines ListingFee as the cumulative listing-feature total; its [fee type reference](https://developer.ebay.com/Devzone/XML/docs/Reference/eBay/types/ListingFeesType.html) explicitly includes InsertionFee within ListingFee. Applying that documented meaning to this saved response identifies the duplicate-counting defect; the estimate is not proof of a final charged fee.
+
+**STOP before Update staged offer or Publish.** No code fix has been made during the supervised session. Ask Regan to authorise a narrow fee-summary fix and real-shaped regression test before resuming final-value approval and the later backup/update/publish stops. Fresh fees must still be reviewed after an explicitly approved update. No eBay account API was called by Codex; only public developer documentation was consulted for the fee semantics.
+
+Database/table/schema digests before and after Codex's local authenticated GETs matched. No live save, stage, update, publish, backup, restart, commit or push by Codex in this resumed portion. Only this evidence and a section 9 handoff line were appended. Supervised live publishing remains unproven; Phase 6 has not started.
+
+## 2026-11-16 - Approved Display-Only Listing Fee Correction
+
+Regan approved the narrow correction with six conditions: display only; eBay's ListingFee is the total with nonzero components below; trace other consumers; pin the 0.06 + 0.06 response; retain the long-title fix; green dual-lane Validation before an owner restart and renewed supervised preconditions/final-value approval. **Implementation: 59d5f470c2665c388baed52ae001f8095e1bac50.**
+
+### Correction And Downstream Audit
+
+The only production-code change is **frontend/src/components/ListingPreviewContent.tsx / ListingFees**. It no longer adds fees at all. For each currency it displays the single unambiguous **ListingFee** amount supplied by eBay, including a genuine zero. Nonzero rows other than ListingFee appear beneath it as the breakdown. Show all fees retains every valid returned row, including the aggregate and zero components. A missing aggregate says **total unavailable: not returned by eBay**; conflicting aggregates say **total unavailable: conflicting eBay totals**. No component-derived substitute total or mixed-currency sum is created.
+
+| Consumer / storage | Audit finding / action |
+| --- | --- |
+| Preview/staged-review display | The erroneous sum existed only in ListingFees; removed. The saved 0.06 ListingFee / 0.06 InsertionFee response now displays **AUD total $0.06**, then **Insertion Fee $0.06** as breakdown. |
+| API normalization | backend/apps/ebay/review.py / normalized_fees retains individual feeType/value/currency rows. It computes no total; unchanged. |
+| Immutable review records | prepare_review stores that row list in PublishReview.snapshot.fees. No summed display figure is stored. Existing snapshots were not rewritten. |
+| Staging/publish payloads and fingerprints | Inventory/offer payload builders and field_fingerprint do not consume this frontend total. All backend files, the complete live draft rows and stored staged fingerprint are unchanged. Nothing sent to eBay changes. |
+| Publish audit rows | publish_state records attempt/review/offer/listing IDs and outcomes, not the frontend fee sum; unchanged. |
+| Sale/order fee records | order_sync obtains actual fees from its Finances transaction path. SaleRecord fee fields and fee_snapshot_for_sale_price use actual recorded amounts or the existing schedule helper, not preview fees; unchanged. |
+| Profit, margin and analytics | profit/ledger.py / fee_choice_for_sale prioritises actual recorded sale fees, otherwise schedule derivation; sale snapshots and dashboard analytics use those independent values. No read of PublishReview.snapshot.fees or ListingFees' sum was found. No financial data repair is needed or performed. |
+
+No other use or persistence of the incorrect sum was found. This is an estimate display correction, not a change to charged historical fees or the listing terms. The later explicit staged update must still be followed by Regan's fresh fee/terms review.
+
+### Tests And Long-Title Regression
+
+- Before changing production code, the real-shaped aggregate-plus-component tests failed against the old sum; the canonical regression now passes with **ListingFee 0.06 + InsertionFee 0.06 -> total $0.06**, never $0.12.
+- ListingWorkflow tests pin the total-before-breakdown order, collapsed complete fee details, unchanged frozen review/draft data and no stage/publish/remove/reconcile/onUpdated calls from rendering or opening details. Coverage also includes missing/conflicting aggregates, zero total, per-currency totals and using the provider aggregate even when it differs from component amounts.
+- Full frontend suite: **169 passed / 37 files**. Typecheck and production build **PASS**. Existing router-future/bundle-size warnings remain non-blocking.
+- The long-title fix **c2343699aa235a42bccbd15fade80d35bd54fb60** is already included; no second layout change was needed. **4 Playwright tests PASS**, 80-character spaced/unbroken titles in editor/preview/staged review/archived rows at **390px**, document and element-bound checks, visible title counter and >=16px controls. The mocked preview/staged reviews now also assert the correct $0.06 fee total and nonzero breakdown.
+- [Fee-summary proof at 390px](docs/evidence/sprint25/phase5-fee-total-390.png): isolated Chromium fixture using the real component, not a live iPhone or published listing. All API responses are in-memory mocks; external origins and unexpected operations are forbidden. Existing long-title screenshots above remain the layout evidence.
+
+### Preservation And Deployment Stop
+
+- Django check / makemigrations --check --dry-run / collectstatic **PASS**; no schema changes or migration. Collected **7 copied / 155 unmodified / 425 post-processed**. Build/static hashes match **index-NxXYb-O5.js / index-BagfC46u.css**. The running service has not been restarted by Codex; the new served build must be proven after Regan's restart.
+- All **48 live table row digests and the schema digest** match this fix round's baseline. Counts unchanged: **8 drafts / 160 audit rows / 2 PublishReview rows / 1 ChannelListing / 55 migrations**. Owner's legitimate prior Review created the additional review/refresh metadata before this baseline. **286 protected files** match, including every backend Python source file, .env, requirements, dependency manifests, item-page layout and the pre-existing structural audit. No live data, staged fingerprint or EPS timestamp was rewritten.
+- No eBay API call, live save, staging/update/publish, restart or migration by Codex. No migration backup is required for this frontend-only fix; the fresh B-verified pre-backup remains a separate later stop after exact-value approval.
+- Implementation [Validation 43859776340](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43859776340) **PASS on both lanes**: SQLite **133273234780**, **422 passed / 1 skipped**; PostgreSQL **133273235173**, **410 passed / 13 skipped**. Frontend **169 passed / 37 files**, Playwright **4 passed**. Typecheck/build, migration consistency, URL-only confinement, collectstatic and production smoke green. Changed files passed the known-secret scan and diff whitespace check before push.
+
+**STOP:** after green Validation, ask Regan for an Administrator restart and confirmation. Then re-run supervised step 0 on actual port 8000, recheck photo reasons and re-show the entire exact value list/full description/photo order for explicit approval **before he taps any update or publish control**. No approval for those actions is implied by this fix. Phase 6 has not started.
