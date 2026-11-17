@@ -2408,3 +2408,24 @@ All **48 table** digests/schema, **764 rows**, **64 media** hashes and protected
 
 Production build and collectstatic are prepared in the live checkout; final asset identifiers and GitHub Validation are recorded below. Regan must restart as Administrator and phone-check the top action, canonical editor, hub and GOLD-00002 **live / View on eBay**. Phase 7/8 work and Sprint 25 closure are not claimed.
 
+### Phase 6 Validation And Stop
+
+Implementation head: **e2030ad31c1f2331234b0a1bdee1a109ede5fbbb**. [GitHub Validation 43999626641](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43999626641): **both lanes PASS**.
+
+| Check | Result |
+| --- | --- |
+| SQLite backend, job 133760159482 | 428 passed, 1 skipped |
+| PostgreSQL backend, job 133760159559 | 416 passed, 13 skipped |
+| Complete frontend suite | 197 passed, 39 files |
+| Integrated real-panel reachability file | 19 passed, including all 11 requested states |
+| Phone/desktop Playwright | 8 passed; 390px document/element bounds and both 80-character title forms |
+| Typecheck / production build / Django check / migration-drift check | PASS; no migration generated or applied |
+| Live-checkout collectstatic | PASS: 7 copied, 155 unmodified, 425 post-processed |
+| Secret scan | PASS across changed source/docs/screenshots; no values exposed |
+
+Prepared production assets: **assets/index-CHZhwBw7.js** and **assets/index-DQWYyt1D.css**. Secret-free hash verification: **D:\Magpie\backups\sprint25-phase6\static-verification.json**, collected **17 Nov 2026, 12:58:57 Australia/Sydney**. Built/static index and asset hashes match. Production checks use SQLite mode=ro; all live rows/schema/media/configuration remain unchanged. Temporary test DB/media/logs were deleted. Existing Pillow deprecation warnings and Vite large-chunk advisory remain non-blocking; no tests were weakened/skipped to obtain green.
+
+The earlier full-suite harness initially disabled logging and therefore failed the logging-rotation test; logging was re-enabled and redirected to isolated scratch, after which the unchanged application test passed with the complete **428/1** suite. A Windows open-log cleanup handle was closed before removing scratch; no plaintext test copy remains. No application workaround was introduced for that harness error.
+
+**STOP: implementation and CI complete, awaiting owner restart/phone acceptance.** In Administrator PowerShell: **Restart-Service -Name Magpie**. Hard-refresh the phone, then check top List on eBay with sections collapsed, canonical editor opening, nav eBay hub, GOLD-00002 labelled live with separate View on eBay, and retained history/copy packs. Do not re-stage or publish the already-live nugget. This task made no eBay calls and no live saves. The final evidence commit/run is quoted in the task response; Sprint 25 remains OPEN for later phases.
+
