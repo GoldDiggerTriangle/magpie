@@ -2556,3 +2556,25 @@ The task has **not** been marked complete or live-closed. The old running servic
 
 Requirement status at this stop: **(a)-(f) and (h) implementation/automated fixtures PASS**, actual served-panel/phone checks pending; **(g) OPEN** because the strict live preservation condition failed. Post-backup/restore, collectstatic, restart, actual port8000 health/new-panel no-auto-call verification and owner Check connection remain pending. Sprint 25 remains OPEN.
 
+## 2026-11-17 - Phase 7 Metadata Exception Approved; Installation Checks PASS
+
+Regan explicitly answered **"Keep five metadata rows; approve this narrow exception"**. This permits only the new **ebay / ebayconnectionhealth** content type and its four standard **add/change/delete/view** permissions. No existing business-data change or permission reassignment is authorised. The prior preservation failure remains recorded above; it was not silently treated as a pass, and no metadata row was removed.
+
+Read-only re-verification at **17 Nov 2026, 5:05:10 pm Australia/Sydney** passed under that exception:
+
+- All **45 unaffected pre-existing whole-table digests** are identical to the B-verified pre-backup.
+- In **auth_permission**, filtering out only the four named permissions for the new content type reproduces the original **176-row digest** exactly. In **django_content_type**, excluding only the new model reproduces the original **44-row digest** exactly. Thus **every pre-existing row is unchanged**, not merely its count.
+- In **django_migrations**, excluding exactly **ebay.0004_connection_health** reproduces the original **55-row digest**. Exactly one new migration record exists (**55 -> 56**).
+- Every pre-existing schema object is identical by schema digest after excluding the new table. The new unique constraint **one_connection_health_per_principal** is present. **integrity_check = ok**, **foreign_key_check empty**.
+- Live totals: **49 tables / 770 rows / 64 unchanged media**, including **8 drafts / 171 audit rows / 2 ChannelListing / 5 reviews / 0 health rows**. Original item/draft/listing/review/audit data, media and protected configuration remain unchanged.
+
+Secret-free verification manifest: **D:\Magpie\backups\sprint25-phase7\install-verification.json**. It contains hashes/counts/statuses and the explicit exception, not credentials, provider bodies or headers.
+
+**Post-backup verified with B:** **D:\Magpie\backups\sprint25-phase7\post\magpie-backup-20261117-060520.tar.gz.enc**, restored at **17 Nov 2026, 5:05:26 pm Australia/Sydney**. Restored **49 tables / 770 rows / 64 media / 56 migrations / 0 health rows**, with exact database/schema/media digest matches, including the new health table and constraint. Restore targets and temporary plaintext were deleted from the checked scratch path immediately. No restore into the live database occurred, and B was not changed.
+
+**Live-checkout collectstatic PASS** at **17 Nov 2026, 5:06:09 pm Australia/Sydney**: **7 copied / 155 unmodified / 425 post-processed**. Django check and migration-drift check PASS; collected index/JS/CSS hashes match the production build. Prepared assets **assets/index-XAv3Xmx7.js** and **assets/index-BMJh9Wup.css**; manifest **D:\Magpie\backups\sprint25-phase7\static-verification.json**. Collectstatic used a read-only production database connection and preserved every table/schema digest. No eBay/provider call occurred.
+
+Implementation **15df280b61deb4b1bbf3e8c7c967b3b30f1dc739** is backed by [Validation 44019076637](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44019076637), both lanes green; the preservation-STOP documentation head **27c9074d809b423f01dd702e84b9ccbfe0f21df6** also passed [Validation 44019885800](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44019885800), both lanes. No application code changed during this exception-resolution task.
+
+**(g) Installation/backup gate now PASS under the explicit five-row exception.** All other Phase 7 implementation/automated checks (a)-(f), (h) remain green as mapped above. **STOP for Regan's Administrator restart**; Codex has not restarted the service. Requested **Restart-Service -Name Magpie**, then **Get-Service -Name Magpie** separately, hard-refresh Settings -> eBay, and confirm **Not yet checked** without clicking Check connection yet. Actual port8000 new-build/health/no-call-on-load verification and real-phone acceptance are still pending. Phase 7 is NOT live-closed and Phase 8 has not begun.
+
