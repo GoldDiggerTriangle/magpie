@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+import uuid
 from datetime import timedelta
 
 from django.conf import settings
@@ -15,6 +16,44 @@ from apps.ebay.constants import (
     OAUTH_STATE_TTL_MINUTES,
 )
 from apps.ebay.fields import EncryptedTextField
+from apps.ebay.health_schema import validate_operations
+
+
+class HealthQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        if "operations" in kwargs:
+            validate_operations(kwargs["operations"])
+        return super().update(**kwargs)
+
+    def bulk_create(self, objs, **kwargs):
+        for obj in objs:
+            obj.full_clean(validate_unique=False, validate_constraints=False)
+        return super().bulk_create(objs, **kwargs)
+
+    def bulk_update(self, objs, fields, **kwargs):
+        # Conditional CASE updates bypass model.save; disallow this alternate path.
+        from django.core.exceptions import ValidationError
+        raise ValidationError("Use validated health conditional updates, not bulk_update.")
+
+
+class EbayConnectionHealth(TimeStampedUUIDModel):
+    environment = models.CharField(max_length=12, choices=[("production", "Production"), ("sandbox", "Sandbox")])
+    principal = models.CharField(max_length=12, choices=[("seller", "Seller"), ("application", "Application")])
+    connection_id = models.UUIDField(default=uuid.uuid4, editable=False)
+    revision = models.PositiveBigIntegerField(default=0)
+    operations = models.JSONField(default=dict, blank=True, validators=[validate_operations])
+    check_id = models.UUIDField(null=True, blank=True)
+    check_started_at = models.DateTimeField(null=True, blank=True)
+    check_completed_at = models.DateTimeField(null=True, blank=True)
+    next_check_at = models.DateTimeField(null=True, blank=True)
+    objects = HealthQuerySet.as_manager()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["environment", "principal"], name="one_connection_health_per_principal")]
+
+    def save(self, *args, **kwargs):
+        self.full_clean(validate_unique=False, validate_constraints=False)
+        return super().save(*args, **kwargs)
 
 
 class EbayCredential(TimeStampedUUIDModel):

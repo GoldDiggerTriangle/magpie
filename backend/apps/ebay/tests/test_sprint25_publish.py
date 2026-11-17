@@ -301,8 +301,10 @@ def test_success_transaction_rolls_back_all_local_writes_on_audit_failure(draft,
     assert ebay.FakeEbayInventoryAdapter.publish_count == 1
 
 
-def test_hard_deadline_is_not_cancellation_and_does_not_allow_retry(draft, monkeypatch):
-    draft = stage(draft)
+def test_hard_deadline_is_not_cancellation_and_does_not_allow_retry(concurrent_draft, monkeypatch):
+    # This is a real two-connection test: use the file-backed SQLite/PG fixture,
+    # not SQLite's shared-memory tables, whose transient read locks bypass busy_timeout.
+    draft = concurrent_draft
     entered, release = Event(), Event()
     original = ebay.FakeEbayInventoryAdapter.publish_offer
     def delayed(self, **kw):

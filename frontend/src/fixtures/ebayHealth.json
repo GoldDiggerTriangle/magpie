@@ -1,0 +1,11 @@
+{
+  "environment": "sandbox", "marketplace": "EBAY_AU", "connected": true, "account": "Synthetic test account",
+  "access": { "state": "expired", "expires_at": "2026-11-16T23:00:00Z" },
+  "refresh": { "state": "valid_until_expiry", "expires_at": "2027-11-16T23:00:00Z", "expiring_soon": false },
+  "application_access": { "state": "not_yet_checked", "expires_at": null },
+  "scopes": { "required": ["https://api.ebay.com/oauth/api_scope/sell.inventory", "https://api.ebay.com/oauth/api_scope/sell.account.readonly", "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly", "https://api.ebay.com/oauth/api_scope/sell.finances"], "requested": ["https://api.ebay.com/oauth/api_scope/sell.inventory"], "application_required": ["https://api.ebay.com/oauth/api_scope"], "grant_status": "not_independently_verified" },
+  "snapshots": { "policies": "2026-11-12T10:58:01Z", "merchant_location": null, "oldest_saved_category": null, "newest_saved_category": null },
+  "checks": { "seller": { "started_at": null, "completed_at": null, "next_check_at": null }, "application": { "started_at": null, "completed_at": null, "next_check_at": null } },
+  "operations": [], "alerts": [], "legacy_refresh_failure_unverified": false,
+  "media_probe": "No stored Media image ID; no upload is performed just to check health.", "as_of": "2026-11-17T03:00:00Z"
+}

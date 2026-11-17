@@ -1,11 +1,12 @@
 import { apiRequest } from "./client";
 import type { ListingDraft, ListingSpecific, UUID } from "../types";
+import type { EbayDiagnostic } from "./ebayHealth";
 
 export function getWorkflowDraft(id: UUID) {
   return apiRequest<ListingDraft>(`/api/listing-drafts/${id}/`);
 }
 
-export interface ReviewBlocker { key: string; message: string; field: string }
+export interface ReviewBlocker { key: string; message: string; field: string; diagnostic?: EbayDiagnostic }
 export interface ListingReview {
   id: UUID; draft_revision: string; expires_at: string; mode: "full" | "quick"; offer_id: string;
   sku: string; price: string | null; sources: Record<string, string>;

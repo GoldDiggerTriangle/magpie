@@ -204,9 +204,11 @@ def live_validation(draft, *, actor=None):
             if state != "UNPUBLISHED" or listing_id:
                 checks.append(check("remote_offer", "The offer is published or its state is ambiguous. Reconcile; do not update or publish again."))
             inventory_item = inventory.get_inventory_item(access_token=access, sku=draft.item.sku)
-    except Exception:
+    except Exception as exc:
         # Never copy an exception/provider payload into a response, audit or snapshot.
-        checks.append(check("live_metadata", "Live eBay validation is unavailable. Check connection and retry review; saved values are unchanged."))
+        from apps.ebay.diagnostics import public_diagnostic, safe_exception
+        checks.append({**check("live_metadata", "Live eBay validation is unavailable. Check connection and retry review; saved values are unchanged."),
+            "diagnostic": public_diagnostic(safe_exception(exc))})
     validation_basis = {"category": public_data(metadata.get("category_snapshot")) if metadata else None,
                         "policies": raw_policies, "location": public_data(metadata["locations"]) if metadata else None,
                         "remaining": draft.item.quantity_remaining}

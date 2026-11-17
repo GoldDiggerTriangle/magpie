@@ -782,7 +782,7 @@ export interface ListingDraft {
   staged_fingerprint?: string;
   publish_started_at?: string | null;
   publish_attempt?: string | null;
-  publish_error?: { message?: string; http_status?: number | null; error_ids?: number[] };
+  publish_error?: { message?: string; http_status?: number | null; error_ids?: number[]; diagnostic?: import("../api/ebayHealth").EbayDiagnostic };
   id: UUID;
   item: UUID;
   status: "draft" | "ready" | "exported" | "staged" | "published" | "publish_failed" | "archived" | "publishing" | "publish_unknown";

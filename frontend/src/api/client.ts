@@ -94,6 +94,10 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     ? await response.json()
     : await response.text();
 
+  if ((path.startsWith("/api/ebay/") && !["/api/ebay/connection-health/", "/api/ebay/hub/", "/api/ebay/status/"].includes(path)) || /\/listing-drafts\/[^/]+\/(review|stage|publish|reconcile|withdraw)\//.test(path)) {
+    window.dispatchEvent(new Event("magpie:ebay-health-changed"));
+  }
+
   if (!response.ok) {
     throw new ApiError(response.status, data);
   }

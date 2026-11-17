@@ -1,4 +1,5 @@
 import editorFixture from "../src/fixtures/listingEditor.json" with { type: "json" };
+import healthFixture from "../src/fixtures/ebayHealth.json" with { type: "json" };
 
 export const listingStates = ["unlisted", "drafted", "staged", "publishing", "publish_unknown", "failed", "published", "published-plus-active", "archived-history", "sold", "partially-sold"] as const;
 export type ListingState = typeof listingStates[number];
@@ -56,6 +57,7 @@ export function phase6Fixture(state: ListingState = "staged", title = editorFixt
     }
     if (method === "POST" && p.endsWith("/reconcile/")) return drafts.find((row) => p.includes(row.id));
     if (method !== "GET") throw new Error(`Unexpected write in reachability gate: ${method} ${p}`);
+    if (p === "/api/ebay/connection-health/") return healthFixture;
     if (p === "/api/ebay/hub/") return hub;
     if (p === `/api/items/${item.id}/`) return item;
     if (p === "/api/categories/") return page([category]);

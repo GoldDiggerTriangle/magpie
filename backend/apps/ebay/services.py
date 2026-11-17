@@ -120,6 +120,8 @@ def complete_connect(
                         "last_refresh_error": "",
                     },
                 )
+                from apps.ebay.connection_health import reset_seller
+                reset_seller()
         if flow_error is not None:
             raise flow_error
         assert credential is not None
@@ -149,7 +151,7 @@ def complete_connect(
             target_type="oauth_state",
             payload={
                 "environment": environment,
-                "state": state or _state_from_pasted_url(pasted_url),
+                "state_supplied": bool(state or _state_from_pasted_url(pasted_url)),
                 "reason": _safe_error(exc),
             },
         )
@@ -164,26 +166,32 @@ def complete_connect(
         raise
 
 
-def get_access_token(*, actor=None) -> str:
+def get_access_token(*, actor=None, force_refresh=False) -> str:
     ensure_token_key_configured()
     environment = ebay_integration.effective_environment()
     now = timezone.now()
     try:
         credential = EbayCredential.objects.get(environment=environment)
     except EbayCredential.DoesNotExist as exc:
-        raise ebay_integration.EbayUnavailable("eBay account is not connected.") from exc
+        from apps.ebay.diagnostics import diagnostic
+        raise ebay_integration.EbayUnavailable(diagnostic=diagnostic("oauth.refresh", failure="reconnect")) from None
 
-    if _token_valid(credential, now):
+    if not force_refresh and _token_valid(credential, now):
         return credential.access_token
 
     refresh_error: Exception | None = None
     refresh_error_message = ""
+    from apps.ebay.connection_health import observe_begin, observe_finish
+    from apps.ebay.diagnostics import diagnostic, safe_exception
+    ticket = observe_begin("oauth.refresh")
     with transaction.atomic():
         credential = EbayCredential.objects.select_for_update().get(pk=credential.pk)
         now = timezone.now()
-        if _token_valid(credential, now):
+        if not force_refresh and _token_valid(credential, now):
             return credential.access_token
         try:
+            if credential.refresh_token_expires_at and credential.refresh_token_expires_at <= now:
+                raise ebay_integration.EbayUnavailable(diagnostic=diagnostic("oauth.refresh", failure="reconnect"))
             token_set = ebay_integration.get_ebay_auth_adapter().refresh(
                 refresh_token=credential.refresh_token,
             )
@@ -212,6 +220,8 @@ def get_access_token(*, actor=None) -> str:
                 ]
             )
     if refresh_error is not None:
+        value = safe_exception(refresh_error, "oauth.refresh")
+        observe_finish(ticket, failure=value)
         record(
             actor=actor,
             action=AUDIT_TOKEN_REFRESH_FAILED,
@@ -219,7 +229,8 @@ def get_access_token(*, actor=None) -> str:
             target_id=credential.id,
             payload={"environment": environment, "reason": refresh_error_message},
         )
-        raise ebay_integration.EbayUnavailable(refresh_error_message) from refresh_error
+        raise ebay_integration.EbayUnavailable(diagnostic=value) from None
+    observe_finish(ticket, status=200)
     record(
         actor=actor,
         action=AUDIT_TOKEN_REFRESH_COMPLETED,
@@ -230,18 +241,18 @@ def get_access_token(*, actor=None) -> str:
     return credential.access_token
 
 
-def get_app_access_token() -> str:
+def get_app_access_token(*, force_refresh=False) -> str:
     ensure_token_key_configured()
     environment = ebay_integration.effective_environment()
     now = timezone.now()
     token = EbayAppToken.objects.filter(environment=environment).first()
-    if token and token.expires_at > now + timedelta(seconds=60):
+    if not force_refresh and token and token.expires_at > now + timedelta(seconds=60):
         return token.access_token
 
     with transaction.atomic():
         token = EbayAppToken.objects.select_for_update().filter(environment=environment).first()
         now = timezone.now()
-        if token and token.expires_at > now + timedelta(seconds=60):
+        if not force_refresh and token and token.expires_at > now + timedelta(seconds=60):
             return token.access_token
         token_set = ebay_integration.get_ebay_auth_adapter().client_credentials(
             scope=EBAY_APP_SCOPE,
@@ -259,6 +270,8 @@ def get_app_access_token() -> str:
 def disconnect(*, actor=None) -> None:
     environment = ebay_integration.effective_environment()
     deleted, _ = EbayCredential.objects.filter(environment=environment).delete()
+    from apps.ebay.connection_health import reset_seller
+    reset_seller()
     record(
         actor=actor,
         action=AUDIT_DISCONNECT_COMPLETED,
@@ -415,7 +428,7 @@ def status_summary() -> dict:
         "scopes": credential.scopes if credential else [],
         "access_token_expires_at": credential.access_token_expires_at if credential else None,
         "refresh_token_expires_at": credential.refresh_token_expires_at if credential else None,
-        "last_refresh_error": credential.last_refresh_error if credential else "",
+        "last_refresh_error": "Previous renewal failed; see connection health for verified details." if credential and credential.last_refresh_error else "",
         "snapshot": _snapshot_payload(snapshot),
     }
 
@@ -490,16 +503,5 @@ def _snapshot_payload(snapshot: EbayAccountSnapshot | None) -> dict:
 
 
 def _safe_error(exc: Exception) -> str:
-    text = str(exc) or exc.__class__.__name__
-    replacements = {
-        "access_token": "[redacted]",
-        "refresh_token": "[redacted]",
-        "authorization_code": "[redacted]",
-        "token": "credential",
-        "Token": "Credential",
-        "code": "value",
-        "Code": "Value",
-    }
-    for blocked, replacement in replacements.items():
-        text = text.replace(blocked, replacement)
-    return text[:300]
+    from apps.ebay.diagnostics import safe_message
+    return safe_message(exc)

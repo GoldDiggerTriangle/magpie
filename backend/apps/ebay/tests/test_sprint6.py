@@ -162,6 +162,7 @@ def test_http_consent_url_uses_current_runame_setting(settings):
     assert second_query["redirect_uri"] == ["second-runame"]
 
 
+@pytest.mark.django_db
 def test_http_identity_endpoint_uses_apiz_host(settings, monkeypatch):
     settings.EBAY_ENV = "production"
     settings.EBAY_CLIENT_ID = "production-client-id"

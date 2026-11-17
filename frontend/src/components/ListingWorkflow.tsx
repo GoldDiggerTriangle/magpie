@@ -4,6 +4,9 @@ import { publishListingDraft, stageListingDraft, withdrawListingDraft } from "..
 import { getWorkflowDraft, reconcileListing, reviewListing, type ListingReview } from "../api/listingWorkflow";
 import type { InventoryItemDetail, ListingDraft } from "../types";
 import { groupedBlockers, ListingDescription, ListingFees, reviewedTime } from "./ListingPreviewContent";
+import { EbayDiagnostics } from "./EbayConnectionHealth";
+import { ApiError } from "../api/client";
+import type { EbayDiagnostic } from "../api/ebayHealth";
 
 export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, allowQuick = false }: {
   draft: ListingDraft; item: InventoryItemDetail; mode: "full" | "quick";
@@ -13,6 +16,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [diagnosis, setDiagnosis] = useState<EbayDiagnostic | null>(null);
   const [sku, setSku] = useState("");
   const [remove, setRemove] = useState(false);
   const reviewMode = review?.mode ?? mode;
@@ -28,10 +32,11 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
     && JSON.stringify(review.photos.map((p) => p.id)) === JSON.stringify(draft.photo_ids)
     && Object.entries(review.mapping).every(([key, value]) => String(draft.channel_data[key] ?? "") === value);
   async function run(action: () => Promise<void>) {
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setDiagnosis(null);
     try { await action(); } catch (e) {
       setReview(null);
       setError(e instanceof Error ? e.message : "Operation not confirmed. Reload and reconcile before retrying.");
+      if (e instanceof ApiError && e.data && typeof e.data === "object" && "diagnostic" in e.data) setDiagnosis(e.data.diagnostic as EbayDiagnostic);
       try { const current = await getWorkflowDraft(draft.id); if (current?.id) onUpdated(current); } catch { /* Preserve the error; no retry of a marketplace write. */ }
     } finally { setBusy(false); }
   }
@@ -74,6 +79,8 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
     </div>
     {inflight ? <div role="alert" className="rounded border-2 border-amber-700 bg-amber-50 p-4"><strong>Publish outcome needs reconciliation</strong><p>Do not retry or edit this draft. A timeout does not cancel a request.</p><button className="btn-secondary mt-3 gap-2" disabled={busy} onClick={() => void run(async () => { onUpdated(await reconcileListing(draft.id)); })} type="button"><RefreshCw aria-hidden="true" size={18} />Reconcile offer</button></div> : null}
     {error ? <p role="alert" className="break-words font-semibold text-red-800">{error}</p> : null}
+    {diagnosis ? <EbayDiagnostics value={diagnosis} onField={fix} /> : null}
+    {draft.publish_error?.diagnostic ? <EbayDiagnostics value={draft.publish_error.diagnostic as EbayDiagnostic} onField={fix} /> : null}
     {draft.publish_error?.message ? <p role="status">{draft.publish_error.message}{draft.publish_error.http_status ? ` HTTP ${draft.publish_error.http_status}.` : ""}{draft.publish_error.error_ids?.length ? ` eBay codes: ${draft.publish_error.error_ids.join(", ")}.` : ""}</p> : null}
     {remove ? <div role="alertdialog" aria-label="Confirm unpublished offer removal" className="rounded border-2 border-red-800 p-4"><p>Remove this unpublished offer from eBay? Archive is available only after removal is confirmed. If eBay reports this offer live or ambiguous, removal stops. Ending a live listing is a separate decision.</p><div className="mt-3 flex flex-wrap gap-3"><button className="btn-secondary" disabled={busy} onClick={() => setRemove(false)} type="button">Cancel</button><button className="btn-primary gap-2" disabled={busy} onClick={() => void run(async () => { onUpdated(await withdrawListingDraft(draft.id)); setRemove(false); setReview(null); })} type="button"><Trash2 size={18} aria-hidden="true" />Confirm removal</button></div></div> : null}
     {open && review ? <div className="listing-review min-w-0 space-y-4 rounded border-2 border-slate-500 bg-white p-4" aria-label="Reviewed listing">
@@ -98,7 +105,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
       <dl aria-label="Item specifics">{review.specifics?.map((r, i) => <div className="min-w-0 break-words border-b border-slate-300 py-2" key={i}><dt className="inline font-semibold">{r.name}:</dt>{" "}<dd className="inline">{r.value}</dd></div>)}</dl>
       <div><h4 className="font-semibold">Description</h4><ListingDescription html={review.listing.description_html} /><small>{review.sources.description_html}</small></div>
       {review.fees.length ? <ListingFees fees={review.fees} /> : null}
-      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p>{b.key === "live_metadata" ? <a className="font-semibold text-blue-800 underline" href="/settings/ebay">Reconnect eBay</a> : <button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button>}</div>)}</div> : null}
+      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p>{b.diagnostic ? <EbayDiagnostics value={b.diagnostic} onField={fix} /> : null}{b.key === "live_metadata" ? <a className="font-semibold text-blue-800 underline" href="/settings/ebay">Check eBay connection</a> : <button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button>}</div>)}</div> : null}
       {reviewMode === "full" ? <div id={`listing-${draft.id}-staging`} tabIndex={-1} className="listing-field-anchor">{review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : <p>Resolve the listing blockers above before {review.offer_id ? "Update staged offer" : "Stage reviewed listing"}.</p>}</div> : null}
       {reviewMode === "quick" && !review.can_publish ? <button className="btn-secondary" onClick={() => fix("title")} type="button">Open full editor to update and review</button> : null}
       {reviewMode === "full" && review.can_publish ? <label className="label">Type {review.sku} to confirm<input autoComplete="off" className="field" value={sku} onChange={(e) => setSku(e.target.value)} /></label> : null}

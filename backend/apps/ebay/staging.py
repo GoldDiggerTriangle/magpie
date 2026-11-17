@@ -154,7 +154,7 @@ def stage_draft(draft, *, review_id=None, override_missing_aspects=False, overri
             staged_fingerprint="", updated_at=timezone.now())
         if isinstance(exc, WorkflowError):
             raise
-        raise WorkflowError("staging_unverified", "Staging is unverified after a partial/failed operation. Reconcile unknown creation before another create; explicitly update and review again.", status=503) from None
+        raise WorkflowError("staging_unverified", "Staging is unverified after a partial/failed operation. Reconcile unknown creation before another create; explicitly update and review again.", status=503, diagnostic=error["diagnostic"]) from None
 
 
 def withdraw_staged(draft, *, actor=None):
@@ -460,5 +460,5 @@ def _condition_for_draft(draft: ListingDraft) -> dict:
 
 
 def _safe_error_payload(exc: Exception):
-    message = str(exc) or exc.__class__.__name__
-    return {"message": message[:2000]}
+    from apps.ebay.diagnostics import safe_message
+    return {"message": safe_message(exc)}

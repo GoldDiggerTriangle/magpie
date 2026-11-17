@@ -610,10 +610,8 @@ def _fee_amount_from_transaction(transaction: dict) -> tuple[Decimal | None, dic
 
 
 def _safe_error(exc: Exception) -> str:
-    text = str(exc) or exc.__class__.__name__
-    for blocked in ["access_token", "refresh_token", "authorization_code", "token", "code"]:
-        text = text.replace(blocked, "credential")
-    return text[:300]
+    from apps.ebay.diagnostics import safe_message
+    return safe_message(exc)
 
 
 def _order_sync_scopes() -> list[str]:

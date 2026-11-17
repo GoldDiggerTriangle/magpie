@@ -23,6 +23,25 @@ from apps.ebay import order_sync
 from apps.ebay import services
 from apps.ebay.models import EbayOrderDuplicateCandidate, EbayOrderStaging
 from apps.sales.serializers import SaleRecordSerializer
+from apps.ebay.diagnostics import public_diagnostic, safe_exception, safe_message
+
+
+def connection_error(exc):
+    return Response({"detail": safe_message(exc), "diagnostic": public_diagnostic(safe_exception(exc))},
+        status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class EbayConnectionHealthView(APIView):
+    def get(self, request):
+        from apps.ebay.connection_health import summary
+        return Response(summary())
+
+
+class EbayCheckConnectionView(APIView):
+    def post(self, request):
+        from apps.ebay.connection_health import check_connection
+        result = check_connection(actor=request.user)
+        return Response(result, status=429 if result["throttled"] else 200)
 
 
 class EbayConnectStartView(APIView):
@@ -30,9 +49,9 @@ class EbayConnectStartView(APIView):
         try:
             return Response(services.start_connect(actor=request.user))
         except ImproperlyConfigured as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
         except EbayUnavailable as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
 
 
 class EbayConnectCompleteView(APIView):
@@ -49,7 +68,7 @@ class EbayConnectCompleteView(APIView):
         except ValidationError as exc:
             return Response({"detail": exc.message}, status=status.HTTP_400_BAD_REQUEST)
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
         return Response(
             {
                 "environment": summary.environment,
@@ -78,7 +97,7 @@ class EbayRefreshPoliciesView(APIView):
         try:
             services.refresh_account_snapshot(actor=request.user)
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
         return Response(services.status_summary())
 
 
@@ -94,7 +113,7 @@ class EbayCategorySuggestionsView(APIView):
                 )
             )
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
 
 
 class EbayCategoryAspectsView(APIView):
@@ -109,7 +128,7 @@ class EbayCategoryAspectsView(APIView):
                 )
             )
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
 
 
 class EbayMerchantLocationView(APIView):
@@ -133,7 +152,7 @@ class EbayMerchantLocationView(APIView):
                 **serializer.validated_data,
             )
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
         return Response(
             {
                 "configured": True,
@@ -152,7 +171,7 @@ class EbayOrderSyncView(APIView):
                 order_sync.sync_orders(actor=request.user, **serializer.validated_data)
             )
         except (ImproperlyConfigured, EbayUnavailable) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return connection_error(exc)
 
 
 class EbayOrderStagingViewSet(

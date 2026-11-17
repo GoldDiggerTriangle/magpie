@@ -2,6 +2,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const fixture = JSON.parse(readFileSync(new URL("../src/fixtures/listingEditor.json", import.meta.url), "utf8"));
+const healthFixture = JSON.parse(readFileSync(new URL("../src/fixtures/ebayHealth.json", import.meta.url), "utf8"));
 
 const titles = { spaced: "Australian gold nugget specimen with original surface marks retained for review. ".repeat(2).slice(0, 80), unbroken: "N".repeat(80) };
 
@@ -18,6 +19,7 @@ async function isolatedListing(page: Page, state: "preview" | "staged" | "archiv
     if (url.origin !== "http://127.0.0.1:4179") { forbidden.push(url.origin); return route.abort(); }
     if (!url.pathname.startsWith("/api/")) return route.continue();
     const json = (body: unknown) => route.fulfill({ json: body });
+    if (url.pathname === "/api/ebay/connection-health/" && request.method() === "GET") return json(healthFixture);
     if (url.pathname === `/api/items/${fixture.item.id}/listing-drafts/` && request.method() === "GET") return json({ results: [draft] });
     if (url.pathname === "/api/listing-boilerplates/" && request.method() === "GET") return json({ results: [] });
     if (url.pathname === `/api/listing-drafts/${draft.id}/editor/` && request.method() === "GET") return json(context);

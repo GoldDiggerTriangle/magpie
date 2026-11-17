@@ -37,6 +37,7 @@ import type { AIStatus, AuditLogEntry, EbayOrderDuplicateCandidate, EbayOrderSta
 import { formatUsd } from "../../utils/currency";
 import { ListingDefaultsPanel } from "../../components/ListingDefaultsPanel";
 import { PublishHealthPanel } from "../../components/PublishHealthPanel";
+import { EbayConnectionHealth } from "../../components/EbayConnectionHealth";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -63,6 +64,7 @@ export function EbaySettings() {
   const profitSettings = useQuery({ queryKey: ["profit-settings"], queryFn: getProfitSettings });
 
   const refreshAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["ebay-connection-health"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-status"] });
     queryClient.invalidateQueries({ queryKey: ["ai-status"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-order-staging"] });
@@ -190,6 +192,8 @@ export function EbaySettings() {
 
       <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-4">
+          <EbayConnectionHealth />
+          <div id="ebay-connect" />
           <EbayConnectPanel
             completeError={errorText(completeMutation.error)}
             completePending={completeMutation.isPending}
@@ -558,7 +562,7 @@ function OrderSyncPanel({
       </div>
       {status?.requires_reconsent ? (
         <div className="mt-3 rounded border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-50">
-          Re-consent is required before order sync. Start Connect again and complete the paste-back flow.
+          The saved scope request omits permissions used by order sync. Check connection for current evidence; requested scopes are not proof of the granted permissions.
         </div>
       ) : null}
       {result ? (
@@ -726,7 +730,7 @@ function EbayStatusCard({ status }: { status?: EbayStatus }) {
       ) : null}
       {status?.scopes.length ? (
         <div className="mt-4 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-normal text-slate-500">Scopes</p>
+          <p className="text-sm font-semibold text-slate-700">Requested scopes (not proof of grant)</p>
           {status.scopes.map((scope) => <p className="break-all text-xs text-slate-300" key={scope}>{scope}</p>)}
         </div>
       ) : null}

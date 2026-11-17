@@ -2456,3 +2456,80 @@ Deployment/validation references: implementation **e2030ad31c1f2331234b0a1bdee1a
 
 **Phase 6 is COMPLETE + LIVE and owner-accepted. Sprint 25 remains OPEN.** Handoff bumped to **v4.72** to reflect the current state and queue; no decision/lock changed. This acceptance-recording task changes documentation only: no code, configuration, migration, restart, live-data save, eBay/provider call, stage/update/publish or reconcile. **STOP for a separate Phase 7 instruction**; Phase 7/8, remaining fee-engine work and overall closure gates are not declared complete.
 
+## 2026-11-17 - Phase 7 Design Applied; Storage Approval STOP
+
+Applied the owner-supplied **MASTER_HANDOFF_UPDATE_2026-11-17_PHASE7_DESIGN.md** verbatim: all nine Find strings matched exactly once and the resulting replacements were verified. Handoff is **v4.73**, controlling Sprint 25 spec **v3.4**. The implementation contract is handoff section 7 item 1(a)-(h). No Phase 7 application code, migration file or UI has been implemented at this stop.
+
+Inspection found that the existing credential/account snapshots do not provide durable per-operation current-failure/last-success records, connection-bound check evidence, or a cross-request/restart-safe throttle. An append-only audit event alone is not a suitable atomic check lease. New bounded health storage is therefore proposed; owner approval is required before proceeding under instruction 9 and design (g).
+
+### Proposed Additive Migration: ebay.0004_connection_health
+
+Create one new table, **ebay_ebayconnectionhealth**, with the following columns. This is a disclosed proposal, not an applied migration.
+
+| Column | Type / initial value | Purpose |
+|---|---|---|
+| id | UUID primary key | Existing TimeStampedUUIDModel convention |
+| created_at / updated_at | Timestamp | Health-record metadata only |
+| environment | varchar(12) | Production/sandbox isolation |
+| principal | varchar(12) | seller or application; separate token-health records |
+| connection_id | UUID, generated locally | Fence results to the relevant connection; reconnect invalidates seller-check evidence without changing application-token health |
+| revision | Nonnegative bigint, default 0 | Conditional-update concurrency protection on SQLite and PostgreSQL |
+| operations | JSON, default empty object | Bounded registry of operation keys; attempt ordering, last success and current failure kept separately; only allowlisted sanitised diagnostics/timestamps/statuses, never raw responses or headers |
+| check_id | Nullable UUID | Explicit on-demand check lease / completion fence |
+| check_started_at | Nullable timestamp | Honest check-start metadata |
+| check_completed_at | Nullable timestamp | Honest last-completed-check metadata |
+| next_check_at | Nullable timestamp | Persisted throttle for explicit Check connection |
+
+Add **one_connection_health_per_principal**, unique on **(environment, principal)**. No additional indexes beyond the primary key and unique constraint are proposed. The table starts empty: no data migration, seed, backfill or inferred healthy status. No existing table/column/constraint is altered, removed, renamed or rebuilt, and no existing row is rewritten. Existing credentials, scopes, drafts, reviews, ChannelListing and audit history remain untouched by this migration. Media/EPS without a valid read-only probe remains honestly unverified; a health check will never upload a photo to manufacture a success.
+
+After approval, implement and test the migration against isolated databases, disclose any difference from the above before live use, and obtain B-verified pre/post backups and data-level preservation/restore checks for a supervised live install. No migration or restart is authorised merely by this proposal. Phase 5 outcome/retry safeguards remain unchanged.
+
+**STOP for Regan's storage approval.** No new eBay/provider calls, live saves, service restart, migration, staging, update, withdrawal, publish or reconcile occurred in this task. The prior green Phase 6 Validation is not Phase 7 validation. All Phase 7 requirements (a)-(h), tests, 390px proof, deployment and owner phone acceptance remain pending; Sprint 25 remains OPEN.
+
+## 2026-11-17 - Phase 7 Implementation and Conditional Storage Approval
+
+Regan approved the disclosed one-table migration subject to CREATE-only SQL, model-level diagnostic validation, green dual-lane Validation before live installation, B-verified pre/post backups, unchanged existing-table digests (migration recorder +1), integrity/restore checks, and an Administrator restart followed by health 200 and **Not yet checked** without an automatic eBay call. This section records implementation evidence; live installation/restart evidence follows separately and is not implied here.
+
+### Exact SQLite sqlmigrate Output
+
+Generated from the unchanged Django sqlmigrate command for **ebay.0004_connection_health** against isolated SQLite. The only schema statement is CREATE TABLE for the new table (primary/unique indexes are implicit in this definition). BEGIN/COMMIT are transaction wrappers. No ALTER, rebuild, INSERT, UPDATE, DELETE, existing-table operation, seed or backfill.
+
+```sql
+BEGIN;
+--
+-- Create model EbayConnectionHealth
+--
+CREATE TABLE "ebay_ebayconnectionhealth" ("id" char(32) NOT NULL PRIMARY KEY, "created_at" datetime NOT NULL, "updated_at" datetime NOT NULL, "environment" varchar(12) NOT NULL, "principal" varchar(12) NOT NULL, "connection_id" char(32) NOT NULL, "revision" bigint unsigned NOT NULL CHECK ("revision" >= 0), "operations" text NOT NULL CHECK ((JSON_VALID("operations") OR "operations" IS NULL)), "check_id" char(32) NULL, "check_started_at" datetime NULL, "check_completed_at" datetime NULL, "next_check_at" datetime NULL, CONSTRAINT "one_connection_health_per_principal" UNIQUE ("environment", "principal"));
+COMMIT;
+```
+
+The non-secret connection identifier is a locally generated random UUID, not a token hash or credential value. Model.save/full_clean, conditional QuerySet.update and bulk_create validate the closed operation/diagnostic schema; bulk_update is refused because CASE expressions would bypass that boundary. Only allowlisted enums, bounded numeric error IDs/counts, field names, ordering counters and timestamps are retained. Provider messages/long messages/parameter values/raw bodies/headers are never stored; displayed messages are static text generated from classifications. Exception handlers raise sanitised errors outside the HTTPError handler so even a suppressed exception context cannot retain its body/headers. Secret-bearing fixture values are rejected/scrubbed before storage and display.
+
+### Design (a)-(h) Implementation Map
+
+| Requirement | Implementation / evidence |
+|---|---|
+| (a) Honest, operation-aware diagnosis | diagnostics.py closed operation/domain/category/error-ID/field registry; multiple errors and non-blocking warnings; expired access, temporary renewal, confirmed unusable seller grant, app configuration, unknown-cause permission, explicit scope/subscription, limits/restrictions, field validation, missing resource, conflict, rate limit, outage/network/malformed and unknown. Unknown responses provide copyable sanitised facts, not a guessed remedy. |
+| (b) Diagnosis cannot grant retry | workflow_errors.provider_error keeps the Phase 5 outcome-certainty predicate separate from diagnostic kind. Automatic renewal replay is limited to one GET retry; no write replay. Existing attempt UUIDs, unknown-state reconciliation, staging/removal safeguards are retained. |
+| (c) Privacy boundary before storage/log/display | diagnostics.py plus health_schema.py and EbayConnectionHealth save/queryset validation; no free-form provider text; constant-only telemetry warnings; API/audit safe-error paths no longer copy arbitrary exceptions. Tests reject secret-bearing model payloads and prove transport exceptions have no retained HTTPError context. |
+| (d) Settings and hub health | Actual shared panel on /settings/ebay and compact hub summary; requested/required scopes explicitly not grant proof; dated operation successes separate from current failures; Inventory/Account/Fulfilment/Finances/Media-EPS/Taxonomy plus OAuth metadata. Application-token Taxonomy is separate from seller-token health. Snapshot ages and expiries contain no token values. |
+| (e) On demand only | GET connection-health reads local metadata only, defers encrypted fields and creates no rows. Explicit POST check-connection has a persisted five-minute conditional-update lease and bounded read-only probes (normal OAuth renewal allowed); no upload/sync/stage/publish. No background checks/polling. Media remains unverified when there is no saved Media image ID. |
+| (f) Recovery honesty | Last success/current failure separate per operation; sequence/revision and connection-ID fences reject late old results. Reconnect resets seller evidence, not application health. The persistent banner distinguishes disconnected, temporary renewal, configuration, outage, confirmed reconnect and impending refresh expiry; inventory remains usable. |
+| (g) Approved additive storage | Exact CREATE-only SQL above; live install awaits green dual-lane CI and the approved backup/preservation/restore protocol. Existing rows are not seeded or rewritten. |
+| (h) Fixtures and phone-width proof | test_sprint25_health.py covers every class, unknown scopes, secret-bearing/multi-error cases, successful automatic renewal without reconnect, failure distinctions, unrelated/late/concurrent result fencing (file-backed SQLite and PG), on-load no-call/no-decrypt, explicit throttling, GET-only retry and unchanged uncertain write outcomes. Existing Phase 5 timeout/forced-error/reconcile suite remains mandatory. Frontend health/workflow tests cover visible messages, field navigation and explicit check; browser tests assert 390px bounds and local work remains usable under a simulated permission failure. |
+
+Primary eBay documentation checked at implementation: [structured errors/warnings](https://developer.ebay.com/api-docs/handling-error-messages.html), [Inventory error definitions](https://developer.ebay.com/develop/api/sell/inventory_api/location/bulkCreateOrReplaceInventoryItem), [refresh-token invalidation](https://developer.ebay.com/support/knowledge-base/5218), [Media image-ID requirement](https://developer.ebay.com/api-docs/commerce/media/static/overview.html). No seller account API was called for this research.
+
+### Synthetic Browser Proof (Not Owner Phone Acceptance)
+
+All API data are isolated fixtures; real app components/CSS are rendered, non-local requests abort, and only the explicit check click makes a POST to the mocked local API. No production credential or listing action is involved.
+
+![390px saved health, not yet checked](docs/evidence/sprint25/phase7-health-not-checked-390.png)
+![390px persistent permission banner, cause not confirmed](docs/evidence/sprint25/phase7-permission-banner-390.png)
+![390px per-operation failure](docs/evidence/sprint25/phase7-operation-failure-390.png)
+![Desktop health](docs/evidence/sprint25/phase7-health-desktop.png)
+
+Initial validation: isolated full backend **467 passed, 1 existing skip**; full frontend **203 passed** before the additional field-jump case; browser **10 passed** (new health/banner checks plus existing title/reachability checks). Final counts/CI are recorded below after all changes. Django check, migration drift check and the existing marketplace URL-only confinement guard PASS. Existing Pillow deprecation/React Router future/chunk-size advisories are non-blocking. A shared-memory SQLite read-lock race surfaced in the pre-existing delayed-publish test during concurrent test/build load; it now uses the existing real file-backed SQLite/PostgreSQL fixture, preserving every outcome/no-retry assertion instead of skipping or relaxing it. No Phase 5 state-machine rule was changed for this test.
+
+**Not live-closed:** installation, restored backup proof, served-build verification and Regan's real-phone Check connection remain pending at this point. No live listing writes or credential-breaking tests are permitted. Phase 8 and overall Sprint 25 closure are not part of this phase.
+

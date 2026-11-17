@@ -355,6 +355,7 @@ def test_payload_does_not_infer_condition_from_item_when_no_policy_was_verified(
 
 
 @pytest.mark.parametrize("include_empty_choices", [True, False])
+@pytest.mark.django_db
 def test_http_condition_policy_accepts_real_shaped_optional_category(monkeypatch, include_empty_choices):
     import apps.ebay.adapters as adapters
 
@@ -389,6 +390,7 @@ def test_http_condition_policy_accepts_real_shaped_optional_category(monkeypatch
         [{"categoryId": "139965", "itemConditionRequired": False, "itemConditions": None}],
     ],
 )
+@pytest.mark.django_db
 def test_http_condition_policy_refuses_missing_mismatched_or_malformed_metadata(monkeypatch, policies):
     import apps.ebay.adapters as adapters
 
@@ -405,6 +407,7 @@ def test_http_condition_policy_refuses_missing_mismatched_or_malformed_metadata(
     "status,error_id,is_empty",
     [(404, 25713, True), (403, 25713, False), (404, 25710, False)],
 )
+@pytest.mark.django_db
 def test_http_get_offers_only_treats_exact_no_offer_response_as_empty(
     monkeypatch, status, error_id, is_empty
 ):

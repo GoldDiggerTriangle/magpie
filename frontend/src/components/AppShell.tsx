@@ -1,5 +1,6 @@
 import { Boxes, Calculator, DownloadCloud, LayoutDashboard, Megaphone, PackageSearch, PlusCircle, ReceiptText, Settings, TrendingUp } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
+import { EbayConnectionBanner } from "./EbayConnectionHealth";
 
 const navItems = [
   { to: "/", label: "Dashboard", shortLabel: "Home", icon: LayoutDashboard },
@@ -32,6 +33,7 @@ export function AppShell() {
         </nav>
       </aside>
       <main className="app-main min-h-screen pb-24 md:ml-64 md:pb-0">
+        <EbayConnectionBanner />
         <Outlet />
       </main>
       <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-[#CBD5E1] bg-white md:hidden">

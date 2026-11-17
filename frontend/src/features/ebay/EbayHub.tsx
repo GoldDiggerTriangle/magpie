@@ -5,6 +5,7 @@ import { draftDestination, getEbayHub, type HubDraft } from "../../api/ebayHub";
 import { reconcileListing } from "../../api/listingWorkflow";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { ApiError } from "../../api/client";
+import { EbayConnectionHealth } from "../../components/EbayConnectionHealth";
 
 const inflight = (row: HubDraft) => ["publishing", "publish_unknown"].includes(row.status);
 const active = (row: HubDraft) => !["published", "archived"].includes(row.status) && !row.listing_id;
@@ -29,13 +30,14 @@ export function EbayHub() {
   return <div className="item-page-frame ebay-hub min-w-0 space-y-6">
     <header className="flex min-w-0 flex-wrap items-center justify-between gap-3"><h1 className="page-title">eBay</h1><Link className="btn-secondary" to="/settings/ebay">eBay settings</Link></header>
     <p>{data.provenance}. Loaded {date(data.as_of)}.</p>
+    <EbayConnectionHealth compact />
     <section className="space-y-3 border-y border-slate-300 py-4" aria-label="Connection health">
       <h2 className="section-title">Connection health</h2>
       <p>{needsConnection ? "Connection needs attention" : "Connected in saved records - not live-verified"}</p>
       <p>Environment: {connection.environment || "not configured"}</p>
       <p>Access expiry: {date(connection.access_token_expires_at)}{connection.access_token_expires_at && Date.parse(connection.access_token_expires_at) <= Date.now() ? " (expired; renewal not checked here)" : ""}</p>
       <p>Policy snapshot: {date(connection.policies_fetched_at)}{!connection.policies_fetched_at ? " - no saved snapshot" : Date.now() - Date.parse(connection.policies_fetched_at) > 7 * 86_400_000 ? " - stale (older than 7 days); refresh in Settings" : " - saved snapshot"}</p>
-      <Link className="row-link" to="/settings/ebay">{needsConnection ? "Reconnect eBay" : "Manage connection and policies"}</Link>
+      <Link className="row-link" to="/settings/ebay">{!connection.connected ? "Reconnect eBay" : "Manage connection and policies"}</Link>
     </section>
     {reconcile.error ? <p role="alert">{reconcile.error instanceof Error ? reconcile.error.message : "Reconciliation was not confirmed. Do not publish again."}</p> : null}
     {groups.map((group) => <section key={group.name} aria-label={group.name} className="min-w-0 space-y-3">

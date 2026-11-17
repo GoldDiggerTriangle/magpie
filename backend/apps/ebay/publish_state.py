@@ -147,9 +147,12 @@ def publish_draft(draft, *, review_id=None, confirm_sku="", actor=None, mode="fu
     attempt = claim(draft, review)
     try:
         access = get_access_token(actor=actor)
-    except Exception:
-        finish_failure(draft.pk, attempt, {"kind": "connection", "message": "Reconnect eBay; no publish was sent."}, using=using, actor=actor)
-        raise WorkflowError("connection", "Reconnect eBay; no publish was sent.", status=503) from None
+    except Exception as exc:
+        from apps.ebay.diagnostics import public_diagnostic, safe_exception, safe_message
+        value = public_diagnostic(safe_exception(exc, "oauth.refresh"))
+        message = safe_message(exc, "oauth.refresh") + " No publish was sent."
+        finish_failure(draft.pk, attempt, {"kind": "connection", "message": message, "diagnostic": value}, using=using, actor=actor)
+        raise WorkflowError("connection", message, status=503, diagnostic=value) from None
     inventory = ebay.get_ebay_inventory_adapter()
     label = actor.get_username() if hasattr(actor, "get_username") else str(actor or "")
     executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="magpie-manual-publish")

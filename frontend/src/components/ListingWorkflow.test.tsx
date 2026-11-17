@@ -91,8 +91,22 @@ test("unknown outcome offers reconcile only; no retry or remove control", async 
 test("unavailable live validation links to the actual eBay settings route", async () => {
   review.can_publish = false; review.checks = [{ key: "live_metadata", field: "category_id", message: "Live metadata unavailable" }];
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
-  expect(await screen.findByRole("link", { name: "Reconnect eBay" })).toHaveAttribute("href", "/settings/ebay");
+  expect(await screen.findByRole("link", { name: "Check eBay connection" })).toHaveAttribute("href", "/settings/ebay");
   expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
+});
+
+test("structured eBay validation opens the exact field but never grants a publish retry", async () => {
+  review.can_publish = false;
+  review.checks = [{ key: "live_metadata", field: "title", message: "Live validation rejected title", diagnostic: {
+    operation: "inventory.publish", time: "2026-11-17T03:00:00Z", http_status: 400,
+    issues: [{ kind: "validation", error_id: 25016, domain: "API_INVENTORY", category: "REQUEST", field: "title", severity: "error", message: "eBay rejected title." }]
+  } }];
+  const field = document.createElement("input"); field.id = `listing-${draft.id}-title`; document.body.append(field);
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Go to title" }));
+  await waitFor(() => expect(field).toHaveFocus());
+  expect(mocks.publish).not.toHaveBeenCalled(); expect(mocks.stage).not.toHaveBeenCalled();
+  field.remove();
 });
 test("missing-photo blocker opens the existing upload section rather than an empty photo picker", async () => {
   review.can_publish = false; review.checks = [{ key: "photos", field: "photos", message: "Upload an own photo" }];

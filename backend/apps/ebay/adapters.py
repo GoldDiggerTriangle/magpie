@@ -22,6 +22,7 @@ from apps.ebay.constants import (
     EBAY_MARKETPLACE_ID,
     EBAY_SCOPES,
 )
+from apps.ebay.diagnostics import diagnostic, operation_for, public_diagnostic
 
 
 @dataclass(frozen=True)
@@ -35,10 +36,16 @@ class TokenSet:
 class EbayUnavailable(Exception):
     """Raised when eBay auth/account data cannot be fetched safely."""
 
+    def __init__(self, message="eBay response unavailable.", *, diagnostic=None):
+        self.diagnostic = diagnostic
+        if diagnostic:
+            message = " ".join(i["message"] for i in public_diagnostic(diagnostic)["issues"])
+        super().__init__(message)
+
 
 class EbayHttpError(EbayUnavailable):
-    def __init__(self, message: str, *, http_status: int, error_ids: tuple[int, ...]):
-        super().__init__(message)
+    def __init__(self, message: str, *, http_status: int, error_ids: tuple[int, ...], diagnostic=None):
+        super().__init__(message, diagnostic=diagnostic)
         self.http_status = http_status
         self.error_ids = error_ids
 
@@ -202,18 +209,12 @@ class HttpEbayAuthAdapter:
             },
             method="POST",
         )
-        try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            raise EbayUnavailable(f"eBay token endpoint returned HTTP {exc.code}.") from exc
-        except (URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise EbayUnavailable("eBay token endpoint request failed.") from exc
-
+        operation = {"refresh_token": "oauth.refresh", "authorization_code": "oauth.exchange", "client_credentials": "oauth.application"}[payload["grant_type"]]
+        data = _perform_request(request, operation=operation, timeout_seconds=self.timeout_seconds)
         try:
             return _token_set_from_payload(data)
-        except (KeyError, TypeError, ValueError) as exc:
-            raise EbayUnavailable("eBay token endpoint response could not be parsed.") from exc
+        except (KeyError, TypeError, ValueError):
+            raise _malformed(operation) from None
 
 
 class HttpEbayAccountAdapter:
@@ -255,24 +256,12 @@ class HttpEbayAccountAdapter:
         key = f"{kind}Policies"
         policies = payload.get(key) or payload.get("policies") or []
         if not isinstance(policies, list):
-            raise EbayUnavailable("eBay policy response could not be parsed.")
+            raise _malformed(f"account.{kind}")
         return policies
 
     def _get(self, path: str, *, access_token: str, base_url: str | None = None) -> dict:
-        request = Request(
-            f"{base_url or _api_base(self.environment)}{path}",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/json",
-            },
-        )
-        try:
-            with urlopen(request, timeout=self.timeout_seconds) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            raise EbayUnavailable(f"eBay account endpoint returned HTTP {exc.code}.") from exc
-        except (URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise EbayUnavailable("eBay account endpoint request failed.") from exc
+        return _request_json(f"{base_url or _api_base(self.environment)}{path}", access_token=access_token,
+            method="GET", timeout_seconds=self.timeout_seconds, service_name="eBay account endpoint")
 
 
 class HttpEbayMediaAdapter:
@@ -308,7 +297,7 @@ class HttpEbayMediaAdapter:
         )
         image_url = response.get("imageUrl")
         if not image_url:
-            raise EbayUnavailable("eBay media response could not be parsed.")
+            raise _malformed("media.upload")
         return str(image_url)
 
 
@@ -354,7 +343,7 @@ class HttpEbayInventoryAdapter:
         )
         offer_id = response.get("offerId") or response.get("offer_id")
         if not offer_id:
-            raise EbayUnavailable("eBay offer response could not be parsed.")
+            raise _malformed("inventory.create")
         return str(offer_id)
 
     def update_offer(self, *, access_token, offer_id, payload) -> None:
@@ -393,7 +382,7 @@ class HttpEbayInventoryAdapter:
             raise
         offers = response.get("offers") or []
         if not isinstance(offers, list):
-            raise EbayUnavailable("eBay offers response could not be parsed.")
+            raise _malformed("inventory.offers")
         return [offer for offer in offers if isinstance(offer, dict)]
 
     def withdraw_offer(self, *, access_token, offer_id) -> None:
@@ -420,7 +409,7 @@ class HttpEbayInventoryAdapter:
         )
         listing_id = response.get("listingId") or response.get("listing_id")
         if not listing_id:
-            raise EbayUnavailable("eBay publish response could not be parsed.")
+            raise _malformed("inventory.publish")
         return str(listing_id)
 
     def get_offer(self, *, access_token, offer_id) -> dict:
@@ -469,7 +458,7 @@ class HttpEbayTaxonomyAdapter:
         )
         tree_id = response.get("categoryTreeId") or response.get("category_tree_id")
         if not tree_id:
-            raise EbayUnavailable("eBay taxonomy tree response could not be parsed.")
+            raise _malformed("taxonomy.tree")
         return str(tree_id)
 
     def suggest_categories(self, *, q: str) -> list[dict]:
@@ -484,7 +473,7 @@ class HttpEbayTaxonomyAdapter:
         )
         suggestions = response.get("categorySuggestions") or response.get("category_suggestions") or []
         if not isinstance(suggestions, list):
-            raise EbayUnavailable("eBay taxonomy suggestions response could not be parsed.")
+            raise _malformed("taxonomy.suggestions")
         normalized = []
         for entry in suggestions:
             if not isinstance(entry, dict):
@@ -569,7 +558,7 @@ class HttpEbayTaxonomyAdapter:
         )
         aspects = response.get("aspects") or []
         if not isinstance(aspects, list):
-            raise EbayUnavailable("eBay taxonomy aspects response could not be parsed.")
+            raise _malformed("taxonomy.aspects")
         return [_normalize_aspect(aspect) for aspect in aspects if isinstance(aspect, dict)]
 
     def item_condition_policy(self, *, category_id: str) -> dict:
@@ -649,7 +638,7 @@ class HttpEbayOrderAdapter:
             )
             batch = response.get("orders") or []
             if not isinstance(batch, list):
-                raise EbayUnavailable("eBay fulfillment order response could not be parsed.")
+                raise _malformed("fulfillment.orders")
             orders.extend([order for order in batch if isinstance(order, dict)])
             total = int(response.get("total") or len(orders))
             if len(orders) >= total or not batch:
@@ -690,7 +679,7 @@ class HttpEbayFinancesAdapter:
             )
             batch = response.get("transactions") or []
             if not isinstance(batch, list):
-                raise EbayUnavailable("eBay finances transaction response could not be parsed.")
+                raise _malformed("finances.transactions")
             transactions.extend([row for row in batch if isinstance(row, dict)])
             total = int(response.get("total") or len(transactions))
             if len(transactions) >= total or not batch:
@@ -1106,7 +1095,7 @@ def _require_oauth_config() -> None:
         if not getattr(settings, name, "")
     ]
     if missing:
-        raise EbayUnavailable(f"{', '.join(missing)} must be configured for eBay OAuth.")
+        raise EbayUnavailable(diagnostic=diagnostic("oauth.application", failure="configuration"))
 
 
 def _auth_base(environment: str) -> str:
@@ -1168,41 +1157,91 @@ def _request_json(
     service_name: str,
     allow_empty: bool = False,
 ) -> dict:
-    request_headers = {
-        "Authorization": f"Bearer {access_token}",
-        **(headers or {}),
-    }
-    request = Request(url, data=data, headers=request_headers, method=method)
+    from apps.ebay.diagnostics import OPERATIONS
+    from apps.ebay import services
+    operation = operation_for(url, method)
+    for attempt in range(2):
+        request = Request(url, data=data, headers={"Authorization": f"Bearer {access_token}", **(headers or {})}, method=method)
+        try:
+            return _perform_request(request, operation=operation, timeout_seconds=timeout_seconds, allow_empty=allow_empty)
+        except EbayHttpError as exc:
+            rejected_access = exc.http_status == 401 and any(i["kind"] == "access_expired" for i in exc.diagnostic["issues"])
+            # A read may renew once. Never replay a write or override Phase 5's recovery rules.
+            if attempt or method != "GET" or not rejected_access: raise
+            access_token = services.get_app_access_token(force_refresh=True) if OPERATIONS[operation][1] == "application" else services.get_access_token(force_refresh=True)
+    raise AssertionError("Unreachable renewal path")
+
+
+def _perform_request(request, *, operation, timeout_seconds, allow_empty=False):
+    from apps.ebay.connection_health import observe_begin, observe_finish
+    ticket = observe_begin(operation)
     try:
         with urlopen(request, timeout=timeout_seconds) as response:
             raw = response.read()
-            if not raw:
-                return {} if allow_empty else {}
-            return json.loads(raw.decode("utf-8"))
+            status = getattr(response, "status", 200)
+            payload = json.loads(raw.decode("utf-8")) if raw else {}
+        if not isinstance(payload, dict) or (not raw and not allow_empty):
+            raise ValueError("malformed")
+        if payload.get("errors"):
+            value = diagnostic(operation, status=status, payload=payload)
+            observe_finish(ticket, failure=value)
+            error = EbayHttpError("eBay structured rejection.", http_status=status,
+                error_ids=tuple(i["error_id"] for i in value["issues"] if i["error_id"] is not None), diagnostic=value)
+        else:
+            warning = diagnostic(operation, status=status, payload={"warnings": payload["warnings"]}) if payload.get("warnings") else None
+            count = next((len(payload[key]) for key in ("inventoryItems", "paymentPolicies", "fulfillmentPolicies", "returnPolicies", "orders", "transactions", "locations") if isinstance(payload.get(key), list)), None)
+            observe_finish(ticket, status=status, warnings=warning, count=count)
+            return payload
     except HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        error_ids = ()
         try:
-            payload = json.loads(detail)
-            errors = payload.get("errors", []) if isinstance(payload, dict) else []
-            if isinstance(errors, list):
-                error_ids = tuple(
-                    error["errorId"] for error in errors
-                    if isinstance(error, dict) and isinstance(error.get("errorId"), int)
-                )
-        except json.JSONDecodeError:
-            pass
-        if detail:
-            raise EbayHttpError(
-                f"{service_name} returned HTTP {exc.code}: {detail[:1000]}",
-                http_status=exc.code, error_ids=error_ids,
-            ) from exc
-        raise EbayHttpError(
-            f"{service_name} returned HTTP {exc.code}.",
-            http_status=exc.code, error_ids=error_ids,
-        ) from exc
-    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise EbayUnavailable(f"{service_name} request failed.") from exc
+            payload = json.loads(exc.read().decode("utf-8", errors="replace"))
+        except (ValueError, UnicodeError): payload = {}
+        value = diagnostic(operation, status=exc.code, payload=payload)
+        # The existing no-offers sentinel is not a broken connection.
+        no_offers = operation == "inventory.offers" and exc.code == 404 and [i["error_id"] for i in value["issues"]] == [25713]
+        if not no_offers: observe_finish(ticket, failure=value)
+        error = EbayHttpError("eBay rejected the operation.", http_status=exc.code,
+            error_ids=tuple(i["error_id"] for i in value["issues"] if i["error_id"] is not None), diagnostic=value)
+    except (URLError, TimeoutError, OSError):
+        value = diagnostic(operation, failure="network")
+        observe_finish(ticket, failure=value)
+        error = EbayUnavailable(diagnostic=value)
+    except (ValueError, TypeError, UnicodeError):
+        value = diagnostic(operation, failure="malformed")
+        observe_finish(ticket, failure=value)
+        error = EbayUnavailable(diagnostic=value)
+    # Raise outside the handler: even a suppressed __context__ would retain HTTPError headers/body.
+    request = response = payload = raw = None
+    raise error from None
+
+
+def _malformed(operation):
+    from apps.ebay.connection_health import observe_begin, observe_finish
+    value = diagnostic(operation, failure="malformed")
+    observe_finish(observe_begin(operation), failure=value)
+    return EbayUnavailable(diagnostic=value)
+
+
+def read_connection_probe(api, *, access_token):
+    if not settings.EBAY_ENV:
+        return 0  # deterministic offline probe; never opens a network connection
+    env = effective_environment()
+    base = _api_base(env)
+    paths = {"Inventory": "/sell/inventory/v1/inventory_item?limit=1",
+        "Account": "/sell/account/v1/payment_policy?marketplace_id=EBAY_AU",
+        "Fulfilment": "/sell/fulfillment/v1/order?limit=1",
+        "Finances": "/sell/finances/v1/transaction?limit=1",
+        "Taxonomy": "/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_AU"}
+    base = _finances_base(env) if api == "Finances" else base
+    result = _request_json(base + paths[api], access_token=access_token, method="GET",
+        timeout_seconds=min(settings.EBAY_HTTP_TIMEOUT_SECONDS, 15), service_name="eBay connection check")
+    keys = {"Inventory": "inventoryItems", "Account": "paymentPolicies", "Fulfilment": "orders", "Finances": "transactions"}
+    if api == "Taxonomy":
+        if not result.get("categoryTreeId"): raise EbayUnavailable(diagnostic=diagnostic("taxonomy.tree", failure="malformed"))
+        return 1
+    rows = result.get(keys[api], [])
+    if not isinstance(rows, list): raise EbayUnavailable(diagnostic=diagnostic(operation_for(base + paths[api], "GET"), failure="malformed"))
+    return len(rows)
 
 
 def _ebay_datetime(value) -> str:

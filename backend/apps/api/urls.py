@@ -28,6 +28,8 @@ from apps.ebay.views import (
     EbayMerchantLocationView,
     EbayRefreshPoliciesView,
     EbayStatusView,
+    EbayConnectionHealthView,
+    EbayCheckConnectionView,
 )
 from apps.inventory.views import InventoryItemViewSet
 from apps.intelligence.views import (
@@ -109,6 +111,8 @@ router.register("sources", SourceViewSet, basename="source")
 router.register("lots", LotViewSet, basename="lot")
 
 urlpatterns = [
+    path("ebay/connection-health/", EbayConnectionHealthView.as_view(), name="ebay-connection-health"),
+    path("ebay/check-connection/", EbayCheckConnectionView.as_view(), name="ebay-check-connection"),
     path("health/", HealthCheckView.as_view(), name="health"),
     path(
         "items/<uuid:item_id>/valuation-reports/",
