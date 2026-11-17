@@ -2429,3 +2429,15 @@ The earlier full-suite harness initially disabled logging and therefore failed t
 
 **STOP: implementation and CI complete, awaiting owner restart/phone acceptance.** In Administrator PowerShell: **Restart-Service -Name Magpie**. Hard-refresh the phone, then check top List on eBay with sections collapsed, canonical editor opening, nav eBay hub, GOLD-00002 labelled live with separate View on eBay, and retained history/copy packs. Do not re-stage or publish the already-live nugget. This task made no eBay calls and no live saves. The final evidence commit/run is quoted in the task response; Sprint 25 remains OPEN for later phases.
 
+## 2026-11-17 - Phase 6 Post-Restart Verification: PASS; Phone Acceptance Pending
+
+Regan confirmed **Restarted**. Read-only checks at **17 Nov 2026, 13:25:11 Australia/Sydney** against the actual NSSM/Waitress service on **port 8000** passed, not a temporary server. Checkout head **525dff22b3344e5d52d3c25af77b39ef7fbff265**; [Validation 44000249191](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44000249191) green on both lanes (same implementation e2030ad, SQLite 428/1 skipped; PostgreSQL 416/13 skipped; frontend 197; browser 8).
+
+- Service **Magpie = Running**; **/api/health/ = 200 {"status":"ok"}**.
+- Served **/**, **/ebay** and GOLD-00002's item route all return **200** and exactly match the prepared index hash. Both **assets/index-CHZhwBw7.js** and **assets/index-DQWYyt1D.css** return **200** and match the collected production hashes: the Phase 6 build is now served.
+- Using an existing authenticated session in memory only, live **/api/ebay/hub/ = 200**: **8 drafts / 2 active listing records**, including GOLD-00002 listing **128199443689**. No cookie/token values were displayed or written.
+- GOLD-00002's draft **af013dd9-0611-431c-be4a-223c44ec4e06** remains **published**, same offer **356038014011**, **0 active unpublished drafts**. Draft detail, editor metadata and item-draft list GETs all return **200**; editor explicitly reports **read_only=true**. The active-first/published-history resolver selects this exact retained published draft, not one of its four archived rows.
+- Every live table/schema digest and all media hashes still match the pre-Phase-6 baseline: **48 tables / 764 rows / 64 media**, including **8 drafts / 171 audit rows / 2 ChannelListing / 5 reviews / 55 migrations**. Verification itself made no changes. All requests were local GETs; no eBay/provider calls, saves, review/stage/publish/reconcile actions, migrations or agent restart occurred.
+
+This is served-build/authenticated-API proof, **not** a claim that Regan has accepted the new controls on his real phone. **STOP for phone check:** hard-refresh, collapse every section, check top List on eBay, open GOLD-00002's read-only editor, then nav eBay -> its live row and separate View on eBay link. Confirm history/copy packs remain reachable. Do not re-stage or publish the already-live item. **Phase 6 owner acceptance and Sprint 25 closure remain pending; no Phase 7/8 work begun.**
+
