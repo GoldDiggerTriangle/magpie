@@ -6,6 +6,7 @@ import { reconcileListing } from "../../api/listingWorkflow";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { ApiError } from "../../api/client";
 import { EbayConnectionHealth } from "../../components/EbayConnectionHealth";
+import { EbayQuantityPanel } from "../../components/EbayQuantityPanel";
 
 const inflight = (row: HubDraft) => ["publishing", "publish_unknown"].includes(row.status);
 const active = (row: HubDraft) => !["published", "archived"].includes(row.status) && !row.listing_id;
@@ -54,6 +55,7 @@ export function EbayHub() {
       {!data.listings.length ? <p>No active eBay listing records.</p> : <ul className="min-w-0 divide-y divide-slate-300">{data.listings.map((row) => <li key={row.id} className="min-w-0 space-y-2 py-3">
         <Link className="row-link listing-title" to={row.draft_id ? draftDestination({ item_id: row.item_id, id: row.draft_id }) : `/inventory/${row.item_id}#listings-channels`}>{row.sku} - {row.title}</Link>
         <p>Listed {date(row.listed_at)}</p>
+        <EbayQuantityPanel itemId={row.item_id} initial={row.quantity} />
         {row.listing_id ? <a className="row-link gap-2" href={`https://www.ebay.com.au/itm/${encodeURIComponent(row.listing_id)}`} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden="true" />View on eBay</a> : <p>Manual tracking record; listing ID not recorded.</p>}
       </li>)}</ul>}
       <Link className="row-link" to="/listings">Open channel listings board</Link>

@@ -18,6 +18,7 @@ import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
 import { ListingPanel } from "../../components/ListingPanel";
 import { EbayListingEntry } from "../../components/EbayListingEntry";
+import { EbayQuantityPanel } from "../../components/EbayQuantityPanel";
 import { PhotoFixupPanel } from "../../components/PhotoFixupPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
@@ -215,7 +216,11 @@ export function ItemDetail() {
     };
   }, [itemId]);
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ["item", itemId] });
+  const refresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["item", itemId] }),
+    queryClient.invalidateQueries({ queryKey: ["ebay-quantity", itemId] }),
+    queryClient.invalidateQueries({ queryKey: ["ebay-hub"] })
+  ]);
 
   const saveMutation = useMutation({
     mutationFn: (payload: Partial<ItemFormPayload>) => updateItem(itemId, payload),
@@ -331,6 +336,7 @@ export function ItemDetail() {
       </div>
 
       <EbayListingEntry item={item.data} />
+      <EbayQuantityPanel itemId={itemId} />
 
       <div className="item-detail-controls">
         <button className="ledger-button" onClick={() => setAllSections(true)} type="button">Expand all</button>

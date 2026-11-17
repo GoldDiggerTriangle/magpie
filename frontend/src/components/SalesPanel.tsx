@@ -144,6 +144,8 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
       queryClient.invalidateQueries({ queryKey: ["item", item.id] });
       queryClient.invalidateQueries({ queryKey: ["item-sales", item.id] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["ebay-quantity", item.id] });
+      queryClient.invalidateQueries({ queryKey: ["ebay-hub"] });
     }
   });
 

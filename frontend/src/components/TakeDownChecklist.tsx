@@ -15,6 +15,8 @@ export function TakeDownChecklist({ item }: { item: InventoryItemDetail }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["item-channel-listings", item.id] });
       queryClient.invalidateQueries({ queryKey: ["channel-listing-board"] });
+      queryClient.invalidateQueries({ queryKey: ["ebay-quantity", item.id] });
+      queryClient.invalidateQueries({ queryKey: ["ebay-hub"] });
     }
   });
   const active = listings.data?.results ?? [];

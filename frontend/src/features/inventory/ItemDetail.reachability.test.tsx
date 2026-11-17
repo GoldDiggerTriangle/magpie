@@ -80,7 +80,7 @@ test("every real inventory panel retains its section and usable controls", async
   expect(await screen.findByText("No matching evidence", { exact: true })).toBeVisible();
   expect(data.errors).toEqual([]);
   expect(data.calls.every((call) => call.startsWith("GET "))).toBe(true);
-});
+}, 30000);
 
 test("hub destinations open the requested editor/history; reconnect and orders are real routes", async () => {
   const data = open("published-plus-active", "/ebay");

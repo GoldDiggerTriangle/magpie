@@ -57,6 +57,9 @@ export function EbayOrders() {
     queryClient.invalidateQueries({ queryKey: ["ebay-order-staging"] });
     queryClient.invalidateQueries({ queryKey: ["ebay-order-duplicates"] });
     queryClient.invalidateQueries({ queryKey: ["sales"] });
+    queryClient.invalidateQueries({ queryKey: ["ebay-quantity"] });
+    queryClient.invalidateQueries({ queryKey: ["ebay-hub"] });
+    queryClient.invalidateQueries({ queryKey: ["item"] });
   }
 
   function updateInput(id: string, patch: Partial<StagingInput>) {

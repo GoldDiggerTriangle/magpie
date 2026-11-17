@@ -112,6 +112,17 @@ class SaleRecord(TimeStampedUUIDModel):
 
     objects = SaleRecordQuerySet.as_manager()
 
+    def save(self, *args, **kwargs):
+        from django.db import transaction
+        from django.db.models import F
+        from apps.inventory.models import InventoryItem
+        using = kwargs.get("using") or self._state.db or "default"
+        with transaction.atomic(using=using):
+            # An actual write fence also serializes stock changes on SQLite.
+            if self.item_id:
+                InventoryItem.objects.using(using).filter(pk=self.item_id).update(stock_revision=F("stock_revision") + 1)
+            return super().save(*args, **kwargs)
+
     class Meta:
         ordering = ["-sale_date", "-created_at"]
         indexes = [

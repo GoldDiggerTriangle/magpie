@@ -47,7 +47,7 @@ def claim(draft, review):
             staged_fingerprint=review.staged_fingerprint, staging_state="verified",
             channel_data__offer_id=review.offer_id,
             publish_reviews__pk=review.pk, publish_reviews__expires_at__gt=timezone.now(),
-            item__updated_at=review.snapshot["item_revision"]).update(
+            item__updated_at=review.snapshot["item_revision"], item__stock_revision=review.snapshot["stock_revision"]).update(
                 # F(status) is evaluated by this same UPDATE, never an earlier read.
                 publish_prior_status=F("status"), status="publishing", publish_attempt=attempt,
                 publish_started_at=timezone.now(), publish_call_started_at=None, publish_error={},
@@ -87,8 +87,10 @@ def record_success(pk, attempt, listing_id, *, using="default", actor=None):
         data.update(listing_id=listing_id, published_at=now.isoformat(), last_ebay_error="")
         if rows.update(status="published", channel_data=data, publish_error={}, updated_at=now) != 1:
             return False
-        ChannelListing.objects.using(using).create(item=draft.item, channel="ebay", external_listing_id=listing_id,
+        listing = ChannelListing.objects.using(using).create(item=draft.item, channel="ebay", external_listing_id=listing_id,
             source_listing_draft=draft, listed_at=now, url=ebay_listing_url(listing_id), note="Created from reviewed Magpie publish.")
+        from apps.ebay.quantity import mark_live
+        mark_live(draft, listing)
         InventoryItem.objects.using(using).filter(pk=draft.item_id).exclude(status__in=["sold", "archived"]).update(status="listed", updated_at=now)
         record(actor=actor, action="ebay.publish.succeeded", target_type="listing_draft", target_id=pk,
                payload={"attempt": str(attempt), "listing_id": listing_id, "offer_id": data.get("offer_id")}, using=using)

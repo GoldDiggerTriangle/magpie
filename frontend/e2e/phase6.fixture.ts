@@ -59,6 +59,7 @@ export function phase6Fixture(state: ListingState = "staged", title = editorFixt
     if (method !== "GET") throw new Error(`Unexpected write in reachability gate: ${method} ${p}`);
     if (p === "/api/ebay/connection-health/") return healthFixture;
     if (p === "/api/ebay/hub/") return hub;
+    if (p.endsWith("/ebay-quantity/")) return { item_id: item.id, sku: item.sku, state: "allocation_not_recorded", label: "Allocation not recorded", can_write: false, urgent: false };
     if (p === `/api/items/${item.id}/`) return item;
     if (p === "/api/categories/") return page([category]);
     if (p.endsWith("/schema/")) return { profile_key: "gold", fields: [{ name: "metal", label: "Metal", type: "text" }] };

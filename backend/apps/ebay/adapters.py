@@ -81,6 +81,9 @@ class EbayMediaAdapter(Protocol):
 
 
 class EbayInventoryAdapter(Protocol):
+    def update_quantity(self, *, access_token, sku, offer_id, quantity) -> None:
+        ...
+
     def get_inventory_item(self, *, access_token, sku) -> dict:
         ...
 
@@ -302,6 +305,24 @@ class HttpEbayMediaAdapter:
 
 
 class HttpEbayInventoryAdapter:
+    def update_quantity(self, *, access_token, sku, offer_id, quantity) -> None:
+        if type(quantity) is not int or quantity < 0:
+            raise ValueError("Quantity must be a non-negative integer.")
+        payload = {"requests": [{"sku": str(sku), "shipToLocationAvailability": {"quantity": quantity},
+                                 "offers": [{"offerId": str(offer_id), "availableQuantity": quantity}]}]}
+        response = _request_json(f"{_api_base(self.environment)}/sell/inventory/v1/bulk_update_price_quantity",
+            access_token=access_token, method="POST", data=json.dumps(payload).encode(), headers=_inventory_headers(),
+            timeout_seconds=min(self.timeout_seconds, 60), service_name="eBay quantity update")
+        rows = response.get("responses")
+        if not isinstance(rows, list) or not 1 <= len(rows) <= 2 or any(not isinstance(row, dict) or row.get("sku") != str(sku) or row.get("offerId") not in {None, str(offer_id)} or type(row.get("statusCode")) is not int or not 200 <= row["statusCode"] < 300 or row.get("errors") for row in rows) or sum(row.get("offerId") == str(offer_id) for row in rows) != 1:
+            errors = [error for row in rows or [] if isinstance(row, dict) for error in (row.get("errors") or []) if isinstance(error, dict)] if isinstance(rows, list) else []
+            value = diagnostic("inventory.quantity", payload={"errors": errors}) if errors else diagnostic("inventory.quantity", failure="malformed")
+            from apps.ebay.connection_health import observe_begin, observe_finish
+            observe_finish(observe_begin("inventory.quantity"), failure=value)
+            # A per-entry rejection can follow partial success. Its status is
+            # not the outer HTTP status, and never establishes write certainty.
+            raise EbayUnavailable("Quantity response unverified; reconcile before another write.", diagnostic=value)
+
     def __init__(self, *, environment: str | None = None, timeout_seconds: int | None = None):
         self.environment = _configured_environment(environment)
         self.timeout_seconds = timeout_seconds or settings.EBAY_HTTP_TIMEOUT_SECONDS
@@ -770,6 +791,12 @@ class FakeEbayMediaAdapter:
 
 
 class FakeEbayInventoryAdapter:
+    def update_quantity(self, *, access_token, sku, offer_id, quantity) -> None:
+        if sku not in self.inventory_items or offer_id not in self.offers:
+            raise EbayUnavailable("Quantity identity not found.")
+        self.inventory_items[sku]["availability"]["shipToLocationAvailability"]["quantity"] = quantity
+        self.offers[offer_id]["availableQuantity"] = quantity
+
     offers: dict[str, dict] = {}
     inventory_items: dict[str, dict] = {}
     locations: dict[str, dict] = {}

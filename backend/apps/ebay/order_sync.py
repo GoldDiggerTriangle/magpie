@@ -346,9 +346,13 @@ def _import_line(*, environment: str, line: OrderLine, fee: FeeMapping, actor=No
         _flag_duplicate(environment=environment, line=line, item=item, duplicate=duplicate, actor=actor)
         return "duplicate_flagged"
 
-    sale = create_sale_record(
-        data=_sale_data_for_line(line=line, fee=fee, item=item)
-    )
+    try:
+        sale = create_sale_record(data=_sale_data_for_line(line=line, fee=fee, item=item))
+    except serializers.ValidationError:
+        # A simultaneous local sale must not make an observed eBay order vanish.
+        # Keep it pending for human resolution and count it before increases.
+        _stage_line(environment=environment, line=line, fee=fee)
+        return "staged"
     _mark_local_listing_synced(sale)
     return "created"
 

@@ -259,6 +259,8 @@ class ListingDraftViewSet(ModelViewSet):
             claimed = mutable_rows().filter(pk=draft.pk, updated_at=draft.updated_at).update(status=ListingDraft.Status.ARCHIVED, channel_data=data, updated_at=timezone.now())
             if not claimed:
                 return Response({"detail": "Draft changed elsewhere. Reload before archiving."}, status=409)
+            from apps.ebay.models import EbayListingAllocation
+            EbayListingAllocation.objects.filter(draft=draft, channel_listing__isnull=True, current_attempt__isnull=True).update(closed_at=timezone.now())
             record(actor=request.user, action="listing.draft.archived", target_type="listing_draft", target_id=str(draft.pk), payload={"pre_archive_status": prior, "offer_id": None, "score": score})
             draft.refresh_from_db()
         return Response(self.get_serializer(draft).data)

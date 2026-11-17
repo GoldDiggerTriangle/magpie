@@ -195,9 +195,9 @@ def live_validation(draft, *, actor=None):
             checks.append(check("condition_mapping", "Selected condition has no verified Inventory API mapping.", "condition_id"))
         if category and category["condition_policy"].get("required") is False and category["condition_policy"].get("conditions") == []:
             pass  # No global grade or manufactured condition gate for a conditionless category.
-        remaining = draft.item.quantity_remaining
-        if draft.quantity <= 0 or draft.quantity > remaining:
-            checks.append(check("available_stock", f"Listing quantity exceeds available stock ({remaining} remaining).", "quantity"))
+        from apps.ebay.quantity import quantity_checks
+        stock_checks, stock = quantity_checks(draft)
+        checks.extend(stock_checks)
         if data.get("offer_id"):
             offer = inventory.get_offer(access_token=access, offer_id=data["offer_id"])
             state, listing_id = _offer_state(offer)
@@ -209,7 +209,10 @@ def live_validation(draft, *, actor=None):
         from apps.ebay.diagnostics import public_diagnostic, safe_exception
         checks.append({**check("live_metadata", "Live eBay validation is unavailable. Check connection and retry review; saved values are unchanged."),
             "diagnostic": public_diagnostic(safe_exception(exc))})
-    validation_basis = {"category": public_data(metadata.get("category_snapshot")) if metadata else None,
+    from apps.ebay.quantity import quantity_checks
+    stock_checks, stock = quantity_checks(draft)
+    checks.extend(stock_checks)
+    validation_basis = {"stock_fingerprint": stock["fingerprint"], "category": public_data(metadata.get("category_snapshot")) if metadata else None,
                         "policies": raw_policies, "location": public_data(metadata["locations"]) if metadata else None,
                         "remaining": draft.item.quantity_remaining}
     def without_times(value):
@@ -220,6 +223,10 @@ def live_validation(draft, *, actor=None):
         return value
     fp = field_fingerprint(draft, photos)
     publish_checks = []
+    from apps.ebay.models import EbayListingAllocation
+    allocation = EbayListingAllocation.objects.using(draft._state.db or "default").filter(draft=draft, closed_at__isnull=True).first()
+    if allocation is None or allocation.allocation_quantity != draft.quantity:
+        publish_checks.append(check("allocation_unverified", "Listing allocation is missing or changed. Explicitly Update staged offer and review again.", "staging"))
     if not data.get("offer_id"):
         publish_checks.append(check("stage_required", "Stage this reviewed listing before publishing.", "staging"))
     if draft.staging_state != "verified" or not draft.staged_fingerprint or draft.staged_fingerprint != fp:
@@ -232,7 +239,7 @@ def live_validation(draft, *, actor=None):
     else:
         publish_checks.extend(eps_checks(draft, photos))
     checks = list({(row["key"], row["field"], row["message"]): row for row in checks}.values())
-    return {"metadata": metadata, "checks": checks, "publish_checks": publish_checks, "field_fingerprint": fp,
+    return {"metadata": metadata, "checks": checks, "publish_checks": publish_checks, "field_fingerprint": fp, "stock": stock,
             "validation_fingerprint": digest(without_times(validation_basis)), "photos": photos}
 
 
@@ -272,6 +279,7 @@ def prepare_review(draft, *, actor=None, mode="full"):
     data = mapping(draft.channel_data)
     snapshot = {"listing": {key: getattr(draft, key) for key in ("title", "description_html", "listing_format", "quantity", "currency")},
                 "item_revision": draft.item.updated_at.isoformat(), "remaining_stock": draft.item.quantity_remaining,
+                "stock_revision": result["stock"]["stock_revision"], "stock_fingerprint": result["stock"]["fingerprint"],
                 "price": str(draft.price) if draft.price is not None else None, "sku": draft.item.sku,
                 "specifics": draft.item_specifics,
                 "mapping": {key: data.get(key, "") for key in sorted(EDITABLE_CHANNEL_FIELDS)},

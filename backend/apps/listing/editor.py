@@ -194,6 +194,10 @@ def readiness(draft, metadata=None):
             checks.append({"key": f"default:{row['field']}", "field": row["field"],
                            "level": "fail" if row["state"] == "invalid" else "warn",
                            "message": row["message"] + f" Snapshot: {row.get('fetched_at') or 'unavailable'}. Refresh from eBay to check."})
+    if not draft.is_read_only:
+        from apps.ebay.quantity import quantity_checks
+        stock_checks, _ = quantity_checks(draft)
+        checks.extend(stock_checks)
     return checks
 
 

@@ -2641,3 +2641,158 @@ The deployed implementation remains **15df280**; [Validation 44033440571](https:
 
 **Final (a)-(h): PASS** as itemised above, now including the owner's completed explicit phone check, successful automatic renewal without reconnect, honest Media/EPS state, secret-free new audit event and populated-health backup/restore proof. **Phase 7 is COMPLETE + LIVE and its stop/report gate is reached. Sprint 25 remains OPEN** for separately instructed Phase 8, fee-engine work and remaining overall closure evidence. No Phase 8 work started. The final evidence commit hash and its Validation run ID are quoted in the task response; they are not fabricated as a self-reference in this document.
 
+## 2026-11-17 - Phase 8 Read-Only Inventory and Storage Approval STOP
+
+Controlling handoff update **MASTER_HANDOFF_UPDATE_2026-11-17_PHASE8_DESIGN.md** applied verbatim first: all **nine** Find strings matched exactly once against **299050c541f07c88c5591a018be059562595c916**, producing **v4.78**, including rule 12 and the approved (a)-(f) design. Active spec remains **v3.4**. The fee-engine design is recorded by the supplied update only; implementation of that separate instruction has not begun. Baseline [Validation 44034460493](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44034460493) is green on both SQLite and PostgreSQL.
+
+### Requested Live Inventory Report
+
+Inspected the actual live SQLite file using **mode=ro**, **query_only=ON** and a read transaction at **17 Nov 2026, 9:28:47 pm Australia/Sydney**. No Django startup hooks, application saves, eBay GETs/writes, OAuth renewal or provider calls were invoked. Remaining stock below is the existing Sprint 10 calculation from non-superseded SaleRecords, not a claim about remote eBay availability.
+
+| Item | Total | Active sold units | Remaining | Local listing/history state |
+|---|---:|---:|---:|---|
+| STM-00002 - First Flight Test Postage Stamp | 3 | 3 | 0 | The **only** item with quantity_total > 1; sold, three sale-history rows, no draft or ChannelListing. |
+| GOLD-00002 - Australian Gold Nugget 1.4g Grams | 1 | 0 | 1 | Published/read-only draft **af013dd9**, offer **356038014011**, listing **128199443689**; four archived drafts retained; one local active eBay ChannelListing. No changes. |
+| STM-00003 - First-flight postage stamp | 1 | 0 | 1 | Published/read-only draft **781043d7**, offer **186415699011**, listing **127919720667**; one local active eBay ChannelListing. No changes to its history. |
+
+There are **zero pending staging lines** and **zero duplicate candidates**; all four existing staging rows are **resolved**. The full baseline is **49 tables / 773 rows / 56 migrations**, including **10 items / 4 SaleRecords / 8 drafts / 2 ChannelListings / 5 reviews / 172 audit rows**. Final read-only recheck: **all 49 table digests unchanged**. Only counts, safe identifiers and row digests were inspected/reported; no credential values, raw order payloads or private buyer details were emitted.
+
+### Why Additive Storage Is Required
+
+Existing **ListingDraft.quantity** is the reviewed historical quantity, not mutable advertised availability. Published drafts are correctly immutable. **ChannelListing** has listing identity and dates but no allocation, remote-quantity observations or update-attempt state. **InventoryItem.updated_at** is neither a stock-only revision nor consistently changed by every partial sale/order-queue event. Existing unique order-line identities and duplicate-link records will be reused rather than creating another order warehouse.
+
+Proposed schema, **not yet coded or applied**, for approval:
+
+| Change | Columns/state and constraints |
+|---|---|
+| **inventory.0005_stock_revision** | Add **InventoryItem.stock_revision**, a non-negative integer defaulting to **0**. It is the SQLite-safe conditional-write fence for stock-affecting changes; no existing quantity/status/value is changed. No existing column is removed or renamed. |
+| **ebay.0005_listing_quantity_control: EbayListingAllocation** | New UUID/timestamped table: protected item/draft links; optional protected ChannelListing link; environment/marketplace; SKU/offer/listing identifiers; intended allocated quantity; minimal sale/order-line accounting baseline (identities and quantities only); allocation revision; verification state; nullable inventory-level and offer-level quantity observations and verification time; current attempt UUID; closed time. Unique open allocation per item/environment/marketplace, unique draft/environment/marketplace and non-empty external-listing identity; non-negative quantity checks. Unknown remote observations remain **null/unverified**, never zero or fabricated from remaining stock. |
+| **ebay.0005_listing_quantity_control: EbayQuantityUpdate** | New UUID/timestamped table: protected allocation link; nullable actor; reviewed stock/allocation revisions and stock/order fingerprint; requested quantity; nullable before/after inventory and offer observations; request-sent/completion times; outcome (claimed/in-flight/unknown/verified/definite failure); post-check revision/fingerprint and allowlisted diagnostics. One unresolved attempt per allocation, with attempt/stock revision checks for completion/reconciliation. Stores no raw response, header, token or secret. |
+
+The migrations would create **no allocation/attempt rows**, infer no current eBay quantity, change no published draft/review/sale/history or ChannelListing, and make **no eBay call**. GOLD-00002 and STM-00003 are not silently re-staged, adjusted, closed, restocked or assigned new historical quantities. Existing local live-listing records must already block a second offer even when new operational rows do not yet exist. New operational verification can be established only through an explicit later flow, without rewriting their immutable published snapshots.
+
+Expected installation bookkeeping only, if this exact plan is approved and no intervening changes occur: **49 -> 51 tables**, **56 -> 58 migration records**, **two new content types and eight model permissions**, and no rows in either new business table. Thus **773 -> 785 total rows** consists solely of the twelve Django bookkeeping additions. SQLite may rebuild a table to add the item column: rule 12 requires every pre-existing business column/row digest unchanged, all prior indexes/constraints preserved, integrity/FK checks, and B-verified pre/post backups and restores. Any deviation requires a new report/approval. Exact generated SQL and preservation expectations will be checked before any live installation.
+
+### Itemised (a)-(f) at This Stop
+
+| Design item | Current result / next implementation |
+|---|---|
+| (a) Separate allocation, no automatic replenishment, no second live offer | OPEN for implementation; separate allocation storage disclosed above. Original live/history values untouched. |
+| (b) Stage/publish quantity checks and reviewed-stock drift | Existing remaining-stock/review gates inspected; allocation/stock-revision extension OPEN. |
+| (c) Pending/unlinked orders and identity dedupe; no refund restock | Existing staging/duplicate/sale identity paths inspected; all queue states must enter the stock basis before increases; extension/tests OPEN. Unattributable orders must be visible and block unsafe increases rather than guessed onto an item. |
+| (d) Explicit exact-change warning, zero-stock take-down and restock | OPEN; no UI or automatic update created. Existing take-down checklist and partial-sale history retained. |
+| (e) Quantity-only attempt fences, before/after readback and reconciliation | OPEN; storage disclosed, no request sent. Never resend published listing fields or blindly retry an unknown write. |
+| (f) SQLite/PostgreSQL concurrency/order/timeout/zero/restock tests and 390px proof | OPEN for new implementation; baseline dual-lane Validation green. No new tests falsely claimed as passed. |
+
+**STOP for Regan's schema approval under rule 12.** No application code, migration file, dependency, configuration, live database, collected asset or service change in this task. No restart needed at this approval stop. Phase 8 and Sprint 25 remain OPEN; no fee-engine work or live quantity write.
+
+## 2026-11-17 - Phase 8 Built; Approved Storage Pending Dual-Lane Validation and Installation
+
+Regan approved the disclosed stock-revision column and two operational tables, subject to rule 12, no backfill, inert legacy listings, model-level sanitisation, build/test before installation, B-verified pre/post restores, and an Administrator restart afterwards. No application/schema installation or live eBay quantity write has occurred at this implementation checkpoint.
+
+### Implemented (a)-(f)
+
+| Design | Implementation and tests |
+|---|---|
+| (a) Allocation differs from remaining stock | New **EbayListingAllocation**, never an edit of published ListingDraft.quantity. New allocations arise only in the explicit reviewed staging path. Partial allocations never replenish themselves. Local active listing records, open allocation constraints and read-only remote checks across **both fixed-price and auction** block a second offer on the same SKU stock. Tests: partial allocation/no replenishment; second live offer + database backstop; opposite-format remote listing guard; legacy no-backfill. |
+| (b) Stage/publish stock revalidation and drift | A stock-only monotonic revision and order/sale fingerprint enter review and live validation. Stock-affecting saves and order-review changes invalidate the reviewed basis. Stage checks before and after I/O; the publish claim includes the reviewed stock revision and worker validation repeats it. A missing/changed staged allocation blocks publish and points to explicit staged update. Tests: changed quantity review; sale after review blocks staging; allocation mismatch blocks publish; stale ordinary form saves cannot reset the counter. |
+| (c) Orders counted before increases | Reuses Sprint 11 staging/duplicate identities and active SaleRecords, including correction roots and later manual-sale links. Pending attributable units reserve stock once; unlinked orders remain visibly unattributed and block increases, never guessed onto an item. A received order that cannot fit after a local sale remains pending. Refund/cancellation metadata never adds physical stock. Quantity reductions remain available while unlinked orders await review; increases do not. Tests cover each path. |
+| (d) Explicit reduction, take-down and restock | Item and hub show exact reductions with persistent urgent state until quantity readback confirms the result. Every write needs the human's checkbox and button; mounting pages is local GET-only. At zero remaining, the existing take-down checklist is linked; no automatic marketplace ending or quantity-zero write. Restock increases require a new explicit confirmation. Sale, stock, order-queue and take-down mutations invalidate owned quantity/hub caches immediately. |
+| (e) Quantity-only claims and reconciliation | One SKU/offer quantity-only request updates both inventory and offer controls; no price, description, title, policy or photo is resent. SQLite-safe conditional claim, unique unresolved attempt, stock revisions/fingerprints, final send barrier and attempt-fenced completions. Both remote quantities are read before/after; partial responses, crashes/timeouts or changed stock stay unresolved. A timeout is not cancellation: unconfirmed in-flight requests have a ten-minute settling guard; reconciliation never sends another write, and unexplained mismatches stay unknown. A verified current quantity can still require a further explicit reduction when physical stock has since fallen. Tests: one-write concurrent requests; local/eBay sale races; timeout + subsequent sale; mismatch/partial response; late completion; quantity-only payload. |
+| (f) Required validation | **29 focused quantity tests PASS**, including real file-backed SQLite race fixtures; PostgreSQL executes those same tests in its CI lane. Earlier full local suite **497 passed / 1 existing skip**, before the final guard cases; final full-suite run in progress at filing. Frontend **209 PASS** (41 files), typecheck and production build PASS; browser suite **12 PASS**, with final Phase 8 phone/desktop re-capture **2 PASS**. Both CI lanes and live installation are still pending at this checkpoint. |
+
+The stock-revision fence is shared with normal sales without changing fee/profit formulas. No fee-engine implementation, rates, valuation or AI path was added. The published draft and listing history remain immutable. A manual take-down closes a recorded allocation only when no quantity attempt is unresolved; unresolved attempts retain their reservation and review path.
+
+**Privacy:** the quantity-attempt diagnostic column reuses Phase 7's closed allowlist, checked by model save, conditional update and bulk-create paths; bulk-update bypass is refused. Secret-bearing body/header/token fixtures are rejected. Nested per-entry quantity errors are sanitised before storage/health/display; an entry status is not falsely presented as the outer HTTP status or proof of an all-or-nothing failure. Tests prove this boundary. No raw provider body or header is retained.
+
+### Existing Listings and Record Allocation
+
+**GOLD-00002 and STM-00003 are not backfilled.** With no operational allocation row, item/hub render **Allocation not recorded**, no urgent Update eBay warning, no check/update/restock/record-allocation button, and no remote call on load. Their existing published quantity/history is not reinterpreted as a current remote available quantity.
+
+An explicit future **Record allocation** flow would: read the identified inventory/offer quantities without writing to eBay; show SKU/listing identity, known stock, pending/unlinked orders and both remote controls; require Regan to enter/confirm the intended allocation; save only a new local operational allocation with provenance, without restaging or changing the published draft. It would not change eBay quantity. **Not built**: it is unnecessary for (a)-(f), which cover newly human-staged allocations while preserving legacy listings as inert. Any later legacy onboarding needs a separate instruction.
+
+### Phone/Desktop Proof (Isolated Fixtures, Not Live Writes)
+
+The production components and AppShell ran against strictly intercepted synthetic owned records. All non-local requests were refused; only the expected mocked human quantity POST was allowed. Document width equals client width at **390px**, and visible element bounds are checked. The old item/editor/preview/staged-review 80-character-title gates remain green. The longer complete-inventory reachability test now uses the same 30-second test budget as its existing state cases, without removing assertions; local Vite startup gets 120 seconds on this Windows host. No screenshots below claim to show a real quantity write.
+
+![390px exact reduction warning and inert legacy listing](docs/evidence/sprint25/phase8/phase8-quantity-warning-390.png)
+![390px visible confirmation before a quantity write](docs/evidence/sprint25/phase8/phase8-quantity-review-390.png)
+![390px unknown result permits reconciliation only](docs/evidence/sprint25/phase8/phase8-quantity-unknown-390.png)
+![Desktop quantity review](docs/evidence/sprint25/phase8/phase8-quantity-review-1440.png)
+
+### Migration SQL and Preservation Plan
+
+Generated migrations are **inventory.0005_inventoryitem_stock_revision** and **ebay.0005_ebaylistingallocation_ebayquantityupdate_and_more**. Django check and migration-drift check PASS against an isolated database, with outbound connections blocked. No RunPython/backfill, old-row save, credential field, price/cost field or published-draft edit is in either migration. The inventory table rebuild below is preservation-only; rule 12 requires every original column's digest to match. New business tables stay empty. Expected bookkeeping: two migration records, two content types, eight model permissions only.
+
+Inventory SQL:
+
+```sql
+BEGIN;
+--
+-- Add field stock_revision to inventoryitem
+--
+CREATE TABLE "new__inventory_inventoryitem" ("stock_revision" bigint unsigned NOT NULL CHECK ("stock_revision" >= 0), "id" char(32) NOT NULL PRIMARY KEY, "created_at" datetime NOT NULL, "updated_at" datetime NOT NULL, "sku" varchar(40) NOT NULL UNIQUE, "title" varchar(200) NOT NULL, "status" varchar(30) NOT NULL, "condition" varchar(20) NOT NULL, "acquisition_cost" decimal NULL, "estimated_value" decimal NULL, "min_price" decimal NULL, "target_price" decimal NULL, "currency" varchar(3) NOT NULL, "notes" text NOT NULL, "attributes" text NOT NULL CHECK ((JSON_VALID("attributes") OR "attributes" IS NULL)), "acquisition_id" char(32) NULL REFERENCES "acquisitions_acquisitionrecord" ("id") DEFERRABLE INITIALLY DEFERRED, "category_id" char(32) NULL REFERENCES "catalog_productcategory" ("id") DEFERRABLE INITIALLY DEFERRED, "location_id" char(32) NULL REFERENCES "locations_storagelocation" ("id") DEFERRABLE INITIALLY DEFERRED, "owner_id" integer NULL REFERENCES "auth_user" ("id") DEFERRABLE INITIALLY DEFERRED, "est_outbound_shipping" decimal NULL, "est_packaging_cost" decimal NULL, "inbound_shipping_cost" decimal NULL, "refurb_cost" decimal NULL, "quantity_total" integer unsigned NOT NULL CHECK ("quantity_total" >= 0), "disposition" varchar(20) NOT NULL, "lot_id" char(32) NULL REFERENCES "profit_lot" ("id") DEFERRABLE INITIALLY DEFERRED, "scrapped_at" date NULL, "source_id" char(32) NULL REFERENCES "profit_source" ("id") DEFERRABLE INITIALLY DEFERRED);
+INSERT INTO "new__inventory_inventoryitem" ("id", "created_at", "updated_at", "sku", "title", "status", "condition", "acquisition_cost", "estimated_value", "min_price", "target_price", "currency", "notes", "attributes", "acquisition_id", "category_id", "location_id", "owner_id", "est_outbound_shipping", "est_packaging_cost", "inbound_shipping_cost", "refurb_cost", "quantity_total", "disposition", "lot_id", "scrapped_at", "source_id", "stock_revision") SELECT "id", "created_at", "updated_at", "sku", "title", "status", "condition", "acquisition_cost", "estimated_value", "min_price", "target_price", "currency", "notes", "attributes", "acquisition_id", "category_id", "location_id", "owner_id", "est_outbound_shipping", "est_packaging_cost", "inbound_shipping_cost", "refurb_cost", "quantity_total", "disposition", "lot_id", "scrapped_at", "source_id", 0 FROM "inventory_inventoryitem";
+DROP TABLE "inventory_inventoryitem";
+ALTER TABLE "new__inventory_inventoryitem" RENAME TO "inventory_inventoryitem";
+CREATE INDEX "inventory_inventoryitem_acquisition_id_a33fa7fb" ON "inventory_inventoryitem" ("acquisition_id");
+CREATE INDEX "inventory_inventoryitem_category_id_06acb4f3" ON "inventory_inventoryitem" ("category_id");
+CREATE INDEX "inventory_inventoryitem_location_id_0437778f" ON "inventory_inventoryitem" ("location_id");
+CREATE INDEX "inventory_inventoryitem_owner_id_1103e280" ON "inventory_inventoryitem" ("owner_id");
+CREATE INDEX "inventory_inventoryitem_lot_id_dc52cba7" ON "inventory_inventoryitem" ("lot_id");
+CREATE INDEX "inventory_inventoryitem_source_id_adc326dd" ON "inventory_inventoryitem" ("source_id");
+CREATE INDEX "item_status_idx" ON "inventory_inventoryitem" ("status");
+CREATE INDEX "item_category_idx" ON "inventory_inventoryitem" ("category_id");
+CREATE INDEX "item_attributes_gin" ON "inventory_inventoryitem" ("attributes");
+COMMIT;
+```
+
+eBay SQL:
+
+```sql
+BEGIN;
+--
+-- Create model EbayListingAllocation
+--
+CREATE TABLE "ebay_ebaylistingallocation" ("id" char(32) NOT NULL PRIMARY KEY, "created_at" datetime NOT NULL, "updated_at" datetime NOT NULL, "environment" varchar(12) NOT NULL, "marketplace" varchar(20) NOT NULL, "sku" varchar(120) NOT NULL, "offer_id" varchar(100) NOT NULL, "listing_id" varchar(100) NOT NULL, "allocation_quantity" integer unsigned NOT NULL CHECK ("allocation_quantity" >= 0), "allocation_basis" text NOT NULL CHECK ((JSON_VALID("allocation_basis") OR "allocation_basis" IS NULL)), "revision" bigint unsigned NOT NULL CHECK ("revision" >= 0), "verification_state" varchar(24) NOT NULL, "last_inventory_available" integer unsigned NULL CHECK ("last_inventory_available" >= 0), "last_offer_available" integer unsigned NULL CHECK ("last_offer_available" >= 0), "verified_at" datetime NULL, "current_attempt" char(32) NULL, "closed_at" datetime NULL, "channel_listing_id" char(32) NULL REFERENCES "listing_channellisting" ("id") DEFERRABLE INITIALLY DEFERRED, "draft_id" char(32) NOT NULL REFERENCES "listing_listingdraft" ("id") DEFERRABLE INITIALLY DEFERRED, "item_id" char(32) NOT NULL REFERENCES "inventory_inventoryitem" ("id") DEFERRABLE INITIALLY DEFERRED);
+--
+-- Create model EbayQuantityUpdate
+--
+CREATE TABLE "ebay_ebayquantityupdate" ("id" char(32) NOT NULL PRIMARY KEY, "created_at" datetime NOT NULL, "updated_at" datetime NOT NULL, "stock_revision" bigint unsigned NOT NULL CHECK ("stock_revision" >= 0), "allocation_revision" bigint unsigned NOT NULL CHECK ("allocation_revision" >= 0), "stock_fingerprint" varchar(64) NOT NULL, "requested_quantity" integer unsigned NOT NULL CHECK ("requested_quantity" >= 0), "inventory_before" integer unsigned NULL CHECK ("inventory_before" >= 0), "offer_before" integer unsigned NULL CHECK ("offer_before" >= 0), "inventory_after" integer unsigned NULL CHECK ("inventory_after" >= 0), "offer_after" integer unsigned NULL CHECK ("offer_after" >= 0), "request_sent_at" datetime NULL, "completed_at" datetime NULL, "outcome" varchar(24) NOT NULL, "stock_revision_after" bigint unsigned NULL CHECK ("stock_revision_after" >= 0), "post_stock_fingerprint" varchar(64) NOT NULL, "diagnostic" text NOT NULL CHECK ((JSON_VALID("diagnostic") OR "diagnostic" IS NULL)), "actor_id" integer NULL REFERENCES "auth_user" ("id") DEFERRABLE INITIALLY DEFERRED, "allocation_id" char(32) NOT NULL REFERENCES "ebay_ebaylistingallocation" ("id") DEFERRABLE INITIALLY DEFERRED);
+--
+-- Create constraint one_open_ebay_allocation on model ebaylistingallocation
+--
+CREATE UNIQUE INDEX "one_open_ebay_allocation" ON "ebay_ebaylistingallocation" ("item_id", "environment", "marketplace") WHERE "closed_at" IS NULL;
+--
+-- Create constraint one_ebay_draft_allocation on model ebaylistingallocation
+--
+CREATE TABLE "new__ebay_ebaylistingallocation" ("id" char(32) NOT NULL PRIMARY KEY, "created_at" datetime NOT NULL, "updated_at" datetime NOT NULL, "environment" varchar(12) NOT NULL, "marketplace" varchar(20) NOT NULL, "sku" varchar(120) NOT NULL, "offer_id" varchar(100) NOT NULL, "listing_id" varchar(100) NOT NULL, "allocation_quantity" integer unsigned NOT NULL CHECK ("allocation_quantity" >= 0), "allocation_basis" text NOT NULL CHECK ((JSON_VALID("allocation_basis") OR "allocation_basis" IS NULL)), "revision" bigint unsigned NOT NULL CHECK ("revision" >= 0), "verification_state" varchar(24) NOT NULL, "last_inventory_available" integer unsigned NULL CHECK ("last_inventory_available" >= 0), "last_offer_available" integer unsigned NULL CHECK ("last_offer_available" >= 0), "verified_at" datetime NULL, "current_attempt" char(32) NULL, "closed_at" datetime NULL, "channel_listing_id" char(32) NULL REFERENCES "listing_channellisting" ("id") DEFERRABLE INITIALLY DEFERRED, "draft_id" char(32) NOT NULL REFERENCES "listing_listingdraft" ("id") DEFERRABLE INITIALLY DEFERRED, "item_id" char(32) NOT NULL REFERENCES "inventory_inventoryitem" ("id") DEFERRABLE INITIALLY DEFERRED, CONSTRAINT "one_ebay_draft_allocation" UNIQUE ("draft_id", "environment", "marketplace"));
+INSERT INTO "new__ebay_ebaylistingallocation" ("id", "created_at", "updated_at", "environment", "marketplace", "sku", "offer_id", "listing_id", "allocation_quantity", "allocation_basis", "revision", "verification_state", "last_inventory_available", "last_offer_available", "verified_at", "current_attempt", "closed_at", "channel_listing_id", "draft_id", "item_id") SELECT "id", "created_at", "updated_at", "environment", "marketplace", "sku", "offer_id", "listing_id", "allocation_quantity", "allocation_basis", "revision", "verification_state", "last_inventory_available", "last_offer_available", "verified_at", "current_attempt", "closed_at", "channel_listing_id", "draft_id", "item_id" FROM "ebay_ebaylistingallocation";
+DROP TABLE "ebay_ebaylistingallocation";
+ALTER TABLE "new__ebay_ebaylistingallocation" RENAME TO "ebay_ebaylistingallocation";
+CREATE INDEX "ebay_ebayquantityupdate_actor_id_75610fd0" ON "ebay_ebayquantityupdate" ("actor_id");
+CREATE INDEX "ebay_ebayquantityupdate_allocation_id_da4338f6" ON "ebay_ebayquantityupdate" ("allocation_id");
+CREATE UNIQUE INDEX "one_open_ebay_allocation" ON "ebay_ebaylistingallocation" ("item_id", "environment", "marketplace") WHERE "closed_at" IS NULL;
+CREATE INDEX "ebay_ebaylistingallocation_channel_listing_id_119bf7d0" ON "ebay_ebaylistingallocation" ("channel_listing_id");
+CREATE INDEX "ebay_ebaylistingallocation_draft_id_dfedc20d" ON "ebay_ebaylistingallocation" ("draft_id");
+CREATE INDEX "ebay_ebaylistingallocation_item_id_40fe64c6" ON "ebay_ebaylistingallocation" ("item_id");
+--
+-- Create constraint one_ebay_listing_allocation on model ebaylistingallocation
+--
+CREATE UNIQUE INDEX "one_ebay_listing_allocation" ON "ebay_ebaylistingallocation" ("environment", "marketplace", "listing_id") WHERE NOT ("listing_id" = '');
+--
+-- Create constraint one_unresolved_quantity_update on model ebayquantityupdate
+--
+CREATE UNIQUE INDEX "one_unresolved_quantity_update" ON "ebay_ebayquantityupdate" ("allocation_id") WHERE "outcome" IN ('claimed', 'in_flight', 'unknown');
+COMMIT;
+```
+
+The quantity-only API shape and the need to verify both inventory/offer controls were checked against eBay's [Inventory bulk-update guide](https://developer.ebay.com/api-docs/sell/static/inventory/bulk-updates.html) and [official Inventory OpenAPI 1.18.5](https://developer.ebay.com/api-docs/master/sell/inventory/openapi/3/sell_inventory_v1_oas3.json). Only public documentation GETs were used, not calls to Regan's seller account.
+
+Local validation initially exposed PowerShell's empty-environment assignment allowing dotenv production configuration into tests. The corrected child runner supplies explicit empty/fake settings in Python, independently of .env, without modifying any local configuration or weakening tests. A pre-existing 100ms simulated publish-deadline fixture now waits for its transport-entered event before applying that artificial clock; the actual 60-second production deadline and every certainty/retry assertion remain unchanged.
+
+**Next gate:** both GitHub Validation lanes green, then fresh B-verified pre-backup, apply only the two approved migrations, original-column/schema/index/count/integrity checks, B-verified post-backup/restore, collectstatic and request Regan's Administrator restart. No live eBay write is authorised. Phase 8 and Sprint 25 remain OPEN pending deployment/owner checks.
+
+**Final local source check:** full isolated SQLite backend **500 passed / 1 existing skip**; focused quantity cases **29 passed**; frontend **209 passed**, final focused quantity/sales UI **7 passed**; typecheck/build PASS; complete browser suite **12 passed** and final quantity recapture **2 passed**. No test was removed or skipped to pass Phase 8. The cross-format guard preserves the older published-offer refusal wording/test. SQL and every model field remain within the disclosed storage plan. Source freeze now awaits CI on both database lanes before any live migration.
+
+

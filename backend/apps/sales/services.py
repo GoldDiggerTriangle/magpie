@@ -14,7 +14,7 @@ from apps.valuation.services import calculate_profit
 
 
 def active_sales_queryset(item: InventoryItem):
-    return SaleRecord.objects.filter(item=item).active()
+    return SaleRecord.objects.using(item._state.db or "default").filter(item=item).active()
 
 
 def active_quantity_sold(item: InventoryItem, *, exclude: SaleRecord | None = None) -> int:
@@ -34,7 +34,7 @@ def active_realised_profit(item: InventoryItem) -> Decimal:
 
 @transaction.atomic
 def recompute_item_sale_status(item: InventoryItem) -> InventoryItem:
-    locked_item = InventoryItem.objects.select_for_update().get(pk=item.pk)
+    locked_item = InventoryItem.objects.using(item._state.db or "default").select_for_update().get(pk=item.pk)
     sold = active_quantity_sold(locked_item)
     if sold >= locked_item.quantity_total:
         next_status = InventoryItem.Status.SOLD
@@ -54,8 +54,14 @@ def recompute_item_sale_status(item: InventoryItem) -> InventoryItem:
     return locked_item
 
 
-@transaction.atomic
 def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) -> SaleRecord:
+    using = data["item"]._state.db if data.get("item") is not None else "default"
+    using = using or "default"
+    with transaction.atomic(using=using):
+        return _create_sale_record(data=data, corrected_from=corrected_from, using=using)
+
+
+def _create_sale_record(*, data: dict, corrected_from: SaleRecord | None, using: str) -> SaleRecord:
     item = data.get("item")
     if item is None:
         if not data.get("is_external"):
@@ -69,13 +75,15 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
             data["actual_fees_total"] = money(estimated_fee_snapshot["estimated_fees_total"])
         if not data.get("actual_fee_breakdown"):
             data["actual_fee_breakdown"] = estimated_fee_snapshot.get("fee_breakdown", {})
-        return SaleRecord.objects.create(
+        return SaleRecord.objects.using(using).create(
             **data,
             valuation_snapshot=valuation_snapshot_for(None),
             estimated_fee_snapshot=estimated_fee_snapshot,
         )
 
-    item = InventoryItem.objects.select_for_update().get(pk=item.pk)
+    from django.db.models import F
+    InventoryItem.objects.using(using).filter(pk=item.pk).update(stock_revision=F("stock_revision") + 1)
+    item = InventoryItem.objects.using(using).select_for_update().get(pk=item.pk)
     if item.disposition == InventoryItem.Disposition.SCRAPPED:
         raise serializers.ValidationError(
             {"item": ["Scrapped items are locked and cannot receive new sale records."]}
@@ -83,7 +91,7 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
 
     if corrected_from is not None:
         corrected_from = (
-            SaleRecord.objects.select_for_update()
+            SaleRecord.objects.using(using).select_for_update()
             .get(pk=corrected_from.pk)
         )
         if corrected_from.item_id != item.id:
@@ -109,7 +117,7 @@ def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) 
     if not data.get("actual_fee_breakdown"):
         data["actual_fee_breakdown"] = estimated_fee_snapshot.get("fee_breakdown", {})
 
-    sale = SaleRecord.objects.create(
+    sale = SaleRecord.objects.using(using).create(
         **data,
         corrected_from=corrected_from,
         valuation_snapshot=valuation_snapshot_for(item),

@@ -314,6 +314,18 @@ def test_hard_deadline_is_not_cancellation_and_does_not_allow_retry(concurrent_d
     assert state.PUBLISH_TIMEOUT_SECONDS == 60
     monkeypatch.setattr(state, "PUBLISH_TIMEOUT_SECONDS", 0.1)
     monkeypatch.setattr(ebay.FakeEbayInventoryAdapter, "publish_offer", delayed)
+    class TransportDeadlineExecutor(ThreadPoolExecutor):
+        def submit(self, fn, *args, **kwargs):
+            future = super().submit(fn, *args, **kwargs)
+            result = future.result
+            def after_transport_started(timeout=None):
+                # Coordinate the simulated transport timeout with the event;
+                # local preflight work must not race the artificial 100ms clock.
+                assert entered.wait(10)
+                return result(timeout=timeout)
+            future.result = after_transport_started
+            return future
+    monkeypatch.setattr(state, "ThreadPoolExecutor", TransportDeadlineExecutor)
     try:
         with pytest.raises(WorkflowError, match="unknown"):
             publish(draft)

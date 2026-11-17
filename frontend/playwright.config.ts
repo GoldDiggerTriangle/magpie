@@ -19,5 +19,6 @@ export default defineConfig({
     command: "npx vite --config e2e/vite.config.ts",
     url: "http://127.0.0.1:4179/e2e/listing-layout.html",
     reuseExistingServer: false,
+    timeout: 120000,
   },
 });

@@ -21,6 +21,7 @@ OPERATIONS = {
     "inventory.offer": ("Inventory", "seller"),
     "inventory.create": ("Inventory", "seller"),
     "inventory.update": ("Inventory", "seller"),
+    "inventory.quantity": ("Inventory", "seller"),
     "inventory.publish": ("Inventory", "seller"),
     "inventory.remove": ("Inventory", "seller"),
     "inventory.withdraw": ("Inventory", "seller"),
@@ -84,6 +85,7 @@ def operation_for(url, method):
     path = urlsplit(url).path
     if "/sell/inventory/" in path:
         tail = path.split("/v1/", 1)[-1].strip("/")
+        if tail == "bulk_update_price_quantity": return "inventory.quantity"
         if tail.startswith("inventory_item"):
             return "inventory.replace" if method == "PUT" else "inventory.item" if "/" in tail else "inventory.items"
         if tail.startswith("location"):

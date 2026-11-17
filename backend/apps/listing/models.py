@@ -194,6 +194,17 @@ def protect_listing_history(sender, instance, using, **kwargs):
 
 
 class ChannelListing(TimeStampedUUIDModel):
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or self._state.db or "default"
+        with transaction.atomic(using=using):
+            result = super().save(*args, **kwargs)
+            if self.ended_at:
+                from apps.ebay.models import EbayListingAllocation
+                # Manual take-down tracks the human's action, not a marketplace
+                # write. Unknown in-flight quantity attempts remain reserved.
+                EbayListingAllocation.objects.using(using).filter(channel_listing=self, current_attempt__isnull=True).update(closed_at=self.ended_at)
+            return result
+
     class Channel(models.TextChoices):
         EBAY = "ebay", "eBay"
         FACEBOOK_MARKETPLACE = "facebook_marketplace", "Facebook Marketplace"

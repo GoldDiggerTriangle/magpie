@@ -58,6 +58,8 @@ def stage_draft(draft, *, review_id=None, override_missing_aspects=False, overri
     if review.mode != "full" or not review.snapshot.get("can_stage"):
         raise WorkflowError("review_required", "Use the full reviewed staging path.")
     attempt = uuid.uuid4()
+    from apps.ebay.quantity import reserve_for_stage, stock_basis
+    reserve_for_stage(draft, review)
     old_stage_state = draft.staging_state
     if mutable_rows(using).filter(pk=draft.pk, updated_at=review.draft_revision).update(
         staging_state="in_progress", staging_attempt=attempt, staging_started_at=timezone.now(),
@@ -69,14 +71,20 @@ def stage_draft(draft, *, review_id=None, override_missing_aspects=False, overri
     try:
         access = get_access_token(actor=actor)
         inventory = ebay_integration.get_ebay_inventory_adapter()
+        desired_format = "FIXED_PRICE" if draft.listing_format == "fixed" else "AUCTION"
+        remote_offers = {text(row.get("offerId")): row for format_value in ("FIXED_PRICE", "AUCTION")
+            for row in inventory.get_offers(access_token=access, sku=draft.item.sku, marketplace_id=EBAY_MARKETPLACE_ID, format=format_value)}
+        if any(key != offer_id and (_offer_state(row)[0] != "UNPUBLISHED" or _offer_state(row)[1]) for key, row in remote_offers.items()):
+            raise WorkflowError("stock_already_listed", "This SKU has another live (published) or ambiguous eBay offer, including another format. Nothing was staged.")
         if offer_id:
             remote = inventory.get_offer(access_token=access, offer_id=offer_id)
             state, listing_id = _offer_state(remote)
             if state != "UNPUBLISHED" or listing_id or remote.get("sku") != draft.item.sku:
                 raise WorkflowError("remote_offer", "Offer is published or ambiguous. Stop; ending a live listing is a separate decision.")
         else:
-            matches = inventory.get_offers(access_token=access, sku=draft.item.sku, marketplace_id=EBAY_MARKETPLACE_ID,
-                                           format="FIXED_PRICE" if draft.listing_format == "fixed" else "AUCTION")
+            matches = list(remote_offers.values())
+            if any(row.get("format") != desired_format for row in matches):
+                raise WorkflowError("stock_allocated", "Another eBay offer uses this stock in a different format. Resolve it before staging.")
             if len(matches) > 1 or any(_offer_state(row)[0] != "UNPUBLISHED" or _offer_state(row)[1] for row in matches):
                 raise WorkflowError("ambiguous_offers", "Existing offers are ambiguous or published. Resolve them before staging.")
             if matches:
@@ -121,6 +129,9 @@ def stage_draft(draft, *, review_id=None, override_missing_aspects=False, overri
         condition_policy = {**category["condition_policy"], "category_id": text(data.get("category_id")), "marketplace": "EBAY_AU", "fetched_at": category["fetched_at"]}
         inventory_payload = _inventory_item_payload(draft, eps_urls, condition_policy=condition_policy)
         offer_payload = _offer_payload(draft)
+        from apps.ebay.adapters import effective_environment
+        if stock_basis(draft.item, effective_environment())["fingerprint"] != review.snapshot["stock_fingerprint"]:
+            raise WorkflowError("stock_changed", "Stock/orders changed during staging. Review again; no inventory update sent.")
         inventory.upsert_inventory_item(access_token=access, sku=draft.item.sku, payload=inventory_payload)
         record(actor=actor, action=AUDIT_INVENTORY_ITEM_UPSERTED, target_type="listing_draft", target_id=draft.pk, payload={"sku": draft.item.sku, "attempt": str(attempt)}, using=using)
         if offer_id:
@@ -131,7 +142,7 @@ def stage_draft(draft, *, review_id=None, override_missing_aspects=False, overri
             offer_id = inventory.create_offer(access_token=access, payload=offer_payload)
             data["offer_id"] = offer_id
             _stage_progress(draft.pk, attempt, data, using=using)
-        if field_fingerprint(fresh_draft(draft.pk, using)) != review.field_fingerprint:
+        if field_fingerprint(fresh_draft(draft.pk, using)) != review.field_fingerprint or stock_basis(draft.item, effective_environment())["fingerprint"] != review.snapshot["stock_fingerprint"]:
             raise WorkflowError("staging_changed", "Photos or listing values changed during staging; update and review again.")
         data.update(eps_image_urls=eps_urls, inventory_item_sku=draft.item.sku, offer_id=offer_id,
             staged_at=timezone.now().isoformat(), last_ebay_error="",
@@ -194,6 +205,8 @@ def withdraw_staged(draft, *, actor=None):
         data["offer_removed_at"] = timezone.now().isoformat()
         data["last_ebay_error"] = ""
         _stage_progress(draft.pk, attempt, data, using=using, staging_state="", staged_fingerprint="", status="ready")
+        from apps.ebay.models import EbayListingAllocation
+        EbayListingAllocation.objects.using(using).filter(draft=draft, channel_listing__isnull=True, current_attempt__isnull=True).update(closed_at=timezone.now())
         record(actor=actor, action=AUDIT_OFFER_WITHDRAWN, target_type="listing_draft", target_id=draft.pk,
                payload={"attempt": str(attempt), "removed_offer_id": offer_id}, using=using)
         return fresh_draft(draft.pk, using)

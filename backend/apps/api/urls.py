@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from apps.api.views import HealthCheckView
 from apps.ebay.hub import EbayHubView
+from apps.ebay.quantity_views import ItemEbayQuantityView, EbayQuantityActionView
 from apps.audit.views import AuditLogViewSet
 from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
@@ -111,6 +112,8 @@ router.register("sources", SourceViewSet, basename="source")
 router.register("lots", LotViewSet, basename="lot")
 
 urlpatterns = [
+    path("items/<uuid:item_id>/ebay-quantity/", ItemEbayQuantityView.as_view(), name="item-ebay-quantity"),
+    path("ebay/allocations/<uuid:allocation_id>/<str:action>/", EbayQuantityActionView.as_view(), name="ebay-quantity-action"),
     path("ebay/connection-health/", EbayConnectionHealthView.as_view(), name="ebay-connection-health"),
     path("ebay/check-connection/", EbayCheckConnectionView.as_view(), name="ebay-check-connection"),
     path("health/", HealthCheckView.as_view(), name="health"),

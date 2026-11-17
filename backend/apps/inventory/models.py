@@ -57,6 +57,7 @@ class InventoryItem(TimeStampedUUIDModel):
         default=Condition.UNGRADED,
     )
     quantity_total = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    stock_revision = models.PositiveBigIntegerField(default=0, editable=False)
     location = models.ForeignKey(
         "locations.StorageLocation",
         null=True,
@@ -177,7 +178,21 @@ class InventoryItem(TimeStampedUUIDModel):
                 else "GSP"
             )
             self.sku = generate_sku(prefix)
-        super().save(*args, **kwargs)
+        if self._state.adding:
+            return super().save(*args, **kwargs)
+        from django.db import transaction
+        from django.db.models import F
+        using = kwargs.get("using") or self._state.db or "default"
+        with transaction.atomic(using=using):
+            previous = type(self).objects.using(using).filter(pk=self.pk).values("quantity_total", "disposition").first()
+            fields = kwargs.get("update_fields")
+            changed = previous and any((not fields or field in fields) and previous[field] != getattr(self, field) for field in ("quantity_total", "disposition"))
+            if changed:
+                type(self).objects.using(using).filter(pk=self.pk).update(stock_revision=F("stock_revision") + 1)
+            self.stock_revision = type(self).objects.using(using).values_list("stock_revision", flat=True).get(pk=self.pk)
+            # Ordinary form/status saves must never write a stale stock counter.
+            kwargs["update_fields"] = set(kwargs.get("update_fields") or [f.name for f in self._meta.concrete_fields if not f.primary_key]) - {"stock_revision"}
+            return super().save(*args, **kwargs)
 
     @property
     def main_photo(self):

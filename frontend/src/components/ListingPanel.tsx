@@ -310,6 +310,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
           <span>Quantity</span>
           <input aria-label="Quantity" id={listingFieldId(local.id, "quantity")} className="field" inputMode="numeric" value={local.quantity} onChange={(event) => setLocal({ ...local, quantity: Number(event.target.value) || 0 })} />
           <FieldSource context={editor.data} field="quantity" />
+          <span className="text-sm text-slate-700">Listing allocation · {item.quantity_remaining} remaining in owned stock</span>
         </label>
         <label className="flex items-end gap-2 text-sm font-medium text-slate-300">
           <input aria-label="SKU footer" checked={local.include_sku_footer} type="checkbox" onChange={(event) => setLocal({ ...local, include_sku_footer: event.target.checked })} />

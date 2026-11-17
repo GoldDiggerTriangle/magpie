@@ -9,6 +9,7 @@ from django.db import models
 from django.utils import timezone
 
 from apps.core.models import TimeStampedUUIDModel
+from apps.ebay.quantity_models import EbayListingAllocation, EbayQuantityUpdate
 from apps.ebay.constants import (
     DEFAULT_FAKE_ENVIRONMENT,
     EBAY_ENV_PRODUCTION,
@@ -190,6 +191,14 @@ class EbayOrderSyncState(TimeStampedUUIDModel):
 
 
 class EbayOrderStaging(TimeStampedUUIDModel):
+    def save(self, *args, **kwargs):
+        from apps.ebay.quantity import order_stock_fence
+        from django.db import transaction
+        using = kwargs.get("using") or self._state.db or "default"
+        with transaction.atomic(using=using):
+            order_stock_fence(self.sku, using=using)
+            return super().save(*args, **kwargs)
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         RESOLVED = "resolved", "Resolved"
@@ -248,6 +257,14 @@ class EbayOrderStaging(TimeStampedUUIDModel):
 
 
 class EbayOrderDuplicateCandidate(TimeStampedUUIDModel):
+    def save(self, *args, **kwargs):
+        from apps.ebay.quantity import order_stock_fence
+        from django.db import transaction
+        using = kwargs.get("using") or self._state.db or "default"
+        with transaction.atomic(using=using):
+            order_stock_fence(self.sku, using=using)
+            return super().save(*args, **kwargs)
+
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         LINKED = "linked", "Linked"

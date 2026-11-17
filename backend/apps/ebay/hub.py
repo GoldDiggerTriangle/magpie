@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from apps.ebay.models import EbayOrderDuplicateCandidate, EbayOrderStaging, EbayOrderSyncState
 from apps.ebay.services import status_summary
+from apps.ebay.quantity import item_quantity_state
 from apps.listing.models import ChannelListing, ListingDraft
 
 
@@ -29,6 +30,7 @@ class EbayHubView(APIView):
             "id": str(row.pk), "item_id": str(row.item_id), "sku": row.item.sku,
             "title": row.item.title, "draft_id": str(row.source_listing_draft_id or ""),
             "listing_id": row.external_listing_id, "url": row.url, "listed_at": row.listed_at,
+            "quantity": item_quantity_state(row.item, environment),
         } for row in ChannelListing.objects.filter(channel="ebay", ended_at__isnull=True).select_related("item")]
         return Response({
             "as_of": timezone.now(), "provenance": "Owned local records; not a live eBay check",
