@@ -2825,3 +2825,77 @@ Secret-free manifest: **D:\Magpie\backups\sprint25-phase8\install-verification.j
 
 **STOP for Regan's Administrator restart and phone inspection.** Asked for **Restart-Service -Name Magpie**, then **Get-Service -Name Magpie** separately, hard-refresh, inspect GOLD-00002/STM-00003 and the hub, and make no listing/quantity write. Codex has not restarted the service. Actual port8000 new-build/backend/no-auto-call verification and owner phone acceptance remain pending. **Phase 8 is built and installed, not live-closed; Sprint 25 remains OPEN.**
 
+## 2026-11-18 - Phase 8 Owner Phone Acceptance; COMPLETE + LIVE
+
+Regan confirmed **"Phase 8 phone check passed"**. Implementation **754a231df533d224459395900990086184ebe8c7**, deployment-evidence head **ff4a45ab4a3c0bf36efa600cf2a0bd7cca39496d**; [Validation 44075547539](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44075547539) both lanes green. Earlier B-verified backups, original-column preservation, approved bookkeeping, schema checks, integrity/FKs, collectstatic and isolated 390px tests remain recorded above.
+
+Read-only verification against the actual service on **port 8000**, **18 Nov 2026, 10:17:13 am Australia/Sydney**: service Running with nonzero PID; /api/health/ HTTP200; /, /ebay and GOLD-00002 item HTML match the collected index; JS **index-QlEapj-I.js** and CSS **index-D8bmo3Vw.css** hashes match. Existing authenticated session used in memory only. Both item quantity GETs and hub GET return HTTP200. GOLD-00002 and STM-00003 each report **allocation_not_recorded / Allocation not recorded / can_write=false / urgent=false**; hub retains both local live rows. **0 allocations / 0 attempts**, and every one of the **51 table digests** is unchanged across these GETs. No remote eBay call, update, stage, publish, reconcile or service restart was performed by Codex.
+
+**Phase 8 COMPLETE + LIVE**, supported by the owner's phone acceptance and actual served-build/backend checks. This does not claim a real vendor quantity-write test; none was authorised. **Sprint 25 remains OPEN** for the separately instructed fee engine and overall closure evidence.
+
+## 2026-11-18 - Pro Basic Fee Engine: Read-Only Audit and Schema Approval STOP
+
+Applied all **eight exact Find/Replace edits** from **MASTER_HANDOFF_UPDATE_2026-11-18_PRO_BASIC.md**, each matching exactly once, **v4.80 -> v4.81**, before the fee audit. Codex's acceptance/audit session updates then advance the handoff to **v4.82**. Protected sections 3/8 change only as supplied by Claude's update. D-144: stay on Pro Basic. No rate, effective date, seller mode, credential or live business value has been entered or changed.
+
+### Existing FeeSchedule Rows
+
+Audit **18 Nov 2026, 10:14:38 am Australia/Sydney** used SQLite mode=ro; no Django startup or network. Both rows are active, **legacy_manual**, **seller_receives**, BPF disabled, international percentage zero.
+
+| ID prefix | Name | Effective from | FVF % | Fixed fee | Promoted % | Legacy GST % | Packaging / outbound defaults |
+|---|---|---|---:|---:|---:|---:|---|
+| 09a010f8 | eBay AU first-flight conservative test | 2026-01-01 | 15 | 0.30 | 0 | 10 | 0 / 0 |
+| 758abee0 | eBay AU | 2026-06-13 | 15 | 0.30 | 2 | 10 | 1.50 / 12 |
+
+These are **existing legacy/test settings**, not verified Pro Basic rates. They have no end date, plan-period coverage, category tiers, immutable version or entered-rate provenance. No new schedule may silently inherit these figures. There are **0 saved ProfitSetting rows**: current code constructs a **free_selling** fallback in memory. That fallback is not evidence of Regan's actual plan and will not be persisted or treated as a historical plan.
+
+### How Fees and Profits Work Today
+
+- **SaleRecord** stores actual_fees_total, actual_fee_breakdown, fee_status, estimated_fee_snapshot, valuation_snapshot and correction links. All **4 live sales** have fee_status **authoritative**, recorded fee **0.46** each; every sale also has a separate creation-time estimated fee snapshot **0.52**, referencing legacy schedule 758abee0. These stored estimates are not substituted for the recorded fees.
+- **sales/services.py::fee_snapshot_for_sale_price** chooses the latest active legacy schedule at capture time, not a dated sale-period schedule. It snapshots rates/components, but not a complete versioned, multi-item order calculation.
+- **sales/services.py::create_sale_record** can fill missing actual-fee inputs with calculated estimates; the new path must not label such calculations as actual eBay charges. Existing stored amounts/statuses will not be reinterpreted or rewritten.
+- **profit/ledger.py::fee_choice_for_sale** correctly prefers authoritative recorded fees. For estimated/unmapped sales it currently recomputes against current ProfitSetting; seller-mode labels can also fall back to current settings. This is a historical-drift risk to remove, **not** a claim that the four present fee amounts are drifting.
+- Ledger costs/profits are calculated from sale/item inputs when read. SaleRecord properties and dashboard consumers also calculate figures. The new shared result/snapshot path must retain one profit definition, freeze the relevant inputs/results and preserve losses/unknown states; simply versioning the percentage is insufficient.
+
+Read-only existing-helper audit **10:15:12 am Australia/Sydney**, with read-only Django database and all sockets blocked:
+
+| Sale date | Item | Revenue | Recorded fee | All-in costs | Realised profit | State |
+|---|---|---:|---:|---:|---:|---|
+| 2025-06-27 | STM-00002 | 1.00 | 0.46 | 0.20 | 0.34 | Known |
+| 2025-07-05 | STM-00002 | 1.00 | 0.46 | 0.20 | 0.34 | Known |
+| 2025-07-22 | External sale | 1.00 | 0.46 | Unknown | Unknown | Cost basis unknown |
+| 2025-08-01 | STM-00002 | 1.00 | 0.46 | 0.20 | 0.34 | Known |
+
+Baseline: **revenue 4.00 / fees 1.84 / known costs 0.60 / known realised profit 1.02 / 1 unknown-cost sale**. SaleRecord's existing model profit values agree. None has a recorded historical seller mode; the current free-selling label is explicitly a settings fallback, not proof about 2025.
+
+**Past profit figures expected to change: NONE.** Preserve all three 0.34 results and the external null/unknown result. Never assign a new Pro Basic period/rate retroactively. No current live loss row was found; deliberate-loss coverage remains a fixture requirement, not invented live data.
+
+Both audits passed **database unchanged**, **51 tables / 785 rows / 58 migrations**, integrity ok, FK check empty. No fee or migration code was changed.
+
+### Tier Membership Verification
+
+The expanded Collectables section of eBay's [current Pro selling-fees page](https://www.ebay.com.au/help/selling/fees-credits-invoices/pro-selling-fees?id=4809) explicitly lists **Coins (11116)** and **Stamps (260)** in Tier 4 (checked 18 Nov 2026). This resolves the new handoff's membership verification question. The published page also separates seller-issued discounts from buyer-applied vouchers, and bases international fees on delivery destination. This was a public documentation read, not a seller-account API call or a marketplace-result fetch. No rate, category default or plan period was seeded. Regan's ABN/GST status remains open; the future UI must ask for the applicable treatment, not guess it.
+
+### Proposed Additive Storage - Approval Required Before Implementation
+
+The old FeeSchedule rows remain legacy records; no edits, renames, deletion or reinterpretation. New immutable versions are the extension for Pro Basic, not another fee-maths implementation. Proposed **one additive valuation migration, six new tables**, with UUID/timestamps and the following business columns:
+
+| New model | Business columns / role |
+|---|---|
+| FeeScheduleVersion | Scope/channel, marketplace, currency, version number, previous-version reference, label, source URL/note, entered-by user, content fingerprint and engine/schema version. An atomic save creates a complete immutable calendar; a new version replaces the calendar for future calculations, never old sale snapshots. No fallback to an older version to fill a gap. |
+| FeePlanPeriod | Version FK, human-confirmed plan code, effective_from and optional exclusive effective_to, per-order fixed fee, international percentage, GST treatment and provenance. Periods in the selected calendar cannot overlap. Dates/rates have no guessed defaults. Gaps return schedule unknown; plan restrictions remain distinct from authorisation errors. |
+| FeeTierRate | Period FK, tier code, FVF percentage up to threshold, per-item threshold, percentage above threshold, verified category-mapping/provenance data. Unique period/tier; absent mappings/rates return fee rate not configured. Mapping snapshots include the evidence used to check the selected eBay category, not just its Magpie category. |
+| FeeOrderSnapshot | Protected version/period references where known, channel/order identity, sale date, closed-schema monetary/quantity/category/destination inputs, allocation/rounding rule version, frozen components/result and input fingerprint. No raw order payload, buyer name/address, token or header. This owns the fixed charge once per order and unit-level threshold calculations. |
+| SaleFeeSnapshot | Protected unique SaleRecord reference, optional protected order/version references, basis/provenance/unknown reason, frozen seller-receives revenue, cost inputs, allocated fee components/total and realised result. Existing actual recorded fees remain authoritative. Unknown stays null, never zero or an inferred price. |
+| FeeAdjustment | Protected base sale/snapshot reference, signed explicit correction/components, reason, actor/time, and audited linkage. Append-only corrections; never overwrite the original result or pretend a calculated amount was charged. |
+
+**Constraints/guards:** version lineage/number uniqueness; valid date bounds and non-overlapping period validation on atomic whole-version creation; period/tier uniqueness; unique original order/sale snapshot identities; protected references; immutable model/queryset/API save/delete boundaries; money/rate validation and closed-schema snapshot/adjustment inputs. Test concurrent version creation and mixed-order capture on both databases. Schedule creation is a single validated transaction; no independently editable child-period/rate endpoint may bypass the full-calendar check.
+
+**Existing-table operations: NONE**, apart from normal migration bookkeeping. New foreign keys/indexes/checks/unique constraints are on the six new tables. Expect CREATE TABLE/CREATE INDEX SQL only, no existing-table rebuild. No field is added to SaleRecord, FeeSchedule, InventoryItem, drafts, listings, credentials or audit tables.
+
+**Proposed data step, explicitly requiring approval:** copy the four existing sale results into **four legacy SaleFeeSnapshot rows in the new table**, using the current shared ledger definition and a guarded before/after comparison. Preserve 0.46 recorded fee each, three 0.34 profits and one unknown profit. Capture their original dates and legacy provenance; no inferred seller plan, new rate, order grouping or period. Do not update the four SaleRecord rows or old fee snapshots. This freeze is needed so later item/configuration changes cannot rewrite these existing profits.
+
+All new schedules, periods, rates, order snapshots and adjustments start **empty**. The only business data copied at installation are those four legacy snapshots. At the present unchanged baseline, expected totals would be **57 tables / 820 rows / 59 migration records**: **+6 content types, +24 permissions, +1 migration record, +4 legacy snapshot rows**. Every original business column and every original bookkeeping row must retain its digest. If counts/live plan differ, stop and disclose before writing.
+
+After approval: implement and run the required shared fixtures, full suites and both Validation lanes first; show exact SQL/data plan; B-verified pre/post backups and restore checks; integrity/FK/schema/data preservation; collectstatic and request Regan's restart. No live fee input by Codex. Regan then enters every Pro Basic figure/date in the UI and checks a sample on phone.
+
+**STOP under rule 12.** No engine source, model, migration file, dependency, setting, database, rate or service change has been made. Fee-engine implementation, new tests, 390px screenshots and deployment remain pending approval. No eBay writes; no secrets printed or retained in evidence. Sprint 25 remains OPEN.
