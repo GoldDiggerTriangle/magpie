@@ -2074,3 +2074,213 @@ No other use or persistence of the incorrect sum was found. This is an estimate 
 - Implementation [Validation 43859776340](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43859776340) **PASS on both lanes**: SQLite **133273234780**, **422 passed / 1 skipped**; PostgreSQL **133273235173**, **410 passed / 13 skipped**. Frontend **169 passed / 37 files**, Playwright **4 passed**. Typecheck/build, migration consistency, URL-only confinement, collectstatic and production smoke green. Changed files passed the known-secret scan and diff whitespace check before push.
 
 **STOP:** after green Validation, ask Regan for an Administrator restart and confirmation. Then re-run supervised step 0 on actual port 8000, recheck photo reasons and re-show the entire exact value list/full description/photo order for explicit approval **before he taps any update or publish control**. No approval for those actions is implied by this fix. Phase 6 has not started.
+
+## 2026-11-16 - Fee-Fix Restart Verified; STOP For Exact Listing-Value Approval
+
+Regan confirmed **Running** after the requested Administrator restart. Checked at **2026-11-16 11:52:30 UTC / 22:52:30 Australia/Sydney**. No eBay API call or live save by Codex.
+
+### Repeated Step 0 And Photo Diagnosis
+
+- Service **Magpie Running**, NSSM PID **11172**. Actual **port 8000 /api/health/ = 200 / ok**. Served root/JS/CSS hashes match the collected fee-fix manifest: **index-NxXYb-O5.js / index-BagfC46u.css**. This verifies the real service, not a temporary server.
+- Checkout/remote main **b5d6cdbb6328559c8549577cfea3df73b755799e**, including display fix **59d5f470** and long-title fix **c2343699**. [Validation 43860273857](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43860273857) rechecked **success**: SQLite **133274954599**, PostgreSQL **133274954874**.
+- Local connection metadata: configured, connected, **production**, no missing scopes or recorded refresh error; access expiry **13:14:22 UTC**, later than this check. No new remote-health or token-refresh claim: these were read-only local metadata checks. Chosen policy terms below come from Regan's saved review, fetched **11:14:25 UTC**.
+- GOLD-00002 still has exactly **one active eBay draft**, **af013dd9-0611-431c-be4a-223c44ec4e06**, status **staged**, offer **356038014011**, no listing ID. Placeholder fields **zero**, offline readiness failures **zero**. Local database/table/schema digests before and after the checks match.
+- All six own display files exist, legacy EPS URLs are present, and every photo's sole diagnosed freshness issue remains **unknown upload time**. No missing/placeholder/locally recorded expiry defect was found. This is the expected 0007 state, not a reason to infer/backfill dates.
+- Regan's previous full review still matches the saved draft revision but **expired at 11:24:31 UTC**. Its stored can_stage/can_publish flags are historical, not current authorisation. No old review ID may be reused to update or publish. A fresh normal Review listing will be required after approval/backup and before the explicit update; fresh staged review/fees remain mandatory afterward.
+
+### Exact Saved Proposal Presented For Human Approval
+
+No value in this proposal was changed by Codex. This is not permission to publish and supersedes no owner decision until Regan explicitly approves it.
+
+| Field | Proposed saved value |
+| --- | --- |
+| SKU / existing draft / existing offer | GOLD-00002 / af013dd9-0611-431c-be4a-223c44ec4e06 / 356038014011 |
+| Title | 1.4gm Gram Natural Australian gold nugget Maryborough Golden Triangle |
+| Subtitle | Blank |
+| Price / source / basis | **AUD 375.00** / Human asking price / seller_receives; not the older Phase 0 price |
+| Quantity | **1**, remaining stock 1 |
+| Category | **139965 - Nugget**, AU taxonomy tree 15 |
+| eBay condition | None selected; the chosen category does not use eBay condition values. The description's Ungraded / unknown text is retained verbatim. |
+| Specifics (every saved row) | Metal: gold; Form: nugget; Weight: 1.4 g; Region of Origin: Australia; Composition: Gold; Country of Origin: Australia |
+| Payment | **82010246020 - PayPal:Money Transfer Accepted**; immediate payment not required; payment methods PAYPAL; policy's public terms specify PayPal and Money Transfer Accepted. |
+| Postage | **258256725020 - Gold**; Domestic Express Post Parcel Signature **Free**; handling **1 day** |
+| Returns | **272504343020 - No Return Accepted (272504343020)**; returns not accepted |
+| Merchant location | **MARYBOROUGH-AU - Maryborough AU**, Maryborough VIC 3465 AU, enabled/verified in saved metadata |
+| Format / duration | **Fixed price / GTC (Good 'Til Cancelled)** |
+| Shipping note | Blank |
+| Saved listing-fee estimate | ListingFee **AUD 0.06 total**, including InsertionFee **AUD 0.06**; all other returned components zero. Historical estimate from the prior review, not a promise of the refreshed fee or final sale charges. |
+
+Complete clean description, preserving the saved words:
+
+```text
+Overview
+1.4g gold nugget
+Condition
+Ungraded / unknown
+What's included
+Item pictured only.
+Item specifics
+Metal: gold
+Form: nugget
+Weight: 1.4 g
+```
+
+Photo order is unchanged. Codex visually inspected the existing local processed images only; no image was altered, re-uploaded or imported. The visual descriptions below identify the photos for review, not new item-specific claims.
+
+| Order | Photo ID | Visual identifier |
+| --- | --- | --- |
+| 1 (cover) | ee3f5d1b-b59f-4d5f-89ee-0de4368c3ef4 | Closest view on the blue lid, irregular face and lower edge visible |
+| 2 | e1ad4aea-bd67-4dc1-bbf2-600775211104 | Slightly wider view of the same side on the blue lid |
+| 3 | ccc36da3-20fb-4d7d-97ee-91c6ce243b89 | Widest overhead view showing the whole blue lid |
+| 4 | 035bdfec-fdf5-483a-b0bc-95adbe6c8029 | Different face, small dark pit toward the lower right |
+| 5 | 22f2df39-f698-4c0d-821a-4f85be62ce4e | Rotated face, groove across the middle |
+| 6 | 4f104eb4-2aaf-4812-866a-cc06f8dc4975 | Side/edge profile on the blue lid |
+
+**STOP for Regan's explicit approval of this complete proposal.** No fresh pre-update backup yet; no step 4 Update staged offer or step 5 publish request. After approval, take and verify the B-encrypted backup first, then guide Regan through fresh review and his own explicit update of the SAME offer. Re-show/re-approve anything that changes. Evidence/handoff append only at this stop; no commit/push or Phase 6 work.
+
+## 2026-11-17 - Exact Values Approved; Pre-Update Backup Verified With B
+
+Regan replied **Approved** to the complete proposal above: GOLD-00002 / af013dd9 / existing offer **356038014011**, **AUD 375.00 Human asking price**, quantity 1, the exact title/specifics/policies/location/format/description and unchanged six-photo order. This approval is for those stated values and the supervised sequence; Regan still performs the explicit update and later SKU-confirmed publish himself.
+
+### Approval Recheck
+
+At **2026-11-17 10:33:35 Australia/Sydney** (**2026-11-16 23:33:35 UTC**), read-only checks found **no changed approved field** (metadata fetched_at timestamps are not listing values). Port 8000 health **200**, fee-fix asset hashes match; one canonical draft, still staged, same offer, no listing ID, no placeholder/offline readiness failures. All six photos still have only unknown upload times. No eBay API request by Codex; full database digests before/after the local checks match. Main **b5d6cdbb6328559c8549577cfea3df73b755799e** / [Validation 43860273857](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43860273857) rechecked green on both lanes.
+
+**Expiry honesty:** the previous review is expired, and the saved access-token expiry **2026-11-16 13:14:22 UTC** is now in the past. Configured/connected metadata and a usable refresh credential do not prove a live refresh has happened today. Regan's next explicit **Review listing** must perform the normal validation/refresh path; Codex does not refresh behind his back. A refresh error, changed policy terms or other unexpected blocker stops the sequence for inspection/re-approval, not an automatic workaround.
+
+### Step 3 - PASS: Fresh Encrypted Backup And Complete Restore Check
+
+- Created with Magpie's existing unchanged **backup --no-upload** command, using **B read directly from the Windows user variable**, supplied only in this child process. The .env contains no backup-passphrase setting; the Windows variable is unchanged. Outbound sockets and subprocesses were forbidden during backup/restore verification; no upload or eBay call.
+- Archive: **D:\Magpie\backups\sprint25-supervised-live\pre\magpie-backup-20261116-233500.tar.gz.enc**, **27,978,147 bytes**. The filename uses UTC; verification completed **2026-11-17 10:35:06 Australia/Sydney / 2026-11-16 23:35:06 UTC**.
+- Existing **restore** command decrypted with B into a new empty directory beneath **D:\Magpie\scratch\sprint25-supervised-live** only, never live. All **48 tables / 749 rows / 64 media files** matched the live baseline by row/schema/media hashes. Integrity and foreign-key checks passed.
+- Counts: **8 drafts / 160 audit rows / 1 ChannelListing / 2 PublishReview rows / 55 migrations**. GOLD-00002 remains staged with the same offer, no listing ID and unknown staged fingerprint. No local value or EPS timestamp was filled or changed.
+- Complete live database/media and protected .env/dependencies/item-page/structural-audit hashes match before/after. The scratch work path was resolved and checked before deletion; **all restored plaintext, temporary payload/media and downloaded/decrypted copies are removed**. Only the encrypted archive and its secret-free verification manifest remain outside the repo.
+- Verification manifest: the archive path plus **.verification.json**; hashes, column names, counts and timestamps only, no row contents, credentials or passphrase values.
+
+**STOP before step 4.** Ask Regan to refresh the phone app, open the existing GOLD-00002 draft and tap **Review listing only**, then report Review ready or provide the error/screenshot. Do not yet tap Update staged offer or any publish action. Read the new saved review and compare the exact approved fields/policy terms first. If unchanged and successful, guide his explicit update of **the same offer 356038014011**, then verify the result read-only before the later publish stop. No agent marketplace write, code/settings change, migration, restart, commit/push or Phase 6 work.
+
+## 2026-11-17 - Fresh Owner Review Verified; Await Explicit Owner Staged Update
+
+Regan reported **Review ready**. At **11:08:36 Australia/Sydney / 00:08:36 UTC**, Codex read the new immutable full review via the local database and existing authenticated local GETs only. The actual port 8000 health/build check passed; all read-only-check database digests match before/after. No provider API call or live save by Codex.
+
+- Review created **11:07:33 Australia/Sydney / 00:07:33 UTC**, expires **11:17:33 Australia/Sydney / 00:17:33 UTC**; not expired at inspection, matches the saved draft revision, full mode, created after the B-verified pre-backup.
+- **Every approved listing value and policy term is unchanged**, including GOLD-00002, existing draft af013dd9, offer **356038014011**, **AUD375 Human asking price**, quantity **1**, the complete title/description/specifics and six-photo order. Current selected policy metadata was fetched at **00:07:27 UTC**; fetched_at changes were not mistaken for listing edits.
+- The normal owner-triggered review renewed access: local credential metadata expiry advanced from **2026-11-16 13:14:22 UTC** to **2026-11-17 02:07:24 UTC**; production connected, no missing scopes or refresh error. No token value or new refresh request was exposed or made by Codex.
+- Fresh saved fees: **ListingFee AUD0.06 total**, InsertionFee AUD0.06 component, every other returned component zero. This is a listing-fee estimate, not final selling fees.
+- **can_stage true; can_publish false.** General checks empty. Only expected publish blockers: **staged_drift** and grouped **six photos need re-uploading**. All six local photo diagnoses are still unknown upload time, with no unexpected missing/placeholder/expiry defect. No new listing ID or draft exists.
+
+**Step 4 owner action now permitted by the approved sequence:** Regan taps **Update staged offer once** for the existing GOLD-00002 draft, then stops and reports the result/screenshot. The operation must update **the same offer 356038014011**, re-upload the six photos and record trusted dates/fingerprint, never publish. If it fails, times out or partly fails, stop and report rather than retrying. If this review has expired before the tap, the server must refuse; obtain a new review, never bypass the gate. Codex will inspect the result read-only before any instruction to type SKU or publish. No update has yet been performed in this evidence entry; Phase 6 and live-publish closure remain pending. No commit/push at this stop.
+
+## 2026-11-17 - Step 4 PASS: Owner Updated The Same Offer; Await Phone Review
+
+Regan reported **Updated**. Checked read-only at **11:15:33 Australia/Sydney / 00:15:33 UTC** on actual port 8000; health and fee-fix served asset hashes pass. The first verification wrapper needed its local UUID-to-text output formatting corrected; this was not an application/staging error and did not modify any file or row. Codex made no eBay request, retry, update or publish call.
+
+### Same Offer, Verified Staging And Fresh Photos
+
+- Existing draft **af013dd9-0611-431c-be4a-223c44ec4e06**, **staged**, same offer **356038014011**, no listing ID. **8 drafts total**, exactly one active eBay draft for GOLD-00002; no new draft or recorded createOffer event.
+- **staging_state verified**, stored staged fingerprint present and equal to the current approved field/photo fingerprint; no stored staging error. Stage completed **11:12:56 Australia/Sydney / 00:12:56 UTC**. Every approved listing field, selected policy/term and photo order remains unchanged.
+- Six matching EPS records now contain real URLs and the following trusted upload timestamps, all after the pre-update backup. Local source/display-file hashes match the pre-backup manifest. Local eps_checks returns **zero issues**.
+
+| Photo order | Photo ID | Uploaded UTC (2026-11-17; Sydney +11h) |
+| --- | --- | --- |
+| 1 | ee3f5d1b-b59f-4d5f-89ee-0de4368c3ef4 | 00:12:48.067010 |
+| 2 | e1ad4aea-bd67-4dc1-bbf2-600775211104 | 00:12:49.542367 |
+| 3 | ccc36da3-20fb-4d7d-97ee-91c6ce243b89 | 00:12:51.302391 |
+| 4 | 035bdfec-fdf5-483a-b0bc-95adbe6c8029 | 00:12:52.674462 |
+| 5 | 22f2df39-f698-4c0d-821a-4f85be62ce4e | 00:12:53.762907 |
+| 6 | 4f104eb4-2aaf-4812-866a-cc06f8dc4975 | 00:12:54.899441 |
+
+- Saved successful staging audit events for attempt **effc5ecd-5923-436f-acc0-6a19df72d9b7**: **6 ebay.media.uploaded**, **1 ebay.inventory_item.upserted**, **1 ebay.offer.updated** for offer **356038014011**; **0 ebay.offer.created**. Update completion audit **b6853a40-7770-41c1-9acc-0b14a74d97af**. These are saved completion records; this check did not observe raw provider HTTP responses and does not invent their statuses.
+- **0 ChannelListing rows for af013dd9**, **1 overall** (existing history). Nothing has been recorded as published.
+
+### Fresh Staged Review
+
+The normal owner-triggered update flow created a new full review at **11:13:04 Australia/Sydney / 00:13:04 UTC**, after staging completed; it expires **11:23:04 Australia/Sydney / 00:23:04 UTC**. At inspection it is unexpired, matches the saved revision, and its field/staged fingerprints match the verified draft. **can_publish true**, checks **empty**, publish_checks **empty**. This includes the existing pipeline's remote-offer/inventory/policy validation, not a fresh eBay read by Codex.
+
+Fresh fee estimate: **ListingFee AUD0.06 total**, **InsertionFee AUD0.06 component**, other components zero. Approved **AUD375**, quantity **1**, free domestic Express Post Parcel Signature / one-day handling and no returns remain unchanged. No final sale-fee or net-profit claim is made.
+
+**STOP before step 5:** Regan must inspect the refreshed staged review and fee total on his phone; request the missing staged-review screenshot (none accompanied Updated). Keep the SKU confirmation blank and do not tap Confirm publish yet. After that human review/confirmation, guide the single SKU-confirmed publish; never send or retry it on the owner's behalf. Expiry or changed terms require fresh review, never a restage/publish bypass. Read-only inspection left the live database unchanged; no code/settings/migration/restart/commit/push or Phase 6 work. Live-publish proof and Sprint 25 closure remain outstanding.
+
+## 2026-11-17 - Real iPhone Staged-Review Proof Received; Await Owner Publish
+
+Regan supplied four real iPhone screenshots at **11:17-11:18 Australia/Sydney** in response to the staged-review evidence request. Visually inspected: exact approved title and **AUD375.00** price; category **139965 Nugget**, condition not used; fixed/GTC, quantity **1**, MARYBOROUGH-AU; actual payment/return terms; **free domestic Express Post Parcel Signature / handling 1 day**; own selected photos; **AUD listing fee total $0.06** with **Insertion Fee $0.06** beneath it as breakdown and the listing-fees-only caveat. The SKU field is blank and **Confirm publish to eBay is disabled**, as required. The staged-update button remains visible but does not need another click.
+
+Unchanged evidence copies (source/copy hashes match, no GPS EXIF present) are in docs only, not imported as item photos:
+
+1. [Title, price, category and condition](docs/evidence/sprint25/phase5-supervised-staged-phone-01.jpg)
+2. [Format, quantity, location and payment](docs/evidence/sprint25/phase5-supervised-staged-phone-02.jpg)
+3. [Postage, returns and selected own photos](docs/evidence/sprint25/phase5-supervised-staged-phone-03.jpg)
+4. [Correct fee total and blank-SKU publish gate](docs/evidence/sprint25/phase5-supervised-staged-phone-04.jpg)
+
+Read-only recheck at **11:19:17 Australia/Sydney / 00:19:17 UTC**: approved values/policy terms unchanged; same staged offer **356038014011**; fingerprint verified/matching; zero EPS issues; new full review still current (expires **11:23:04 Australia/Sydney**), **can_publish true**, general and publish checks empty. No listing ID or ChannelListing for this draft yet. Complete live database unchanged during Codex's local GETs/reads; no provider API call, retry, stage or publish by Codex.
+
+**Step 5 now awaits Regan's human action:** in that same reviewed GOLD-00002 listing (**AUD375, quantity1, free signature postage**), type **GOLD-00002** and tap **Confirm publish to eBay once**. This is the explicit go-live action, not another Update staged offer. Afterward stop and provide the result/live URL; any error, timeout or uncertain outcome stops the sequence for inspection/reconcile, never a blind second publish. A review-expired message requires fresh review, never bypassing the gate. Publish success, one-listing/ChannelListing verification, public eBay-app confirmation and post-backup remain unproven. No commit/push or Phase 6 work at this stop.
+
+## 2026-11-17 - Expired Phone Review: No Publish Attempt Started
+
+Regan reported one tap on Confirm but was unsure of the result. His **11:31 Australia/Sydney** [phone screenshot](docs/evidence/sprint25/phase5-expired-review-phone.jpg) shows GOLD-00002 typed, both action buttons disabled and **Review expired or draft changed. Review again before continuing.** The image was visually checked and copied unchanged to docs (matching source/copy hash, no GPS EXIF), not imported as an item photo.
+
+Immediately stopped further taps and inspected only the SQLite database in **mode=ro**, with secret-free output and full table/schema preservation checks. At **11:32:57 Australia/Sydney / 00:32:57 UTC**:
+
+- Draft **af013dd9** is still **staged**, staging **verified**, same offer **356038014011**, staged fingerprint present, unchanged revision **00:12:56.924717 UTC**.
+- **publish_attempt empty; publish_started_at empty; publish_call_started_at empty; publish_prior_status empty; publish_error empty.**
+- **Zero ebay.publish.* audit events**, **zero ChannelListing rows for this draft**, no recorded listing ID. Total drafts still **8**.
+- The matching full review was created **11:13:04 Australia/Sydney** and expired **11:23:04**. Its historical can_publish true/empty blockers do not keep it valid after expiry. The owner screenshot is eight minutes after expiry, and typing the SKU re-renders the disabled-button expiry gate.
+
+**Conclusion:** the expired-review tap did not start a Magpie publish attempt or cross the publish-call barrier; this is not a timed-out/unknown remote outcome. No provider call or reconcile is needed for this tap. No second publish request is being blindly retried. Codex made **no network call, live write, publish or reconcile**, and the complete database/table/schema digests match before/after inspection.
+
+**Next owner flow:** close the expired preview, tap **Review listing** only (not Update staged offer), inspect the refreshed approved AUD375/quantity1/free signature-postage values and fee estimate, then type **GOLD-00002** and confirm publish **once while that new review is current**. If any value/term/fee/blocker differs, stop and show it instead; if a real attempt then errors/times out or is uncertain, stop for state inspection/reconcile, never another publish. This flow keeps the ten-minute review gate and explicit human review intact; no timeout extension, gate bypass or restage. Do not insert another screenshot wait before the click if values are unchanged, which would risk expiring the next review again. Publish outcome/public listing/post-backup remain pending; no code/config/migration/commit/push or Phase 6 work.
+
+## 2026-11-17 - Supervised Live Publish PASS: GOLD-00002
+
+**The one supervised live-listing proof is complete. Sprint 25 as a whole remains OPEN; Phase 6 has not started.** Regan performed the real update/review/SKU-confirmed publish himself and reported **"Yay! Perfect listing :)"** with an eBay-app Active listing screenshot. Codex did not stage, publish, retry, withdraw, end or otherwise write to eBay, and did not need to reconcile an uncertain remote outcome.
+
+### Deployment And Listing Identity
+
+| Proof | Verified result |
+| --- | --- |
+| Deployed checkout | **b5d6cdbb6328559c8549577cfea3df73b755799e**, includes fee fix 59d5f470 and long-title fix c2343699 |
+| Actual service | Port **8000**, health **200**, served index/JS/CSS hashes match **index-NxXYb-O5.js / index-BagfC46u.css** |
+| Validation for deployed head | [43860273857](https://github.com/GoldDiggerTriangle/magpie/actions/runs/43860273857), both lanes success: SQLite **133274954599**, PostgreSQL **133274954874** |
+| Item / draft | **GOLD-00002 / af013dd9-0611-431c-be4a-223c44ec4e06** |
+| Same staged offer | **356038014011**; no replacement offer created during the supervised update |
+| One live listing | **128199443689** |
+| Live URL | [GOLD-00002 on eBay AU](https://www.ebay.com.au/itm/128199443689) |
+| Published at | **17 Nov 2026, 11:38:49 Australia/Sydney / 00:38:49 UTC** |
+| Approved values | **AUD375**, quantity **1**, fixed/GTC, Nugget **139965**, MARYBOROUGH-AU, free domestic Express Post Parcel Signature / one-day handling, no returns; exact approved title/specifics/description/photo order unchanged |
+
+Read-only verification at **11:43:10 Australia/Sydney / 00:43:10 UTC** compared every original approved proposal field and selected policy term, ignoring only metadata fetched_at timestamps: **zero changes**. Stored staged fingerprint and the publish review's field/staged fingerprints match the current immutable listing fields and selected photo hashes. All six own source/display files still match the pre-backup hashes; no image was replaced or condition-altered.
+
+### Exactly One Publish And One ChannelListing
+
+- A fresh **full** review **dc37c255-bd18-4866-8e4d-d02854599b8b** was created at **11:38:17 Australia/Sydney**, expiring **11:48:17**. It had **can_publish true**, zero general/publish blockers and the AUD0.06 ListingFee estimate. It was **unexpired at the atomic claim**, unlike the earlier harmless expired-review tap.
+- Publish attempt **6f1379a0-8057-4e3d-bb2f-6a468ed83822** started **11:38:40**, crossed the publish-call barrier **11:38:46**, and succeeded **11:38:49 Australia/Sydney**. Captured prior status **staged**; stored publish error empty.
+- Exactly **one ebay.publish.attempted** audit (**4df3fd9f-2a60-4862-92f8-31f259406abb**) and **one ebay.publish.succeeded** audit (**d898eccd-7930-4191-8ac7-5527bb3deb4c**), with the **same attempt UUID, offer and listing ID**; no failed/second publish event for this draft. The expired disabled-button tap recorded no attempt, so this is the first actual publish, not a blind retry.
+- Draft **published** and read-only; **zero active eBay drafts** remain for GOLD-00002; all **8 drafts** retained. Published history is not edited/reseeded.
+- Exactly **one ChannelListing** linked to af013dd9: **ee0da952-7b2e-424f-ab82-4b72353e602f**, channel **ebay**, external ID **128199443689**, active, correct live URL. Exactly one row exists for that channel/external ID too. **2 ChannelListing rows overall**: existing STM-00003 history plus GOLD-00002, not duplicate GOLD rows.
+- Item status **listed**, quantity remaining **1**, sold **0**. Actual authenticated **GET /api/listing-drafts/af013dd9-0611-431c-be4a-223c44ec4e06/**, item detail GET and **GET /api/channel-listings/board/** all return **200**; published state/ID and listed item agree, and the board contains **one active row** for this listing. No sales row was invented.
+
+These checks used only the local read-only database and local HTTP GETs, with outbound provider connections forbidden. The owner-triggered existing pipeline performed the live eBay operations; no raw provider payload/secret or invented HTTP status is recorded here. Complete live database/table/schema digests match before/after Codex's inspection.
+
+### Owner's Live eBay-App Proof And Fees
+
+[Real iPhone: active GOLD-00002 listing](docs/evidence/sprint25/phase5-supervised-live-ebay-phone.jpg), supplied at **11:39 Australia/Sydney**, visibly shows **Active listing**, **AU$375.00**, **1 available / 0 sold**, **Good 'Til Cancelled**, start **17 Nov 2026, 11:38 AM** and custom label **GOLD-00002**. The photo beginning below it is the own nugget/blue-lid image. Regan's "Perfect listing" confirms his satisfaction with the live result; the screenshot does not independently show every description/policy line, so those are backed by the approved values, successful pipeline/snapshots and owner confirmation rather than claimed as all visible in one image. The image is copied unchanged into docs only (matching source/copy hash; no GPS EXIF), not into inventory media.
+
+The four preceding real-phone staged-review screenshots prove the title/category/condition, policy terms and **AUD0.06 total with AUD0.06 insertion component**, plus the blank-SKU disabled-publish gate. The final successful review retains that same fee estimate. **Listing fees only; final sale fees remain unknown until a sale.** eBay's app displays "incl. Buyer Protection" beside the unchanged AU375 price; this wording alone is not treated as evidence of a separate charged BPF, an actual final-value fee or a reason to alter the fee engine.
+
+### Pre/Post Backup And Restore Proof
+
+| Archive (both encrypted with unchanged B) | Restored proof |
+| --- | --- |
+| **D:\Magpie\backups\sprint25-supervised-live\pre\magpie-backup-20261116-233500.tar.gz.enc** | Verified **17 Nov 10:35:06 Australia/Sydney**; **48 tables / 749 rows / 64 media files**; 8 drafts, 160 audit rows, 1 ChannelListing, 2 reviews, 55 migrations |
+| **D:\Magpie\backups\sprint25-supervised-live\post\magpie-backup-20261117-004410.tar.gz.enc** | Verified **17 Nov 11:44:15 Australia/Sydney**; **48 tables / 764 rows / 64 media files**; 8 drafts, 171 audit rows, 2 ChannelListing, 5 reviews, 55 migrations |
+
+Existing backup --no-upload / restore commands unchanged. B was read directly from the Windows user variable and passed only in each child process; neither B nor .env was changed or exposed. Both restores used checked empty scratch directories outside the repo, **never the live DB**; all row/schema/media hashes matched their respective baselines, integrity/FKs passed and protected files/live DB/media were unchanged by verification. **All scratch plaintext was deleted immediately.** Only encrypted archives and secret-free hash/count verification manifests remain. Post archive **27,990,367 bytes**; no migrations or schema changes occurred in this session.
+
+### Closure Scope And Stop
+
+The supervised session surfaced and recorded four issues without bypassing the human gate: saved placeholder prose (owner removed it), long-title phone overflow (fixed/tested/deployed separately), aggregate fee double-counting (display-only fix/test/deployment), and expiry during screenshot/approval pauses (correctly blocked, zero attempt; owner obtained a new review without restaging). No real publish was blindly retried and no background/agent go-live path was used.
+
+Current deployed validation remains **422 passed / 1 skipped SQLite**, **410 passed / 13 skipped PostgreSQL**, frontend **169 / 37 files**, phone-width Playwright **4**, typecheck/build/collectstatic and production smoke green. No application code changed during the final supervised checks; this close-out commits evidence, the six real-phone screenshots and section 9 handoff notes only, leaving the pre-existing untracked structural audit untouched. The code/deployed-head Validation is linked above; the evidence commit's run is reported with the final Git head.
+
+**STOP after evidence commit.** Supervised live publishing is now proven; **Sprint 25 remains open** for the remaining phases/closure gates under the controlling spec. Phase 6 requires a separate instruction and has not begun. No legacy listing ended/withdrawn, no further draft created, no price/fee/schema/settings change, and no marketplace result pages fetched or scraped. Sections 3/8 of the handoff remain untouched.
