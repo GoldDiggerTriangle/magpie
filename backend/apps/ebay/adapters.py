@@ -1182,6 +1182,8 @@ def _perform_request(request, *, operation, timeout_seconds, allow_empty=False):
             payload = json.loads(raw.decode("utf-8")) if raw else {}
         if not isinstance(payload, dict) or (not raw and not allow_empty):
             raise ValueError("malformed")
+        if any(key in payload and not isinstance(payload[key], list) for key in ("errors", "warnings")):
+            raise ValueError("malformed diagnostics")
         if payload.get("errors"):
             value = diagnostic(operation, status=status, payload=payload)
             observe_finish(ticket, failure=value)
@@ -1234,6 +1236,7 @@ def read_connection_probe(api, *, access_token):
         "Taxonomy": "/commerce/taxonomy/v1/get_default_category_tree_id?marketplace_id=EBAY_AU"}
     base = _finances_base(env) if api == "Finances" else base
     result = _request_json(base + paths[api], access_token=access_token, method="GET",
+        headers={"Accept": "application/json", **({"X-EBAY-C-MARKETPLACE-ID": EBAY_MARKETPLACE_ID} if api == "Finances" else {})},
         timeout_seconds=min(settings.EBAY_HTTP_TIMEOUT_SECONDS, 15), service_name="eBay connection check")
     keys = {"Inventory": "inventoryItems", "Account": "paymentPolicies", "Fulfilment": "orders", "Finances": "transactions"}
     if api == "Taxonomy":

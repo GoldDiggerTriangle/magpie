@@ -201,6 +201,32 @@ def test_diagnosis_does_not_change_phase5_uncertain_outcome():
     assert provider_error(TimeoutError(), "publishOffer")["kind"] == "unknown_outcome"
 
 
+def test_finances_probe_preserves_existing_apiz_marketplace_header(settings, monkeypatch):
+    settings.EBAY_ENV = "production"
+    captured = []
+    monkeypatch.setattr(adapters, "_request_json", lambda url, **kwargs: captured.append((url, kwargs)) or {"transactions": []})
+    assert adapters.read_connection_probe("Finances", access_token="synthetic") == 0
+    assert captured[0][0] == "https://apiz.ebay.com/sell/finances/v1/transaction?limit=1"
+    assert captured[0][1]["method"] == "GET"
+    assert captured[0][1]["headers"]["X-EBAY-C-MARKETPLACE-ID"] == "EBAY_AU"
+
+
+@pytest.mark.parametrize("body", [b'[]', b'{"warnings":"DO_NOT_STORE"}', b'{"errors":{"body":"DO_NOT_STORE"}}'])
+def test_malformed_response_never_becomes_healthy_or_exposes_body(monkeypatch, body):
+    class Response:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def read(self): return body
+    monkeypatch.setattr(adapters, "urlopen", lambda *a, **k: Response())
+    with pytest.raises(adapters.EbayUnavailable) as result:
+        adapters._request_json("https://api.ebay.com/sell/inventory/v1/offer/1/publish", access_token="synthetic", method="POST", timeout_seconds=1, service_name="test")
+    assert result.value.diagnostic["issues"][0]["kind"] == "malformed"
+    entry = EbayConnectionHealth.objects.get(principal="seller").operations["inventory.publish"]
+    assert entry["last_success"] is None and entry["current_failure"]
+    assert "DO_NOT_STORE" not in str(result.value)
+
+
 @pytest.mark.django_db(transaction=True)
 def test_migration_sql_creates_only_new_table_and_model_constraint():
     sql = StringIO(); call_command("sqlmigrate", "ebay", "0004", stdout=sql)
