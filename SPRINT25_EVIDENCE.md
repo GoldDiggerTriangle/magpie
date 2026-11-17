@@ -2441,3 +2441,18 @@ Regan confirmed **Restarted**. Read-only checks at **17 Nov 2026, 13:25:11 Austr
 
 This is served-build/authenticated-API proof, **not** a claim that Regan has accepted the new controls on his real phone. **STOP for phone check:** hard-refresh, collapse every section, check top List on eBay, open GOLD-00002's read-only editor, then nav eBay -> its live row and separate View on eBay link. Confirm history/copy packs remain reachable. Do not re-stage or publish the already-live item. **Phase 6 owner acceptance and Sprint 25 closure remain pending; no Phase 7/8 work begun.**
 
+## 2026-11-17 - Phase 6 Owner Phone Acceptance: PASS; Phase 6 COMPLETE + LIVE
+
+Regan replied **"All checks pass"** to the explicit real-phone checklist after his Administrator restart and hard refresh. This confirms:
+
+- With every section collapsed, top **List on eBay**, status **live** and the separate **View on eBay** link are visible on GOLD-00002.
+- **List on eBay** opens the canonical published draft read-only.
+- The nav **eBay hub** shows GOLD-00002 as live.
+- Archived/published history and copy packs remain accessible.
+
+This is owner-supplied real-phone confirmation, not a new automated screenshot. **No new phone image was attached** to this answer; the seven Phase 6 images above remain correctly labelled synthetic isolated-browser proofs. Earlier real-phone live-listing proof remains in the supervised Phase 5 section.
+
+Deployment/validation references: implementation **e2030ad31c1f2331234b0a1bdee1a109ede5fbbb**, restart-evidence head **23dcb334404da19d0214b4405cdd615f73ec8edb**, [Validation 44002973775](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44002973775) **both lanes PASS**. Actual port 8000 build/API and unchanged-data verification are recorded immediately above; 76-row parity checklist, 428/416 backend tests, 197 frontend tests and 8 browser tests remain the implementation evidence.
+
+**Phase 6 is COMPLETE + LIVE and owner-accepted. Sprint 25 remains OPEN.** Handoff bumped to **v4.72** to reflect the current state and queue; no decision/lock changed. This acceptance-recording task changes documentation only: no code, configuration, migration, restart, live-data save, eBay/provider call, stage/update/publish or reconcile. **STOP for a separate Phase 7 instruction**; Phase 7/8, remaining fee-engine work and overall closure gates are not declared complete.
+
