@@ -2533,3 +2533,26 @@ Initial validation: isolated full backend **467 passed, 1 existing skip**; full 
 
 **Not live-closed:** installation, restored backup proof, served-build verification and Regan's real-phone Check connection remain pending at this point. No live listing writes or credential-breaking tests are permitted. Phase 8 and overall Sprint 25 closure are not part of this phase.
 
+## 2026-11-17 - Phase 7 Live Preservation Check: STOP for Owner Decision
+
+Implementation **867c24fdae7fddb12c2f04445958ca3d2c138c57**, final probe/response-shape hardening **15df280b61deb4b1bbf3e8c7c967b3b30f1dc739**. [Validation 44019076637](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44019076637) is **green on both lanes**: SQLite **471 passed / 1 existing skip**, PostgreSQL **459 passed / 13 existing skips**, frontend **204 passed / 40 files**, Playwright **10 passed**; typecheck/build and the CI static/migration gates passed. Final local health fixtures: **43 passed**. No test was skipped or weakened for Phase 7.
+
+Fresh encrypted pre-backup **D:\Magpie\backups\sprint25-phase7\pre\magpie-backup-20261117-044642.tar.gz.enc** restored with **B** at **2026-11-17 04:46:47 UTC**: **48 tables / 764 rows / 64 media / 55 migration records**; all database/schema/media digests matched. Plaintext restored copies and temporary files were immediately removed from the checked scratch path. The unchanged Windows user variable B supplied the passphrase to this one verification process; no value was printed or written.
+
+The approved migration's SQL was checked again and contained only the new CREATE TABLE plus transaction wrappers. Django's normal migrate command applied **ebay.0004_connection_health**, but its **post_migrate hooks also created the standard content type and four permissions** for the new model. These hook writes are not included in sqlmigrate output. The strict existing-table digest check therefore **FAILED**, and the deployment stopped before collectstatic, post-backup or an owner restart request. This is an unexpected installation side effect, not a passed preservation gate.
+
+| Table / check | Before | After | Result |
+|---|---|---|---|
+| auth_permission | 176 rows | 180 rows | Digest changed: four new model permissions; outside the approved no-existing-table-change condition |
+| django_content_type | 44 rows | 45 rows | Digest changed: one new model content type; outside the approved condition |
+| django_migrations | 55 rows | 56 rows | Expected recorder increment |
+| All other 45 pre-existing tables | Original digests | Identical digests | PASS; includes every item, draft, review, audit and listing record |
+| ebay_ebayconnectionhealth | Absent | 0 rows | New table present, not seeded |
+| Total | 48 tables / 764 rows | 49 tables / 770 rows | Five metadata rows above the intended +1 recorder row |
+| SQLite integrity_check / foreign_key_check | - | ok / empty | PASS |
+| Media | 64 files | Same hashes | PASS |
+
+The task has **not** been marked complete or live-closed. The old running service has not been restarted by Codex, and Phase 7 assets have not been collected into the live static root. No eBay/provider call or listing write occurred. Owner decision requested: explicitly permit the five standard metadata rows as a narrow exception, or authorise removing only those five rows in a guarded transaction followed by full preservation rechecks. Removing them is not a permanent framework setting: normal Django post_migrate would recreate them on a later migrate. No cleanup of existing tables or restore into live was attempted without this decision.
+
+Requirement status at this stop: **(a)-(f) and (h) implementation/automated fixtures PASS**, actual served-panel/phone checks pending; **(g) OPEN** because the strict live preservation condition failed. Post-backup/restore, collectstatic, restart, actual port8000 health/new-panel no-auto-call verification and owner Check connection remain pending. Sprint 25 remains OPEN.
+
