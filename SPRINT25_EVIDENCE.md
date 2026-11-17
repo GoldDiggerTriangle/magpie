@@ -2578,3 +2578,34 @@ Implementation **15df280b61deb4b1bbf3e8c7c967b3b30f1dc739** is backed by [Valida
 
 **(g) Installation/backup gate now PASS under the explicit five-row exception.** All other Phase 7 implementation/automated checks (a)-(f), (h) remain green as mapped above. **STOP for Regan's Administrator restart**; Codex has not restarted the service. Requested **Restart-Service -Name Magpie**, then **Get-Service -Name Magpie** separately, hard-refresh Settings -> eBay, and confirm **Not yet checked** without clicking Check connection yet. Actual port8000 new-build/health/no-call-on-load verification and real-phone acceptance are still pending. Phase 7 is NOT live-closed and Phase 8 has not begun.
 
+## 2026-11-17 - Phase 7 Owner Restart and No-Call-on-Load Proof: PASS
+
+Regan confirmed **"Running, panel says Not yet checked"** and supplied the real iPhone screenshot below. It shows the production Settings health panel, **Last checked: Not yet checked**, and an expired seller access token with the correct explanation that normal renewal happens when needed and expiry alone does not require reconnecting. The image is copied unchanged; no credential value is visible.
+
+![Regan's real iPhone: production health panel, Not yet checked](docs/evidence/sprint25/phase7-owner-not-yet-checked-phone.jpg)
+
+Read-only verification at **17 Nov 2026, 5:39:47 pm Australia/Sydney** targeted the actual NSSM/Waitress service on **port 8000**, not a temporary server:
+
+- **Magpie = Running**, service PID **18604**; **/api/health/ = 200 {"status":"ok"}**.
+- **/**, **/ebay**, **/settings/ebay** and GOLD-00002's item page return **200** and match the collected index hash. Both **assets/index-XAv3Xmx7.js** and **assets/index-BMJh9Wup.css** return **200** with exact collected hashes: Phase 7 is served.
+- Existing authenticated session used in memory only; live **/api/ebay/connection-health/ = 200**. Both seller/application **completed_at = null**, **operations = []**, **alerts = []**, and the health table still has **0 rows**. Loading the real phone panel and these GETs did not initialise a health check or renew credentials.
+- All **49 table/schema digests** still exactly match the B-restored post-backup: **770 rows / 56 migrations**, including the explicitly approved five metadata additions, **8 drafts / 171 audit rows / 2 ChannelListing / 5 reviews**, and **64 unchanged media**. Verification itself changed nothing. This includes unchanged credential/audit rows; no renewal happened on load.
+- Authenticated hub/draft/editor/item-draft GETs all return **200**. GOLD-00002 remains **published**, offer **356038014011**, listing **128199443689**, **0 active unpublished drafts**, canonical **af013dd9-0611-431c-be4a-223c44ec4e06** explicitly read-only. No listing save, stage, update, publish, withdrawal or reconcile was made.
+
+Secret-free verification manifest: **D:\Magpie\backups\sprint25-phase7\restart-verification.json**. Only local GETs were made by Codex; no provider call, background check or secret output/storage occurred. [Validation 44028969063](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44028969063) for deployment-evidence head **23fd19322f16720a48f2112b113e47c149482b81** is **green on both lanes** (same implementation 15df280).
+
+### Itemised (a)-(h) Check After Restart
+
+| Design item | Result |
+|---|---|
+| (a) Operation-aware, multi-error/warning classification; honest unknown | PASS in fixtures, including the closure forced-error cases; no real credential broken. |
+| (b) Diagnosis does not grant write retry | PASS; Phase 5 claim/attempt/reconcile guards unchanged and regression-green; GET-only renewal replay. Live published nugget remains read-only. |
+| (c) Sanitise before storage/log/display; model allowlist | PASS; secret-bearing fixtures rejected/scrubbed, no retained HTTPError body/header context, secret scan clean. |
+| (d) Settings and hub health, separate seller/application evidence | PASS implementation/CI and actual served panel screenshot/API. Requested/required scopes remain distinguished from proven checks; no invented identity or grant. |
+| (e) Explicit throttled checks, no automatic check on load | PASS fixtures plus real post-restart Not yet checked/zero-health-row/unchanged-DB proof. Owner-triggered live Check connection result remains pending. |
+| (f) Recovery only for relevant operation/connection; inventory usable | PASS fixtures and 390px failure-banner proof; expiry alone correctly avoids reconnect-required guidance. Live no-call state is honest. |
+| (g) Approved additive migration and recoverability | PASS under Regan's explicit five-row standard-metadata exception; CREATE-only SQL, every original row/schema preserved, B-verified pre/post backups and restore, integrity checks and Administrator restart proved. |
+| (h) All required fixtures, dual Validation, phone-width checks | PASS: SQLite 471/1 existing skip; PostgreSQL 459/13 existing skips; frontend 204; browser 10; typecheck/build/collectstatic green; real owner phone load proof filed. |
+
+**STOP for the owner's explicit manual Check connection phone check.** Codex has told Regan he may now tap it once (read-only probes plus normal OAuth renewal; no listing writes) and share the result. Media/EPS may remain honestly unverified because no Media image ID is stored. Do not treat this initial-load proof as a completed live probe, and do not reconnect solely because the access-token expiry has passed. **Phase 7 owner acceptance and Sprint 25 closure remain OPEN; no Phase 8 work.**
+
