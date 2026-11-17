@@ -2795,4 +2795,33 @@ Local validation initially exposed PowerShell's empty-environment assignment all
 
 **Final local source check:** full isolated SQLite backend **500 passed / 1 existing skip**; focused quantity cases **29 passed**; frontend **209 passed**, final focused quantity/sales UI **7 passed**; typecheck/build PASS; complete browser suite **12 passed** and final quantity recapture **2 passed**. No test was removed or skipped to pass Phase 8. The cross-format guard preserves the older published-offer refusal wording/test. SQL and every model field remain within the disclosed storage plan. Source freeze now awaits CI on both database lanes before any live migration.
 
+## 2026-11-17 - Phase 8 Installed and Restore-Verified; Restart/Phone Gate OPEN
+
+Implementation **754a231df533d224459395900990086184ebe8c7** passed [Validation 44073585850](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44073585850) on both lanes **before installation**: SQLite **500 passed / 1 existing skip** (job 134005712286), PostgreSQL **488 passed / 13 existing skips** (job 134005712911); frontend **209 passed**, browser **12 passed**, typecheck/build/check/migration-drift/URL-only guard PASS.
+
+**Pre-backup restored with unchanged B:** **D:\Magpie\backups\sprint25-phase8\pre\magpie-backup-20261117-112847.tar.gz.enc**, verified **17 Nov 2026, 10:28:52 pm Australia/Sydney**. Exact restore matched **49 tables / 773 rows / 64 media / 56 migrations / 2 health rows**. Decrypted task copies deleted immediately; no live restore. Installation rechecked live against that verified restore before proceeding.
+
+Applied **only inventory.0005_inventoryitem_stock_revision and ebay.0005_ebaylistingallocation_ebayquantityupdate_and_more** at **10:29:14 pm Australia/Sydney**, with external connections blocked. Rule 12 verification PASS:
+
+| Condition | Verified result |
+|---|---|
+| Original business values, row for row | All **46 original non-bookkeeping tables** reproduce original-column digests and counts, including InventoryItem. No existing title, quantity, status, cost, draft, review, listing, audit, order or credential value changed. |
+| stock_revision | **0 for all 10 existing items**, default only. |
+| Original schema/constraints | Every original schema object identical except the permitted inventory definition. All original inventory column definitions, foreign keys, CHECKs, UNIQUE/PK and index signatures preserved. **listing_one_active_draft** remains partial and unchanged. |
+| New constraints | **one_open_ebay_allocation**, **one_ebay_draft_allocation**, **one_ebay_listing_allocation**, **one_unresolved_quantity_update** present by schema inspection; no live test rows. |
+| Business counts | **10 items / 4 SaleRecords / 8 drafts / 2 ChannelListings / 5 reviews / 172 audit rows / 4 resolved staging rows**, unchanged. |
+| Backfill | **0 allocation rows / 0 update-attempt rows**. No legacy remote count, allocation or verification date inferred. |
+| Bookkeeping | **56 -> 58 migration records**, exactly the two above; **2 content types** (ebaylistingallocation, ebayquantityupdate), **8 permissions** (add/change/delete/view each). Excluding only these additions reproduces every original bookkeeping row digest. |
+| Totals | **49 -> 51 tables**, **773 -> 785 rows**: exactly twelve allowed bookkeeping rows. |
+| Integrity/media/configuration | **integrity_check = ok**, **foreign_key_check empty**, all **64 media** and protected configuration/requirements hashes unchanged. |
+
+Secret-free manifest: **D:\Magpie\backups\sprint25-phase8\install-verification.json** (counts, hashes and statuses only).
+
+**Post-backup restored with B:** **D:\Magpie\backups\sprint25-phase8\post\magpie-backup-20261117-112931.tar.gz.enc**, verified **10:29:35 pm Australia/Sydney**. Exact restored database/schema/media match includes **51 tables / 785 rows / 64 media / 58 migrations**, both empty operational tables, new constraints and stock-revision field. Restored task copies were removed immediately.
+
+**collectstatic PASS** at **10:30:14 pm Australia/Sydney**: **7 copied / 155 unmodified / 425 post-processed**. Django check/no-migration-drift PASS. Collected assets match **assets/index-QlEapj-I.js** and **assets/index-D8bmo3Vw.css**. Collection used a read-only database, changed no table/schema digest and made no external call. Manifest: **D:\Magpie\backups\sprint25-phase8\static-verification.json**. The reused verifier first stopped before collecting anything because its guard still expected Phase 7's 56 migrations; corrected to the approved **58**, then passed. No extra application fix/migration.
+
+**(a)-(f): implementation/CI PASS**, with the detailed mapping and isolated screenshots above. GOLD-00002 and STM-00003's history remains unchanged; the new UI gives their legacy listings inert **Allocation not recorded**, no warning or write controls. No Record allocation flow was built. No live eBay quantity write, staging, publishing, withdrawal or reconciliation was performed by Codex. Real vendor quantity-write behaviour is intentionally not live-tested; mocks are not represented as a real update. The fee engine is untouched.
+
+**STOP for Regan's Administrator restart and phone inspection.** Asked for **Restart-Service -Name Magpie**, then **Get-Service -Name Magpie** separately, hard-refresh, inspect GOLD-00002/STM-00003 and the hub, and make no listing/quantity write. Codex has not restarted the service. Actual port8000 new-build/backend/no-auto-call verification and owner phone acceptance remain pending. **Phase 8 is built and installed, not live-closed; Sprint 25 remains OPEN.**
 
