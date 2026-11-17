@@ -2609,3 +2609,35 @@ Secret-free verification manifest: **D:\Magpie\backups\sprint25-phase7\restart-v
 
 **STOP for the owner's explicit manual Check connection phone check.** Codex has told Regan he may now tap it once (read-only probes plus normal OAuth renewal; no listing writes) and share the result. Media/EPS may remain honestly unverified because no Media image ID is stored. Do not treat this initial-load proof as a completed live probe, and do not reconnect solely because the access-token expiry has passed. **Phase 7 owner acceptance and Sprint 25 closure remain OPEN; no Phase 8 work.**
 
+## 2026-11-17 - Phase 7 Owner Manual Check: PASS; Phase 7 COMPLETE + LIVE
+
+Regan tapped **Check connection** on his real phone, supplied the production-panel screenshot below and replied **"Done"** to the manual-check request. The phone shows **Last checked: 17/11/2026, 5:44:20 pm**, the five-minute throttle (**next available 5:49:13 pm**) and the newly renewed access expiry (**7:44:13 pm**). Codex did not trigger the check or call eBay; verification read only the saved local results through the authenticated service.
+
+![Regan's real iPhone: manual check completed, access renewed and cooldown visible](docs/evidence/sprint25/phase7-owner-checked-phone.jpg)
+
+Owner-triggered check: **17 Nov 2026, 5:44:13 pm -> 5:44:20 pm Australia/Sydney**. Saved operation results verified read-only:
+
+| Operation | Principal | HTTP status | Record count recorded | Current failure / warning |
+|---|---|---|---|---|
+| oauth.refresh | Seller | 200 | Not applicable | None / none |
+| inventory.items | Seller | 200 | 1 | None / none |
+| account.payment | Seller | 200 | 2 | None / none |
+| fulfillment.orders | Seller | 200 | 0 | None / none |
+| finances.transactions | Seller | 200 | 1 | None / none |
+| oauth.application | Application | 200 | Not applicable | None / none |
+| taxonomy.tree | Application | 200 | Not recorded | None / none |
+
+All **five read-only API probes returned HTTP 200**, with normal seller-token renewal and separate application-token authorisation also **200**. Seller access expiry is **7:44:13 pm**, application access expiry **7:44:19 pm**, both valid at verification. **No alerts** remain. **Media/EPS is not asserted healthy**: no read probe/upload was attempted without a stored image ID, so it remains honestly not yet checked. Requested/required scope labels remain unchanged; dated operation successes are evidence for this connection, not an invented scope-introspection result.
+
+Post-check preservation/audit checks at **17 Nov 2026, 5:48:19 pm Australia/Sydney** passed:
+
+- **45 other table digests and every schema object unchanged** against the B-restored installation backup. GOLD-00002 still published/read-only as listing **128199443689**, canonical **af013dd9**, with no active unpublished draft and no new ChannelListing.
+- Expected owner-action changes only: the two existing encrypted token-cache records renewed, **two** new separate seller/application health rows, and **one** new audit event **ebay.token.refresh.completed**. Its payload contains only **environment=production**, no credential, header or provider body. The original **171 audit rows** reproduce their old digest exactly; audit total is **172**.
+- Totals now **49 tables / 773 rows / 56 migrations / 64 unchanged media / 2 health rows**. Integrity ok, foreign-key check empty; protected configuration unchanged. The local verification GETs changed no data and made no provider call. No listing write, forced credential break, stage, update, withdrawal, publish or reconcile occurred.
+
+Additional **post-check encrypted backup restored with B**, proving non-empty health storage is recoverable: **D:\Magpie\backups\sprint25-phase7\post-check\magpie-backup-20261117-064918.tar.gz.enc**, verified **17 Nov 2026, 5:49:23 pm Australia/Sydney**. Exact restored database/schema/media hashes match all **49 tables / 773 rows / 64 media / 56 migrations / 2 populated health rows**. Plaintext copies were deleted immediately from the checked scratch path. The earlier pre/post-install restore evidence and explicit five-row metadata exception remain recorded above.
+
+The deployed implementation remains **15df280**; [Validation 44033440571](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44033440571) for restart-evidence head **057c77c38c4e1de62961825e3093ff40db386f0b** is green on both lanes. Source/tests/typecheck/build/collectstatic results are unchanged: SQLite **471/1 existing skip**, PostgreSQL **459/13 existing skips**, frontend **204**, browser **10**. No application code changed during live verification. Both real phone screenshots are retained unchanged; no secret value was displayed, logged or committed.
+
+**Final (a)-(h): PASS** as itemised above, now including the owner's completed explicit phone check, successful automatic renewal without reconnect, honest Media/EPS state, secret-free new audit event and populated-health backup/restore proof. **Phase 7 is COMPLETE + LIVE and its stop/report gate is reached. Sprint 25 remains OPEN** for separately instructed Phase 8, fee-engine work and remaining overall closure evidence. No Phase 8 work started. The final evidence commit hash and its Validation run ID are quoted in the task response; they are not fabricated as a self-reference in this document.
+
