@@ -4,6 +4,7 @@ import { useState } from "react";
 import { refreshListingMetadata, type ListingEditorContext, type CategoryBranch } from "../api/listing";
 import type { ListingDraft } from "../types";
 import { ListingCategoryBrowse } from "./ListingCategoryBrowse";
+import { MerchantLocationSetup } from "./MerchantLocationSetup";
 
 export const listingFieldId = (id: string, field: string) => `listing-${id}-${field}`;
 export const channelValue = (draft: ListingDraft, key: string) => String(draft.channel_data[key] ?? "");
@@ -101,6 +102,8 @@ export function ListingMetadataFields({ draft, context, onChange, flush, onRefre
         {channelValue(draft, "merchant_location_key") && !metadata?.locations.some((row) => row.id === channelValue(draft, "merchant_location_key")) ? <option value={channelValue(draft, "merchant_location_key")}>Saved {channelValue(draft, "merchant_location_key")} (not verified)</option> : null}
       </select><FieldSource context={context} field="merchant_location_key" />
     </label>
+    <details><summary className="min-h-11 cursor-pointer font-semibold">Use another existing location key</summary><label className="label"><span>Existing merchant location key</span><input className="field" value={channelValue(draft, "merchant_location_key")} onChange={(event) => update({ merchant_location_key: event.target.value })} /></label><p className="listing-source">Unverified keys remain blocked until live validation confirms them.</p></details>
+    {!metadataPort ? <MerchantLocationSetup onCreated={() => { void flush().then(onRefreshed).catch(() => undefined); }} /> : null}
   </div>;
 }
 

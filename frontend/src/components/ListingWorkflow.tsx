@@ -5,9 +5,9 @@ import { getWorkflowDraft, reconcileListing, reviewListing, type ListingReview }
 import type { InventoryItemDetail, ListingDraft } from "../types";
 import { groupedBlockers, ListingDescription, ListingFees, reviewedTime } from "./ListingPreviewContent";
 
-export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: {
+export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, allowQuick = false }: {
   draft: ListingDraft; item: InventoryItemDetail; mode: "full" | "quick";
-  onUpdated: (draft: ListingDraft) => void; beforeReview?: () => Promise<ListingDraft>;
+  onUpdated: (draft: ListingDraft) => void; beforeReview?: () => Promise<ListingDraft>; allowQuick?: boolean;
 }) {
   const [review, setReview] = useState<ListingReview | null>(null);
   const [open, setOpen] = useState(false);
@@ -15,6 +15,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
   const [error, setError] = useState("");
   const [sku, setSku] = useState("");
   const [remove, setRemove] = useState(false);
+  const reviewMode = review?.mode ?? mode;
   const inflight = ["publishing", "publish_unknown"].includes(draft.status);
   const terminal = ["published", "archived"].includes(draft.status) || Boolean(draft.channel_data.listing_id);
   useEffect(() => { setReview((old) => old && sameTime(old.draft_revision, draft.updated_at) ? old : null); setSku(""); }, [draft.id, draft.updated_at]);
@@ -34,10 +35,10 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
       try { const current = await getWorkflowDraft(draft.id); if (current?.id) onUpdated(current); } catch { /* Preserve the error; no retry of a marketplace write. */ }
     } finally { setBusy(false); }
   }
-  async function preview() {
+  async function preview(requestedMode = mode) {
     await run(async () => {
       const saved = beforeReview ? await beforeReview() : draft;
-      setReview(await reviewListing(saved.id, mode)); setSku(""); setOpen(true);
+      setReview(await reviewListing(saved.id, requestedMode)); setSku(""); setOpen(true);
     });
   }
   async function stage() {
@@ -45,13 +46,18 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
     await run(async () => {
       const updated = await stageListingDraft(draft.id, { review_id: review.id });
       onUpdated(updated); setSku("");
-      setReview(await reviewListing(updated.id, mode)); setOpen(true);
+      setReview(await reviewListing(updated.id, review.mode)); setOpen(true);
     });
   }
   function fix(field: string) {
-    if (field !== "staging" || mode === "quick") setOpen(false);
+    if (field === "photos" && !item.photos.length) {
+      setOpen(false);
+      window.dispatchEvent(new Event(`magpie:upload-photos:${item.id}`));
+      return;
+    }
+    if (field !== "staging" || reviewMode === "quick") setOpen(false);
     window.location.hash = "listings-channels";
-    window.dispatchEvent(new Event(`magpie:open-draft:${item.id}`));
+    window.dispatchEvent(new CustomEvent(`magpie:open-draft:${item.id}`, { detail: { draftId: draft.id } }));
     window.setTimeout(() => {
       const node = document.getElementById(`listing-${draft.id}-${field}`);
       node?.scrollIntoView?.({ block: "center" });
@@ -63,6 +69,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
   return <section className="min-w-0 space-y-3" aria-label={mode === "quick" ? "Quick eBay review" : "eBay review and publish"}>
     <div className="flex flex-wrap gap-3">
       <button id={mode === "full" && !open ? `listing-${draft.id}-staging` : undefined} className="btn-primary gap-2" disabled={busy || inflight} onClick={() => void preview()} type="button"><Eye aria-hidden="true" size={18} />{mode === "quick" ? "Preview eBay listing" : "Review listing"}</button>
+      {allowQuick && mode === "full" ? <button className="btn-secondary gap-2" disabled={busy || inflight} onClick={() => void preview("quick")} type="button"><Eye aria-hidden="true" size={18} />Quick publish preview</button> : null}
       {draft.channel_data.offer_id && !inflight && mode === "full" ? <button className="btn-secondary gap-2" disabled={busy} onClick={() => setRemove(true)} type="button"><Trash2 aria-hidden="true" size={18} />Remove unpublished offer</button> : null}
     </div>
     {inflight ? <div role="alert" className="rounded border-2 border-amber-700 bg-amber-50 p-4"><strong>Publish outcome needs reconciliation</strong><p>Do not retry or edit this draft. A timeout does not cancel a request.</p><button className="btn-secondary mt-3 gap-2" disabled={busy} onClick={() => void run(async () => { onUpdated(await reconcileListing(draft.id)); })} type="button"><RefreshCw aria-hidden="true" size={18} />Reconcile offer</button></div> : null}
@@ -91,11 +98,11 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview }: 
       <dl aria-label="Item specifics">{review.specifics?.map((r, i) => <div className="min-w-0 break-words border-b border-slate-300 py-2" key={i}><dt className="inline font-semibold">{r.name}:</dt>{" "}<dd className="inline">{r.value}</dd></div>)}</dl>
       <div><h4 className="font-semibold">Description</h4><ListingDescription html={review.listing.description_html} /><small>{review.sources.description_html}</small></div>
       {review.fees.length ? <ListingFees fees={review.fees} /> : null}
-      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p><button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button></div>)}</div> : null}
-      {mode === "full" ? <div id={`listing-${draft.id}-staging`} tabIndex={-1} className="listing-field-anchor">{review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : <p>Resolve the listing blockers above before {review.offer_id ? "Update staged offer" : "Stage reviewed listing"}.</p>}</div> : null}
-      {mode === "quick" && !review.can_publish ? <button className="btn-secondary" onClick={() => fix("title")} type="button">Open full editor to update and review</button> : null}
-      {mode === "full" && review.can_publish ? <label className="label">Type {review.sku} to confirm<input autoComplete="off" className="field" value={sku} onChange={(e) => setSku(e.target.value)} /></label> : null}
-      <button className="btn-primary gap-2" disabled={busy || !review.can_publish || !sameRevision || expired || (mode === "full" && sku !== review.sku)} onClick={() => void run(async () => { const updated = await publishListingDraft(draft.id, mode === "full" ? sku : "", { review_id: review.id, mode }); onUpdated(updated); setReview(null); setOpen(false); })} type="button"><Send aria-hidden="true" size={18} />{mode === "quick" ? "Post live to eBay" : "Confirm publish to eBay"}</button>
+      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p>{b.key === "live_metadata" ? <a className="font-semibold text-blue-800 underline" href="/settings/ebay">Reconnect eBay</a> : <button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button>}</div>)}</div> : null}
+      {reviewMode === "full" ? <div id={`listing-${draft.id}-staging`} tabIndex={-1} className="listing-field-anchor">{review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : <p>Resolve the listing blockers above before {review.offer_id ? "Update staged offer" : "Stage reviewed listing"}.</p>}</div> : null}
+      {reviewMode === "quick" && !review.can_publish ? <button className="btn-secondary" onClick={() => fix("title")} type="button">Open full editor to update and review</button> : null}
+      {reviewMode === "full" && review.can_publish ? <label className="label">Type {review.sku} to confirm<input autoComplete="off" className="field" value={sku} onChange={(e) => setSku(e.target.value)} /></label> : null}
+      <button className="btn-primary gap-2" disabled={busy || !review.can_publish || !sameRevision || expired || (reviewMode === "full" && sku !== review.sku)} onClick={() => void run(async () => { const updated = await publishListingDraft(draft.id, reviewMode === "full" ? sku : "", { review_id: review.id, mode: reviewMode }); onUpdated(updated); setReview(null); setOpen(false); })} type="button"><Send aria-hidden="true" size={18} />{reviewMode === "quick" ? "Post live to eBay" : "Confirm publish to eBay"}</button>
       {expired || !sameRevision ? <p role="alert">Review expired or draft changed. Review again before continuing.</p> : null}
       <p className="flex items-start gap-2 text-sm"><ShieldCheck size={18} aria-hidden="true" />{busy ? "Waiting for a confirmed response. Do not send again." : <time dateTime={review.draft_revision}>{reviewedTime(review.draft_revision)}</time>}</p>
     </div> : null}

@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Calculator, CircleAlert, Gauge, ReceiptText, ShoppingBag } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { listCategories } from "../../api/categories";
 import { listItems } from "../../api/items";
+import { getDescriptorEvidence } from "../../api/evidence";
 import { createBoughtItItem, getBuyCalculatorEvidence } from "../../api/profit";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { DescriptorEvidencePanel } from "../../components/DescriptorEvidencePanel";
@@ -26,9 +27,15 @@ const roiBasisOptions: Array<[RoiBasis, string]> = [
 
 export function BuyCalculator() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selection = location.state?.ownedEvidence as { rowId?: string; itemId?: string; category?: string; terms?: string; attributes?: Record<string, unknown> } | undefined;
+  const selectedEvidence = useQuery({ queryKey: ["calculator-selected-owned-evidence", selection?.rowId, selection?.category, selection?.terms],
+    queryFn: () => getDescriptorEvidence({ category: selection?.category, terms: selection?.terms, attributes: selection?.attributes }),
+    enabled: Boolean(selection?.rowId && selection?.terms) });
+  const appliedEvidence = useRef<string>();
   const items = useQuery({ queryKey: ["items", "buy-calculator"], queryFn: () => listItems({ page: 1 }) });
   const categories = useQuery({ queryKey: ["categories", "buy-calculator"], queryFn: () => listCategories() });
-  const [itemId, setItemId] = useState<UUID>("");
+  const [itemId, setItemId] = useState<UUID>(selection?.itemId ?? "");
   const evidence = useQuery({
     queryKey: ["buy-calculator-evidence", itemId],
     queryFn: () => getBuyCalculatorEvidence(itemId || undefined)
@@ -49,8 +56,8 @@ export function BuyCalculator() {
   const [lotMode, setLotMode] = useState(false);
   const [source, setSource] = useState<BuyEvidenceOption["source"]>("what_if");
   const [confidence, setConfidence] = useState("what-if (your estimate)");
-  const [descriptorCategory, setDescriptorCategory] = useState<UUID | "">("");
-  const [descriptorTerms, setDescriptorTerms] = useState("");
+  const [descriptorCategory, setDescriptorCategory] = useState<UUID | "">(selection?.category ?? "");
+  const [descriptorTerms, setDescriptorTerms] = useState(selection?.terms ?? "");
 
   const boughtIt = useMutation({
     mutationFn: () => createBoughtItItem({
@@ -77,12 +84,21 @@ export function BuyCalculator() {
 
   useEffect(() => {
     const suggested = evidence.data?.suggested;
-    if (!suggested) return;
+    if (!suggested || selection?.rowId) return;
     setExpectedSellPrice(suggested.price);
     setPriceBasis(suggested.price_basis);
     setSource(suggested.source);
     setConfidence(suggested.confidence_label);
-  }, [evidence.data?.suggested]);
+  }, [evidence.data?.suggested, selection?.rowId]);
+
+  useEffect(() => {
+    if (!selection?.rowId || appliedEvidence.current === selection.rowId) return;
+    const row = selectedEvidence.data?.rows.find((candidate) => candidate.id === selection.rowId);
+    if (!row || !["own_sale_exact", "own_sale_similar", "approved_comp"].includes(row.source) || !row.seller_receives || row.basis_uncertain) return;
+    // Navigation carries an ID, never a price. Re-read owned evidence; no evidence/item write.
+    useDescriptorEvidence(row);
+    appliedEvidence.current = selection.rowId;
+  }, [selectedEvidence.data, selection?.rowId]);
 
   useEffect(() => {
     const selected = (items.data?.results ?? []).find((item) => item.id === itemId);
@@ -162,6 +178,9 @@ export function BuyCalculator() {
         </div>
         <Calculator className="h-8 w-8 text-[#1d4ed8]" aria-hidden="true" />
       </header>
+      {selection?.rowId && appliedEvidence.current !== selection.rowId ? <p role={selectedEvidence.isPending ? "status" : "alert"} className="buy-notice">
+        {selectedEvidence.isPending ? "Checking your selected owned evidence..." : "The selected evidence is unavailable or has no known seller-receives basis. Pick another evidence row or enter a what-if price."}
+      </p> : null}
 
       <main className="buy-calculator-grid">
         <section className="buy-card buy-card-inputs">

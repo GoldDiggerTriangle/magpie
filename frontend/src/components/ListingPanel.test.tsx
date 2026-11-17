@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { ListingPanel } from "./ListingPanel";
-import { PublishPanel } from "./PublishPanel";
+import { ListingWorkflow } from "./ListingWorkflow";
 import type { InventoryItemDetail, ListingDraft } from "../types";
 
 const longTitle = "x".repeat(81);
@@ -207,7 +207,7 @@ function LegacyPipeline() {
   const drafts = useQuery({ queryKey: ["legacy-test-draft"], queryFn: () => mocks.listItemListingDrafts(item.id) });
   const [draft, setDraft] = useState<ListingDraft | null>(null);
   const row = draft ?? drafts.data?.results[0];
-  return row ? <PublishPanel draft={row} item={item} onDraftChange={setDraft} onDraftUpdated={setDraft} persistDraft={() => Promise.resolve(row)} /> : null;
+  return row ? <ListingWorkflow draft={row} item={item} mode="full" onUpdated={setDraft} beforeReview={() => Promise.resolve(row)} /> : null;
 }
 
 test("ListingPanel flags titles over 80 characters and unready exports", async () => {

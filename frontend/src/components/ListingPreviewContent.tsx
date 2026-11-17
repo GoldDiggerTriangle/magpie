@@ -68,7 +68,7 @@ export function groupedBlockers(rows: ReviewBlocker[]): ReviewBlocker[] {
     const row = group[0];
     const staging = ["staged_drift", "remote_drift", "stage_required", "photo_freshness"].includes(row.key);
     return { ...row, field: staging ? "staging" : row.field,
-      message: row.key === "photo_freshness" && group.length > 1 ? `${group.length} photos need re-uploading. Use Update staged offer.` : row.message };
+      message: row.key === "photo_freshness" && group.length > 1 ? `${group.length} photo freshness checks need attention: ${Array.from(new Set(group.map((entry) => entry.message))).join(" ")}` : row.message };
   });
 }
 

@@ -2284,3 +2284,127 @@ The supervised session surfaced and recorded four issues without bypassing the h
 Current deployed validation remains **422 passed / 1 skipped SQLite**, **410 passed / 13 skipped PostgreSQL**, frontend **169 / 37 files**, phone-width Playwright **4**, typecheck/build/collectstatic and production smoke green. No application code changed during the final supervised checks; this close-out commits evidence, the six real-phone screenshots and section 9 handoff notes only, leaving the pre-existing untracked structural audit untouched. The code/deployed-head Validation is linked above; the evidence commit's run is reported with the final Git head.
 
 **STOP after evidence commit.** Supervised live publishing is now proven; **Sprint 25 remains open** for the remaining phases/closure gates under the controlling spec. Phase 6 requires a separate instruction and has not begun. No legacy listing ended/withdrawn, no further draft created, no price/fee/schema/settings change, and no marketplace result pages fetched or scraped. Sections 3/8 of the handoff remain untouched.
+
+## 2026-11-17 - Phase 6: Findability Without A Layout Migration
+
+**Implementation prepared; owner restart/phone acceptance pending. Sprint 25 remains OPEN.** Applied MASTER_HANDOFF_UPDATE_2026-11-17_LIVE_LISTING.md verbatim first: all 13 Find strings matched exactly once, resulting handoff v4.71; controlling spec remains v3.4. Starting main: `756f29cb26a469bda37b0ee73c6e431d9b9df3eb`, Validation **43990375812**, SQLite and PostgreSQL both green.
+
+### Scope, Functional Parity And Safety
+
+- Stable top **List on eBay** remains visible with all sections collapsed, with separate canonical status and **View on eBay** link. Shared active-first resolver and query remove the competing private quick/full selections. No draft creation on mount or when merely opening retained history.
+- Only the existing Listings / channels content order changes: editor first, take-down notice and unchanged copy packs below. The seven sections, defaults, stored disclosure preferences, desktop index, other panels and bright tokens remain. No tabs or layout migration.
+- Standalone QuickPublishPanel and thin nested PublishPanel are retired; their reviewed quick/full paths now share ListingWorkflow inside the canonical editor. Full review still requires SKU; quick requires the exact server-bound reviewed revision. No silent staging, stock/price-source bypass, new marketplace endpoint or relaxed gate.
+- The old merchant-location creation/manual-key actions had lost their UI home in Phase 3. They now sit beside the editor's location picker, with an explicit review/confirmation before the **existing** create endpoint; the result is not silently applied. No location action was run live.
+- A22's pre-existing hidden item-detail **Use this** callback is now connected to Buy. Navigation carries owned record ID/context, never a price; the existing local lookup re-reads that ID, accepts known-basis own sales/approved comps only and does not save evidence/items. Forged navigation prices, missing records and unknown basis are regression-tested.
+- New authenticated **GET /api/ebay/hub/** reads owned local records only, with an explicit allowlist of non-secret metadata. Nav eBay opens /ebay; /ebay/orders and /settings/ebay remain. Loading the hub never refreshes tokens, syncs, recovers stale rows, stages, publishes or reconciles. A human can invoke the existing reconcile action explicitly. Saved/unavailable/expired/stale metadata is labelled, not claimed as a live connection check.
+- Photo blockers now count and name the actual reasons: **missing**, **unknown upload time**, **expired**. Grouping preserves reason text and points at the explicit update step. No EPS/image/fingerprint values are rewritten.
+- Old required-aspect override and generated-price paths are intentionally not restored: they would bypass current readiness/D-129 locks. Their legitimate edit/readiness/price-selection functions have confirmed homes below.
+
+### Phase-1 No-Content-Lost Checklist
+
+All **76** Phase-1 rows are accounted for below. Checked means a confirmed functional home, including existing conditional controls; it does not mean a live marketplace action was exercised. Original historical audit rows above remain unchanged.
+
+**I** = item detail. **E** = I -> top List on eBay -> canonical editor in expanded Listings / channels. **H** = nav eBay (/ebay). **Settings** = /settings/ebay. Buttons that write data were tested with isolated mocks/fakes, not clicked against live data.
+
+| Phase-1 row | Current functional tap path / retained guard |
+| --- | --- |
+| [x] A01 | I header: title/status/SKU and confirmed Delete; unchanged. Top List on eBay added below header, outside accordions. |
+| [x] A02 | Existing AuthRequiredState full-page /admin/login/ recovery; routing regression retained. |
+| [x] A03 | I -> Expand all / Collapse all; same seven sections and per-item stored state, no tab migration. |
+| [x] A04 | Desktop Item sections index; existing section hashes and listing-* / quick-ebay-* hashes expand Listings; draft query deep link opens exact history. |
+| [x] A05 | I -> Photos -> gallery, Set main, Move earlier/later and confirmed photo delete; unchanged. |
+| [x] A06 | I -> Photos -> Take photo / Choose from library (multiple, no capture on library); unchanged. |
+| [x] A07 | I -> Photos -> Local photo fix-up -> Generate review / Fix up all photos; unchanged, manual only. |
+| [x] A08 | I -> Photos -> existing before/after review -> Tweak / Approve / Reject / Revert; conditional on own versions, unchanged. |
+| [x] A09 | I -> Core details -> title/status/global condition/category/location/quantity -> Save; unchanged and separate from draft. |
+| [x] A10 | I -> Category specifics -> schema/pickers/custom entry/catalogue repeater; unchanged. |
+| [x] A11 | I -> Category specifics -> cost inputs, estimated value and notes -> Save; no computed asking-price seeding. |
+| [x] A12 | I -> Category specifics -> lot/source/disposition/scrap date; inherited source and cost locks unchanged. |
+| [x] A13 | I -> AI research -> existing status, provider/model/usage/cap and credential actions; untouched. |
+| [x] A14 | I -> AI research -> Identify & fill / Price-assist / existing view-only reference links; unchanged, no calls made. |
+| [x] A15 | I -> AI research -> completion Review N staged suggestions -> #ai-review; unchanged. |
+| [x] A16 | I -> AI research -> Suggested fields -> Run OCR / Scan duplicates; manual staging only, unchanged. |
+| [x] A17 | I -> AI research -> suggestion row Approve / Edit / Reject; candidate leads remain separate, unchanged. |
+| [x] A18 | I -> AI research -> Approve all shown over the rendered list; explicit sign-off, unchanged. |
+| [x] A19 | I -> AI research -> formatted candidate text, Raw payload disclosure and quiet audit line; unchanged. |
+| [x] A20 | I -> Pricing evidence & comps -> Own sales first sources / Search eBay sold / Assisted research; URL-only. |
+| [x] A21 | I -> Pricing evidence & comps -> Item descriptor evidence -> stats / rows / Fast capture comp; unchanged. |
+| [x] A22 | I -> Pricing evidence & comps -> Item descriptor evidence -> Use this -> Buy calculator. Newly wired existing callback passes only owned record ID/context; local re-read applies known-basis evidence, never navigation price. |
+| [x] A23 | I -> Pricing evidence & comps -> Capture verified comp / Comparables edit/delete / four pricing grids; unchanged. |
+| [x] A24 | I -> Pricing evidence & comps -> Fill capture form from screenshot or link -> local OCR / Live Text helper; unchanged. |
+| [x] A25 | I -> Pricing evidence & comps -> Research log -> save / edit / delete; unchanged. |
+| [x] A26 | I -> Sales & valuations -> Valuation -> strategy/inputs/override/report history/current selection; unchanged and never used to generate listing price. |
+| [x] A27 | I -> Sales & valuations -> Profit breakdown -> Save costs / existing current-report manual-price Calculate; unchanged. |
+| [x] A28 | I -> Sales & valuations -> Sales -> Record sale / Correct, remaining stock and realised history; unchanged. |
+| [x] B01 | Top List on eBay opens shared canonical selection; no draft -> existing create endpoint on click only. Editor history rows select exact drafts; relisting is explicit. |
+| [x] B02 | E -> autosave / bottom Save / resume; Archive -> confirmation, never hard delete. Published/archived history disabled; staged offer must be removed first. |
+| [x] B03 | E -> Title / Subtitle / visible 80-char counter / Regenerate title with overwrite confirmation; retained. |
+| [x] B04 | E -> Description edit/Preview, regeneration, Boilerplate and SKU footer; retained, text/source visible. |
+| [x] B05 | E -> Format fixed/auction; same canonical draft and preview. |
+| [x] B06 | E -> Price / Currency / confirm own asking price / pick owned evidence; D-129 provenance in preview. Old Regenerate price bypass deliberately not retained. |
+| [x] B07 | E -> Quantity, remaining-stock source for new drafts; existing stock/readiness gates unchanged. |
+| [x] B08 | E -> Photos -> checkboxes / phone Move up/down -> saved order -> same ordered preview. |
+| [x] B09 | E -> Item specifics -> required first / recommended disclosure / picker+custom / add-remove custom / regenerate; retained. |
+| [x] B10 | E -> Shipping note plus real Postage policy terms; both appear in reviewed draft, no parallel quick note. |
+| [x] B11 | E -> Listing readiness -> named required/recommended/pass checks and Go to field; Refresh from eBay remains explicit. |
+| [x] B12 | E -> Export -> copy title/description/specifics/boilerplate and Download zip; retained for read-only history too. |
+| [x] B13 | E -> eBay listing details -> Search/Browse leaf categories, full path, chosen ID/name and manual-ID fallback; preview Go to category id focuses same control. |
+| [x] B14 | E -> eBay condition picker from chosen category; saved unverified ID visible; conditionless category says Not used. |
+| [x] B15 | E -> named Payment/Postage/Return policy pickers, real selected terms underneath; preview same terms. |
+| [x] B16 | E -> Merchant location picker / Use another existing location key / Create merchant location -> review+confirmation. Restored creation uses only pre-existing endpoint; never auto-selects result. |
+| [x] B17 | E -> required specifics/readiness and explicit metadata refresh; preview/publish live validation remains mandatory. Legacy override-required-aspects bypass intentionally unavailable, per gates. |
+| [x] B18 | E -> Review listing -> Stage reviewed listing / Update staged offer, explicit existing pipeline, never on open or hub load. |
+| [x] B19 | E -> Review listing -> one staged read-back: values, sources, ordered photos, policy terms and authoritative ListingFee. |
+| [x] B20 | E -> Remove unpublished offer -> Confirm removal; same conservative Phase 5 endpoint; disabled/absent for in-flight or published. |
+| [x] B21 | E -> full staged review -> type exact SKU -> Confirm publish to eBay; reviewed revision and backend gates unchanged. |
+| [x] B22 | Top separate View on eBay and read-only E published history -> Open live listing; no stage/publish/remove controls on history. |
+| [x] B23 | E -> Duration picker, format-valid choices and stored/effective GTC; retained. |
+| [x] B24 | E -> category-valid eBay condition picker; not the unrelated global item condition. |
+| [x] B25 | E -> named account policy pickers with headline domestic price and readable full selected terms. |
+| [x] B26 | E -> staged review -> nonzero fee components, eBay ListingFee total, Show all fees and listing-fees-only note. |
+| [x] Q01 | Top stable List on eBay -> E -> Quick publish preview; one preview state shared with full review, no standalone card. |
+| [x] Q02 | Quick review blocker -> exact E category field, expanding section; browse/search/confirm are the same controls. |
+| [x] Q03 | E explicit human asking/evidence price, persisted source label and preview source; no private quick price pipeline. |
+| [x] Q04 | Quick blocker -> E Shipping note / Postage policy; no duplicate boxes, source/terms retained. |
+| [x] Q05 | Quick/full blocker -> same E condition/photo control; if no own photos, expand existing Photos upload section instead of an empty picker. |
+| [x] Q06 | Preview live-metadata blocker Reconnect eBay -> /settings/ebay; hub reconnect uses same destination. |
+| [x] Q07 | Top, hub, history and full/quick review share listing-drafts query/canonical resolver. Published history never masks active; no mount writes. |
+| [x] Q08 | E Quick publish preview -> Post live to eBay for exact reviewed revision, no SKU; full Review listing -> typed SKU. Drifted/invalid quick review cannot stage or post. |
+| [x] D01 | I -> Listings / channels -> E first, then unchanged Ready-to-paste ad copy channel/price controls. |
+| [x] D02 | Same copy pack -> section Copy / Copy whole ad / own display Photo zip; unchanged. |
+| [x] D03 | H -> Open channel listings board -> existing manual add form; no new marketplace posting. |
+| [x] D04 | H -> channel board -> existing Seed local eBay rows; local-only, not run by agent. |
+| [x] D05 | H -> channel board -> groups, days listed, item links / Mark ended; manual local tracking retained. |
+| [x] D06 | I -> Listings / channels -> take-down checklist / partial-sale notice; also existing board/Home alerts. No automatic ending. |
+| [x] S01 | H -> eBay settings (/settings/ebay) -> existing Connect/paste-back/Complete/confirmed Disconnect; unchanged. |
+| [x] S02 | Same Settings -> Status account/environment/scopes/expiry/error; H adds honestly labelled saved health and snapshot age. |
+| [x] S03 | Same Settings -> Policy Readiness -> counts/Fetched/Refresh; editor metadata refresh also explicit. |
+| [x] S04 | Same Settings -> Audit Log -> Action prefix and read-only rows; unchanged. |
+| [x] S05 | Same Settings -> Order Sync -> existing manual sync and link/quick-create/external/duplicate resolution; unchanged. |
+| [x] S06 | H -> Open eBay orders -> /ebay/orders -> existing sync/picker/resolution; old route preserved. |
+| [x] S07 | Same Settings -> unchanged AI Provider and Profit Engine forms; no provider/fee/settings behaviour changes. |
+| [x] S08 | Nav eBay -> /ebay -> owned drafts/staged/check-result/live listings/orders/connection/history; explicit reconcile only, opening is GET-only. |
+
+### Tests And Phone-Width Proof
+
+- Backend: **428 passed, 1 skipped**, isolated file-backed SQLite, outbound sockets blocked. Six new findability tests cover authentication/GET-only hub, zero model changes/network/refresh/recovery on GET, public-field projection and exact/mixed photo-freshness reasons. Existing Phase 5 publish/concurrency/source/stock locks remain green.
+- Frontend: final complete suite and typecheck recorded in the validation follow-up below. Real-panel integrated reachability tests cover all eleven requested item states; no null panel mocks. They click the top action, check enabled/disabled controls, exact canonical/history values, hub destinations, read-only history outside the first page, explicit reconcile and restored evidence navigation.
+- Playwright: **8 passed** at 390px/desktop. Existing editor/archive/preview/staged-review long-title gate retained; new tests cover full real item and hub, all-collapsed top entry, published live link and 80-character spaced/unbroken titles. Both document width equality and visible element bounds are asserted; no clipping/overflow-hiding workaround. Unexpected API writes/external destinations fail the fixture. Real iPhone acceptance remains Regan's next step.
+- All new screenshots below are **synthetic isolated-browser UI proofs**, not falsely represented as the live nugget or real iPhone screenshots. No own live inventory or third-party reference photos were imported into fixtures.
+
+- [Phone: published item with separate live link](docs/evidence/sprint25/phase6-published-item-390.png)
+- [Phone: collapsed long-title item](docs/evidence/sprint25/phase6-item-spaced-390.png)
+- [Phone: staged review](docs/evidence/sprint25/phase6-review-spaced-390.png)
+- [Phone: eBay hub](docs/evidence/sprint25/phase6-hub-spaced-390.png)
+- [Phone: hub live listings](docs/evidence/sprint25/phase6-hub-live-spaced-390.png)
+- [Desktop: unchanged section index and top entry](docs/evidence/sprint25/phase6-item-desktop.png)
+- [Desktop: eBay hub](docs/evidence/sprint25/phase6-hub-desktop.png)
+
+### Read-Only Live-Data Check And Deployment Boundary
+
+Checked actual live records through an internal authenticated request with SQLite **mode=ro** and network guarded (only localhost health allowed): new hub GET **200**, **8 drafts / 2 active listing records**. GOLD-00002 appears as live listing **128199443689**, with **0 active unpublished drafts**, retaining published af013dd9 / offer 356038014011. This verifies the new view against owned records, not that the old running service has loaded the new route.
+
+All **48 table** digests/schema, **764 rows**, **64 media** hashes and protected .env/requirements hashes match the pre-task baseline. Live counts: **8 drafts, 171 audit rows, 2 ChannelListing, 5 reviews, 55 migrations**. Health on actual port **8000 = 200**. No live saves, eBay GETs/writes, token refreshes, provider calls or service restart by Codex. No schema/model/dependency changes; no migration/backup requirement triggered; prior supervised pre/post B-verified backup coverage remains intact.
+
+Production build and collectstatic are prepared in the live checkout; final asset identifiers and GitHub Validation are recorded below. Regan must restart as Administrator and phone-check the top action, canonical editor, hub and GOLD-00002 **live / View on eBay**. Phase 7/8 work and Sprint 25 closure are not claimed.
+

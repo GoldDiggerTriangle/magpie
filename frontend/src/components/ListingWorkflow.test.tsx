@@ -47,6 +47,15 @@ test("quick post has no SKU typing, no staging, and uses the exact reviewed revi
   expect(mocks.publish).toHaveBeenCalledWith(draft.id, "", { review_id: "review-1", mode: "quick" });
   expect(mocks.stage).not.toHaveBeenCalled();
 });
+test("canonical editor offers quick review through the same workflow and server-bound review", async () => {
+  review.mode = "quick";
+  render(<ListingWorkflow draft={draft} item={item} mode="full" allowQuick onUpdated={vi.fn()} />);
+  await userEvent.click(screen.getByRole("button", { name: "Quick publish preview" }));
+  expect(mocks.review).toHaveBeenCalledWith(draft.id, "quick");
+  expect(await screen.findByRole("button", { name: "Post live to eBay" })).toBeEnabled();
+  expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  expect(mocks.stage).not.toHaveBeenCalled(); expect(mocks.publish).not.toHaveBeenCalled();
+});
 test.each(["staged_drift", "photo_freshness", "price_source", "category_id", "fulfillment_policy", "ebay_condition"])("quick path cannot bypass %s blocker", async (key) => {
   review.mode = "quick"; review.can_publish = false; review.publish_checks = [{ key, field: "category_id", message: `Resolve ${key}` }];
   open("quick"); await userEvent.click(screen.getByRole("button", { name: "Preview eBay listing" }));
@@ -78,6 +87,21 @@ test("unknown outcome offers reconcile only; no retry or remove control", async 
   expect(screen.queryByRole("button", { name: "Remove unpublished offer" })).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Reconcile offer" }));
   expect(updated).toHaveBeenCalledWith(draft); expect(mocks.publish).not.toHaveBeenCalled();
+});
+test("unavailable live validation links to the actual eBay settings route", async () => {
+  review.can_publish = false; review.checks = [{ key: "live_metadata", field: "category_id", message: "Live metadata unavailable" }];
+  open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  expect(await screen.findByRole("link", { name: "Reconnect eBay" })).toHaveAttribute("href", "/settings/ebay");
+  expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
+});
+test("missing-photo blocker opens the existing upload section rather than an empty photo picker", async () => {
+  review.can_publish = false; review.checks = [{ key: "photos", field: "photos", message: "Upload an own photo" }];
+  const upload = vi.fn(); window.addEventListener(`magpie:upload-photos:${item.id}`, upload);
+  render(<ListingWorkflow draft={draft} item={{ ...item, photos: [] }} mode="full" onUpdated={vi.fn()} />);
+  await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Go to photos" }));
+  expect(upload).toHaveBeenCalledOnce();
+  window.removeEventListener(`magpie:upload-photos:${item.id}`, upload);
 });
 test("remove requires explicit confirmation and published history has no publish controls", async () => {
   mocks.remove.mockResolvedValue({ ...draft, channel_data: {} }); const { rerender, updated } = open();
@@ -192,7 +216,7 @@ test("repeated photo blockers group once and drift jumps to Update staged offer 
     { key: "staged_drift", field: "category_id", message: "Local staging is unverified" },
   ];
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
-  expect(await screen.findByText("6 photos need re-uploading. Use Update staged offer.")).toBeVisible();
+  expect(await screen.findByText("6 photo freshness checks need attention: Photo upload date unknown")).toBeVisible();
   expect(screen.queryByText("Photo upload date unknown")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
   await userEvent.click(screen.getAllByRole("button", { name: "Go to Update staged offer" })[1]);

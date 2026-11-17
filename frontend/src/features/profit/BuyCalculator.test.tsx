@@ -397,15 +397,32 @@ test("shared Sprint 19 formula fixture matches the frontend calculator", () => {
   }
 });
 
-function renderWithClient(ui: ReactElement) {
+function renderWithClient(ui: ReactElement, state?: Record<string, unknown>) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[{ pathname: "/buy-calculator", state }]}>
         {ui}
       </MemoryRouter>
     </QueryClientProvider>
   );
 }
+
+test("item-detail Use this re-reads the selected owned evidence ID and never accepts a navigation price", async () => {
+  renderWithClient(<BuyCalculator />, { ownedEvidence: { rowId: "sale:descriptor-1", itemId: "item-1", category: "cat-1", terms: "kgv stamp", price: "99999.00" } });
+  await waitFor(() => expect(screen.getByLabelText("Expected sell price")).toHaveValue("100.00"));
+  expect(mocks.getDescriptorEvidence).toHaveBeenCalledWith({ category: "cat-1", terms: "kgv stamp", attributes: undefined });
+  expect(mocks.captureDescriptorComparable).not.toHaveBeenCalled();
+  expect(mocks.createBoughtItItem).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText("Expected sell price"), { target: { value: "80" } });
+  expect(screen.getByLabelText("Expected sell price")).toHaveValue("80");
+});
+
+test.each(["comp:descriptor-uncertain", "not-an-owned-record"])("item-detail selection %s cannot invent or apply an unknown-basis price", async (rowId) => {
+  renderWithClient(<BuyCalculator />, { ownedEvidence: { rowId, category: "cat-1", terms: "kgv stamp", price: "99999.00" } });
+  expect(await screen.findByText(/selected evidence is unavailable or has no known seller-receives basis/)).toBeVisible();
+  expect(screen.getByLabelText("Expected sell price")).toHaveValue("");
+  expect(mocks.captureDescriptorComparable).not.toHaveBeenCalled(); expect(mocks.createBoughtItItem).not.toHaveBeenCalled();
+});

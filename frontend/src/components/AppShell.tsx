@@ -9,7 +9,7 @@ const navItems = [
   { to: "/listings", label: "Listings", shortLabel: "List", icon: Megaphone },
   { to: "/lots", label: "Lots", shortLabel: "Lots", icon: Boxes },
   { to: "/buy-calculator", label: "Buy Calculator", shortLabel: "Buy", icon: Calculator },
-  { to: "/ebay/orders", label: "eBay Orders", shortLabel: "eBay", icon: DownloadCloud },
+  { to: "/ebay", label: "eBay", shortLabel: "eBay", icon: DownloadCloud },
   { to: "/add", label: "Add", shortLabel: "Add", icon: PlusCircle },
   { to: "/settings/ebay", label: "Settings", shortLabel: "Settings", icon: Settings }
 ];

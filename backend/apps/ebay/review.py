@@ -90,17 +90,22 @@ def eps_checks(draft, photos, *, remote_urls=None, now=None):
     from django.utils.dateparse import parse_datetime
     now = now or timezone.now()
     records = mapping(draft.channel_data).get("eps_photos", [])
-    issues = []
+    issues = {"missing": 0, "unknown upload time": 0, "expired": 0}
     for photo in photos:
         row = next((r for r in records if isinstance(r, dict) and r.get("photo_id") == photo["id"] and r.get("sha256") == photo["sha256"]), {})
         try:
             stamp = parse_datetime(text(row.get("uploaded_at")))
         except (ValueError, TypeError):
             stamp = None
-        if not stamp or timezone.is_naive(stamp) or stamp > now or stamp <= now - EPS_LIFETIME or not row.get("url") or row.get("missing") or (remote_urls is not None and row.get("url") not in remote_urls):
-            issues.append(photo["id"])
-    count = len(issues)
-    return [check("photo_freshness", f"{count} {'photo needs' if count == 1 else 'photos need'} re-uploading: expired, missing or unknown upload date. Use Update staged offer.", "staging")] if count else []
+        if row and (not row.get("url") or row.get("missing") or (remote_urls is not None and row.get("url") not in remote_urls)):
+            issues["missing"] += 1
+        elif not stamp or timezone.is_naive(stamp) or stamp > now:
+            issues["unknown upload time"] += 1
+        elif stamp <= now - EPS_LIFETIME:
+            issues["expired"] += 1
+    count = sum(issues.values())
+    reasons = "; ".join(f"{reason}: {amount}" for reason, amount in issues.items() if amount)
+    return [check("photo_freshness", f"{count} {'photo needs' if count == 1 else 'photos need'} re-uploading ({reasons}). Use Update staged offer.", "staging")] if count else []
 
 
 def _offer_state(offer):

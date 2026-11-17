@@ -5,6 +5,7 @@ import { AdminRouteRecovery } from "./components/AdminRouteRecovery";
 import { AddItem } from "./features/capture/AddItem";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { EbayOrders } from "./features/ebay/EbayOrders";
+import { EbayHub } from "./features/ebay/EbayHub";
 import { InventoryGrid } from "./features/inventory/InventoryGrid";
 import { ItemDetail } from "./features/inventory/ItemDetail";
 import { ChannelListingsPage } from "./features/listings/ChannelListingsPage";
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "lots/:id", element: <LotDetail /> },
       { path: "buy-calculator", element: <BuyCalculator /> },
       { path: "ebay/orders", element: <EbayOrders /> },
+      { path: "ebay", element: <EbayHub /> },
       { path: "add", element: <AddItem /> },
       { path: "settings/ebay", element: <EbaySettings /> },
       { path: "admin/*", element: <AdminRouteRecovery /> }

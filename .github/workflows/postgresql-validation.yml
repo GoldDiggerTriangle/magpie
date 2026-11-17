@@ -134,8 +134,8 @@ jobs:
           }
           frontend_view_only_url_files = {
               Path("frontend/src/components/ListingWorkflow.tsx"),
-              Path("frontend/src/components/PublishPanel.tsx"),
-              Path("frontend/src/components/QuickPublishPanel.tsx"),
+              Path("frontend/src/components/EbayListingEntry.tsx"),
+              Path("frontend/src/features/ebay/EbayHub.tsx"),
           }
           suffixes = {".py", ".ts", ".tsx", ".js", ".jsx"}
           network_imports = {"requests", "httpx", "aiohttp"}

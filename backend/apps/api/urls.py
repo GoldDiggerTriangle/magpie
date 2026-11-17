@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.api.views import HealthCheckView
+from apps.ebay.hub import EbayHubView
 from apps.audit.views import AuditLogViewSet
 from apps.acquisitions.views import AcquisitionRecordViewSet
 from apps.catalog.views import ProductCategoryViewSet
@@ -211,6 +212,7 @@ urlpatterns = [
     ),
     path("ebay/disconnect/", EbayDisconnectView.as_view(), name="ebay-disconnect"),
     path("ebay/status/", EbayStatusView.as_view(), name="ebay-status"),
+    path("ebay/hub/", EbayHubView.as_view(), name="ebay-hub"),
     path("ebay/orders/sync/", EbayOrderSyncView.as_view(), name="ebay-orders-sync"),
     path(
         "ebay/refresh-policies/",

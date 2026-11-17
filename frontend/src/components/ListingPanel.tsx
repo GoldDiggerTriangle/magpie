@@ -20,7 +20,6 @@ import {
   generateListingDraft,
   getListingDraft,
   getListingEditor,
-  listItemListingDrafts,
   listListingBoilerplates,
 } from "../api/listing";
 import type {
@@ -33,7 +32,8 @@ import type {
 } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmptyState } from "./EmptyState";
-import { PublishPanel } from "./PublishPanel";
+import { ListingWorkflow } from "./ListingWorkflow";
+import { activeEbayDraft, canonicalEbayDraft, itemDraftKey, useItemDrafts } from "./EbayListingEntry";
 import { EditorReadiness, FieldSource, ListingMetadataFields, listingFieldId } from "./ListingMetadataFields";
 import { useDraftAutosave } from "./useDraftAutosave";
 import { ListingSpecifics } from "./ListingSpecifics";
@@ -43,34 +43,39 @@ import { defaultValues } from "../api/listingDefaults";
 
 const titleMax = 80;
 
-export function ListingPanel({ item }: { item: InventoryItemDetail }) {
+export function ListingPanel({ item, initialDraftId }: { item: InventoryItemDetail; initialDraftId?: string | null }) {
   const queryClient = useQueryClient();
-  const drafts = useQuery({ queryKey: ["listing-drafts", item.id], queryFn: () => listItemListingDrafts(item.id) });
+  const drafts = useItemDrafts(item.id);
   const boilerplates = useQuery({ queryKey: ["listing-boilerplates"], queryFn: listListingBoilerplates });
-  const [selectedId, setSelectedId] = useState<UUID | null>(null);
+  const [selectedId, setSelectedId] = useState<UUID | null>(initialDraftId ?? null);
   const [deleteTarget, setDeleteTarget] = useState<ListingDraft | null>(null);
 
-  const draftList = drafts.data?.results ?? [];
-  const selectedDraft = draftList.find((draft) => draft.id === selectedId) ?? draftList[0] ?? null;
+  const firstPage = drafts.data?.results ?? [];
+  const history = useQuery({ queryKey: ["listing-draft-history", selectedId], queryFn: () => getListingDraft(selectedId!),
+    enabled: Boolean(selectedId) && !drafts.isPending && !firstPage.some((row) => row.id === selectedId) });
+  const requestedHistory = history.data;
+  const draftList = requestedHistory?.item === item.id && !firstPage.some((row) => row.id === requestedHistory.id) ? [...firstPage, requestedHistory] : firstPage;
+  const selectedDraft = selectedId ? draftList.find((draft) => draft.id === selectedId) ?? null : canonicalEbayDraft(draftList);
 
   useEffect(() => {
     if (!selectedId && draftList.length > 0) {
-      setSelectedId(draftList[0].id);
+      setSelectedId(canonicalEbayDraft(draftList)?.id ?? null);
     }
   }, [draftList, selectedId]);
 
   useEffect(() => {
-    const open = () => {
-      setSelectedId(draftList[0]?.id ?? null);
-      document.getElementById(`listing-editor-${item.id}`)?.scrollIntoView?.({ block: "start" });
+    const open = (event: Event) => {
+      setSelectedId((event as CustomEvent<{ draftId?: string }>).detail?.draftId ?? canonicalEbayDraft(draftList)?.id ?? null);
     };
     window.addEventListener(`magpie:open-draft:${item.id}`, open);
     return () => window.removeEventListener(`magpie:open-draft:${item.id}`, open);
   }, [draftList, item.id]);
 
+  useEffect(() => { if (initialDraftId) setSelectedId(initialDraftId); }, [initialDraftId]);
+
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["listing-drafts", item.id] });
-    queryClient.invalidateQueries({ queryKey: ["item-listing-drafts", item.id] });
+    queryClient.invalidateQueries({ queryKey: ["ebay-hub"] });
     queryClient.invalidateQueries({ queryKey: ["item", item.id] });
     if (selectedDraft) {
       queryClient.invalidateQueries({ queryKey: ["listing-readiness", selectedDraft.id] });
@@ -81,6 +86,7 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
     mutationFn: () => createItemListingDraft(item.id),
     onSuccess: (draft) => {
       setSelectedId(draft.id);
+      queryClient.setQueryData(itemDraftKey(item.id), { ...drafts.data, results: [draft, ...draftList.filter((row) => row.id !== draft.id)] });
       refresh();
     }
   });
@@ -94,19 +100,23 @@ export function ListingPanel({ item }: { item: InventoryItemDetail }) {
   });
 
   return (
-    <section className="listing-panel min-w-0 rounded border border-slate-800 bg-slate-950/40 p-4">
+    <section className="listing-panel min-w-0 rounded border border-slate-800 bg-slate-950/40 p-4" aria-label="Canonical eBay listing">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="section-title">Listing</h2>
+          <h2 className="section-title" id={`listing-entry-${item.id}`} tabIndex={-1}>eBay listing editor</h2>
           <p className="mt-1 text-xs text-slate-500">{draftList.length} draft{draftList.length === 1 ? "" : "s"}</p>
         </div>
-        <button className="btn-primary gap-2" disabled={createMutation.isPending} onClick={() => createMutation.mutate()} type="button">
+        {!draftList.some(activeEbayDraft) ? <button className="btn-primary gap-2" disabled={drafts.isPending || drafts.isError || createMutation.isPending || item.quantity_remaining < 1} onClick={() => createMutation.mutate()} type="button">
           <Plus className="h-4 w-4" aria-hidden="true" />
-          {draftList.some((row) => !["published", "archived"].includes(row.status)) ? "Open listing draft" : "Create draft"}
-        </button>
+          {draftList.some((row) => row.status === "published") ? "Create relisting draft" : "Create draft"}
+        </button> : null}
       </div>
 
       {drafts.isLoading ? <EmptyState title="Loading listing drafts" /> : null}
+      {selectedId && history.isFetching ? <p>Loading requested draft history...</p> : null}
+      {selectedId && (history.isError || (history.data && history.data.item !== item.id)) ? <p role="alert">That draft could not be opened for this item. Select a retained history row or use List on eBay.</p> : null}
+      {drafts.isError ? <p role="alert">Listing history could not load. Check your session and retry from List on eBay.</p> : null}
+      {createMutation.error ? <p role="alert">{createMutation.error instanceof Error ? createMutation.error.message : "Draft could not open."}</p> : null}
       {!drafts.isLoading && draftList.length === 0 ? <EmptyState title="No listing drafts" /> : null}
 
       {draftList.length > 0 ? (
@@ -230,7 +240,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
     <div className="listing-editor min-w-0 space-y-5" id={`listing-editor-${item.id}`}>
       {readOnly ? <p className="font-semibold">Read-only history</p> : null}
       {editor.error ? <p role="alert">Saved metadata could not load. Check your session and retry. Your draft is not staged or published by saving.</p> : null}
-      {local.channel_data.offer_id ? <div className="listing-staged-notice" role="status"><strong>Unpublished staged offer {String(local.channel_data.offer_id)}</strong><p>{editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p></div> : null}
+      {local.channel_data.offer_id && !["published", "archived"].includes(local.status) && !local.channel_data.listing_id ? <div className="listing-staged-notice" role="status"><strong>Unpublished staged offer {String(local.channel_data.offer_id)}</strong><p>{editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p></div> : null}
       <fieldset disabled={readOnly} className="min-w-0 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -357,17 +367,17 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       <ExportButtons boilerplate={selectedBoilerplate} draft={local} beforeExport={persistLocal} onExported={() => {
         void getListingDraft(local.id).then((updated) => { autosave.acceptExternal(updated); onSaved(); });
       }} />
-      <PublishPanel
-        localEditor
+      <ListingWorkflow
+        mode="full"
+        allowQuick
         draft={local}
         item={item}
-        onDraftChange={setLocal}
-        onDraftUpdated={(updated) => {
+        onUpdated={(updated) => {
           autosave.acceptExternal(updated);
           onSaved();
           queryClient.invalidateQueries({ queryKey: ["item", item.id] });
         }}
-        persistDraft={persistLocal}
+        beforeReview={persistLocal}
       />
       <ListingSaveBar state={readOnly ? "Read-only history" : autosave.state} disabled={saveMutation.isPending || readOnly} onSave={() => {
         if (!local.channel_data.listing_duration && editor.data?.effective_duration && local.listing_format === "fixed") {

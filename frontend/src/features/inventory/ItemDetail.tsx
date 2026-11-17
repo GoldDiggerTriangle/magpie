@@ -17,6 +17,7 @@ import { DescriptorEvidencePanel } from "../../components/DescriptorEvidencePane
 import { EmptyState } from "../../components/EmptyState";
 import { LocationSelect } from "../../components/LocationSelect";
 import { ListingPanel } from "../../components/ListingPanel";
+import { EbayListingEntry } from "../../components/EbayListingEntry";
 import { PhotoFixupPanel } from "../../components/PhotoFixupPanel";
 import { PhotoGallery } from "../../components/PhotoGallery";
 import { PhotoUploader } from "../../components/PhotoUploader";
@@ -24,7 +25,6 @@ import { ComparableList } from "../../components/ComparableList";
 import { CopyPackPanel } from "../../components/CopyPackPanel";
 import { PricingEvidencePanel } from "../../components/PricingEvidencePanel";
 import { ProfitBreakdown } from "../../components/ProfitBreakdown";
-import { QuickPublishPanel } from "../../components/QuickPublishPanel";
 import { ResearchLinks } from "../../components/ResearchLinks";
 import { ResearchLog } from "../../components/ResearchLog";
 import { SalesPanel } from "../../components/SalesPanel";
@@ -174,15 +174,46 @@ export function ItemDetail() {
   }, [itemId, openSections]);
 
   useEffect(() => {
-    const targetSection = hashSectionMap[location.hash];
+    const targetSection = hashSectionMap[location.hash] ?? (/^#(?:listing-|quick-ebay-)/.test(location.hash) ? "listings-channels" : undefined);
     if (!targetSection) {
       return;
     }
     setOpenSections((current) => ({ ...current, [targetSection]: true }));
     window.setTimeout(() => {
-      scrollToElement(location.hash.replace(/^#/, ""));
+      const anchor = location.hash.replace(/^#/, "");
+      scrollToElement(document.getElementById(anchor) ? anchor : targetSection);
     }, 0);
   }, [location.hash]);
+
+  useEffect(() => {
+    const open = (event: Event) => {
+      setOpenSections((current) => ({ ...current, "listings-channels": true }));
+      const draftId = (event as CustomEvent<{ draftId?: string }>).detail?.draftId;
+      const url = new URL(window.location.href);
+      if (draftId) url.searchParams.set("draft", draftId);
+      url.hash = "listings-channels";
+      window.history.replaceState(window.history.state, "", url);
+      window.setTimeout(() => {
+        const entry = document.getElementById(`listing-entry-${itemId}`);
+        entry?.scrollIntoView?.({ block: "start" });
+        entry?.focus({ preventScroll: true });
+      }, 0);
+    };
+    window.addEventListener(`magpie:open-draft:${itemId}`, open);
+    const openPhotos = () => {
+      setOpenSections((current) => ({ ...current, photos: true }));
+      window.history.replaceState(window.history.state, "", "#photos");
+      window.setTimeout(() => {
+        document.getElementById("photos")?.scrollIntoView?.({ block: "start" });
+        document.querySelector<HTMLInputElement>('#photos input[type="file"]')?.focus({ preventScroll: true });
+      }, 0);
+    };
+    window.addEventListener(`magpie:upload-photos:${itemId}`, openPhotos);
+    return () => {
+      window.removeEventListener(`magpie:open-draft:${itemId}`, open);
+      window.removeEventListener(`magpie:upload-photos:${itemId}`, openPhotos);
+    };
+  }, [itemId]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["item", itemId] });
 
@@ -286,9 +317,9 @@ export function ItemDetail() {
   return (
     <PageFrame>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title">{item.data.title || "Untitled item"}</h1>
+            <h1 className="page-title listing-title min-w-0">{item.data.title || "Untitled item"}</h1>
             <StatusBadge status={item.data.status} />
           </div>
           <p className="mt-1 text-sm text-slate-500">{item.data.sku}</p>
@@ -298,6 +329,8 @@ export function ItemDetail() {
           Delete
         </button>
       </div>
+
+      <EbayListingEntry item={item.data} />
 
       <div className="item-detail-controls">
         <button className="ledger-button" onClick={() => setAllSections(true)} type="button">Expand all</button>
@@ -474,6 +507,10 @@ export function ItemDetail() {
                 itemId={itemId}
                 terms={item.data.title || item.data.sku}
                 title="Item descriptor evidence"
+                onUsePrice={(row) => navigate("/buy-calculator", { state: { ownedEvidence: {
+                  rowId: row.id, itemId, category: item.data.category ?? "", terms: item.data.title || item.data.sku,
+                  attributes: item.data.attributes ?? {}
+                } } })}
               />
               <PricingEvidencePanel itemId={itemId} />
               <SoldSearchPanel itemId={itemId} />
@@ -487,10 +524,9 @@ export function ItemDetail() {
 
           <ItemSection id="listings-channels" label="Listings / channels" open={openSections["listings-channels"]} onToggle={() => setSection("listings-channels", !openSections["listings-channels"])}>
             <div className="grid gap-6">
-              <TakeDownChecklist item={item.data} />
-              <CopyPackPanel item={item.data} />
-              <QuickPublishPanel item={item.data} />
-              <ListingPanel item={item.data} />
+                <ListingPanel key={itemId} item={item.data} initialDraftId={new URLSearchParams(location.search).get("draft")} />
+                <TakeDownChecklist item={item.data} />
+                <CopyPackPanel item={item.data} />
             </div>
           </ItemSection>
 
