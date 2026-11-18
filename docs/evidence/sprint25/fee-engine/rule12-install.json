@@ -1,0 +1,316 @@
+{
+  "installed_at_utc": "2026-11-18T00:30:19.695583+00:00",
+  "completed_at_utc": "2026-11-18T00:30:24.863502+00:00",
+  "source_head": "dfca72e0a05a3c64fa63b50d2a1651b89eaed004",
+  "migration": "valuation.0004_versioned_fee_evidence",
+  "pre_backup": {
+    "archive": "magpie-backup-20261118-003015.tar.gz.enc",
+    "directory": "D:\\Magpie\\backups\\sprint25-fee-engine\\pre-install-verified",
+    "bytes": 27996298,
+    "B_restore": "PASS",
+    "tables": 51,
+    "rows": 785,
+    "migrations": 58,
+    "media": 64,
+    "integrity": "ok",
+    "foreign_keys": 0,
+    "restored_copy_deleted": true
+  },
+  "post_backup": {
+    "archive": "magpie-backup-20261118-003021.tar.gz.enc",
+    "directory": "D:\\Magpie\\backups\\sprint25-fee-engine\\post-install",
+    "bytes": 28002289,
+    "B_restore": "PASS",
+    "tables": 57,
+    "rows": 820,
+    "migrations": 59,
+    "media": 64,
+    "integrity": "ok",
+    "foreign_keys": 0,
+    "restored_copy_deleted": true
+  },
+  "bookkeeping_increments": {
+    "django_migrations": 1,
+    "django_content_type": 6,
+    "auth_permission": 24
+  },
+  "existing_business_tables_preserved": 48,
+  "existing_business_column_count": 550,
+  "all_old_schema_entries_preserved": true,
+  "env_unchanged": true,
+  "legacy_copies": 4,
+  "recorded_fee_each": "0.46",
+  "estimated_fee_each": "0.52",
+  "known_profits": [
+    "0.34",
+    "0.34",
+    "0.34"
+  ],
+  "external_profit": "unknown",
+  "periods": 0,
+  "rates": 0,
+  "versions": 0,
+  "order_snapshots": 0,
+  "adjustments": 0,
+  "no_network": true,
+  "service_restart": "pending owner",
+  "validation_before_install": "44207645269",
+  "before": {
+    "table_count": 51,
+    "row_total": 785,
+    "migrations": 58,
+    "integrity": "ok",
+    "foreign_keys": 0
+  },
+  "after": {
+    "table_count": 57,
+    "row_total": 820,
+    "migrations": 59,
+    "integrity": "ok",
+    "foreign_keys": 0
+  },
+  "business_checks": {
+    "acquisitions_acquisitionrecord": {
+      "rows": 0,
+      "columns": 9,
+      "original_columns_digest_matches": true
+    },
+    "audit_auditlog": {
+      "rows": 172,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "auth_group": {
+      "rows": 0,
+      "columns": 2,
+      "original_columns_digest_matches": true
+    },
+    "auth_group_permissions": {
+      "rows": 0,
+      "columns": 3,
+      "original_columns_digest_matches": true
+    },
+    "auth_user": {
+      "rows": 2,
+      "columns": 11,
+      "original_columns_digest_matches": true
+    },
+    "auth_user_groups": {
+      "rows": 0,
+      "columns": 3,
+      "original_columns_digest_matches": true
+    },
+    "auth_user_user_permissions": {
+      "rows": 0,
+      "columns": 3,
+      "original_columns_digest_matches": true
+    },
+    "catalog_productcategory": {
+      "rows": 9,
+      "columns": 9,
+      "original_columns_digest_matches": true
+    },
+    "core_skusequence": {
+      "rows": 6,
+      "columns": 2,
+      "original_columns_digest_matches": true
+    },
+    "dashboard_dashboardpreference": {
+      "rows": 0,
+      "columns": 5,
+      "original_columns_digest_matches": true
+    },
+    "django_admin_log": {
+      "rows": 4,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "django_session": {
+      "rows": 21,
+      "columns": 3,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayaccountsnapshot": {
+      "rows": 1,
+      "columns": 9,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayapptoken": {
+      "rows": 1,
+      "columns": 6,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayconnectionhealth": {
+      "rows": 2,
+      "columns": 12,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebaycredential": {
+      "rows": 1,
+      "columns": 15,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebaylistingallocation": {
+      "rows": 0,
+      "columns": 20,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayorderduplicatecandidate": {
+      "rows": 0,
+      "columns": 15,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayorderstaging": {
+      "rows": 4,
+      "columns": 18,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayordersyncstate": {
+      "rows": 1,
+      "columns": 6,
+      "original_columns_digest_matches": true
+    },
+    "ebay_ebayquantityupdate": {
+      "rows": 0,
+      "columns": 19,
+      "original_columns_digest_matches": true
+    },
+    "ebay_merchantlocation": {
+      "rows": 1,
+      "columns": 12,
+      "original_columns_digest_matches": true
+    },
+    "ebay_oauthstate": {
+      "rows": 46,
+      "columns": 6,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_aicredential": {
+      "rows": 1,
+      "columns": 10,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_aireferencelink": {
+      "rows": 60,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_airesearchcall": {
+      "rows": 9,
+      "columns": 19,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_airesearchsearchterm": {
+      "rows": 31,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_fieldsuggestion": {
+      "rows": 30,
+      "columns": 13,
+      "original_columns_digest_matches": true
+    },
+    "intelligence_imagefingerprint": {
+      "rows": 10,
+      "columns": 7,
+      "original_columns_digest_matches": true
+    },
+    "inventory_inventoryitem": {
+      "rows": 10,
+      "columns": 28,
+      "original_columns_digest_matches": true
+    },
+    "listing_categorylistingdefaults": {
+      "rows": 1,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "listing_channellisting": {
+      "rows": 2,
+      "columns": 11,
+      "original_columns_digest_matches": true
+    },
+    "listing_listingboilerplate": {
+      "rows": 1,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "listing_listingdraft": {
+      "rows": 8,
+      "columns": 34,
+      "original_columns_digest_matches": true
+    },
+    "listing_publishreview": {
+      "rows": 5,
+      "columns": 13,
+      "original_columns_digest_matches": true
+    },
+    "locations_storagelocation": {
+      "rows": 5,
+      "columns": 7,
+      "original_columns_digest_matches": true
+    },
+    "photos_photoasset": {
+      "rows": 12,
+      "columns": 17,
+      "original_columns_digest_matches": true
+    },
+    "photos_photoderivative": {
+      "rows": 14,
+      "columns": 19,
+      "original_columns_digest_matches": true
+    },
+    "profit_lot": {
+      "rows": 0,
+      "columns": 8,
+      "original_columns_digest_matches": true
+    },
+    "profit_profitsetting": {
+      "rows": 0,
+      "columns": 12,
+      "original_columns_digest_matches": true
+    },
+    "profit_source": {
+      "rows": 0,
+      "columns": 5,
+      "original_columns_digest_matches": true
+    },
+    "research_comparable": {
+      "rows": 4,
+      "columns": 23,
+      "original_columns_digest_matches": true
+    },
+    "research_researchrecord": {
+      "rows": 0,
+      "columns": 7,
+      "original_columns_digest_matches": true
+    },
+    "sales_salerecord": {
+      "rows": 4,
+      "columns": 25,
+      "original_columns_digest_matches": true
+    },
+    "valuation_feeschedule": {
+      "rows": 2,
+      "columns": 17,
+      "original_columns_digest_matches": true
+    },
+    "valuation_metalspotcache": {
+      "rows": 1,
+      "columns": 11,
+      "original_columns_digest_matches": true
+    },
+    "valuation_valuationcomparable": {
+      "rows": 4,
+      "columns": 7,
+      "original_columns_digest_matches": true
+    },
+    "valuation_valuationreport": {
+      "rows": 7,
+      "columns": 21,
+      "original_columns_digest_matches": true
+    }
+  },
+  "media_count": 64,
+  "active_draft_index_still_partial": true
+}
