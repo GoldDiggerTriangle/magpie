@@ -3084,3 +3084,23 @@ Regan supplied the final real-iPhone photo, attachment `7CB9E45D-7CEF-4E2B-A406-
 Validated baseline **ce43e46ce4253e256bcbf0492b2aeea180f99a72 / GitHub Validation44269001722**, completed success in both SQLite and PostgreSQL. This metadata was checked during filing; no local runtime suite, live probe or eBay call was run. Prior functional evidence and owner confirmations remain applicable; copy packs/take-down have no code change in this docs-only follow-up.
 
 **Sprint25 remains OPEN only for the recorded disabled-Save label cosmetic defect and final closure filing/disposition.** Codex can fix/test that small listing-editor layout issue in a separately authorised round, or Regan can explicitly decide its disposition; no waiver or fix is inferred from this photo. No further feature, live save, service change or restart is authorised by evidence receipt. Earlier OPEN/missing-photo paragraphs are historical checkpoints superseded by this section.
+
+## 18 November 2026: Authorised Save-Bar Wrapping Fix
+
+Regan authorised this narrow fix, with reproduction at390px/320px, Playwright coverage, both Validation lanes, collectstatic deployment and owner phone confirmation; the final Sprint25 closure note must be marked **pending independent review**. No migration, live save, eBay call or other item-layout change is authorised. Starting head `307c65da005363f92e67b69ff98bc8fc9841279c`; handoffv4.90/specv3.4 read first.
+
+### Reproduce Before Fix
+
+The isolated source fixture renders the actual ListingPanel and AppShell, with80-character gold-shaped titles, no live proxy, all API requests fulfilled from fake records and every unexpected external/API request aborted. No production session or inventory record is used. Eight new cases cover390/320px, normal16px and larger20px root text, and Saved/published Read-only history states.
+
+With the old CSS, **4 passed /4 failed**: default-size390px passed, but the read-only label split Save at390px with larger text, at320px with normal text, and both states at320px with larger text. This does not claim that default390px failed or diagnose Regan's exact iOS text-size setting. The narrow non-wrapping flex row shrank the button and SVG while inherited anywhere-wrapping split its text. Screenshots from that actual failing run: [390px larger-text reproduction](docs/evidence/sprint25/save-bar-fix/before-readonly-390-large-text.png), [320px reproduction](docs/evidence/sprint25/save-bar-fix/before-readonly-320.png).
+
+### Scoped Fix / Regression Proof
+
+- Only `.listing-save-bar` and its direct status/button/icon rules change: the status/button may wrap as intact elements, the button does not shrink, Save does not split and its icon keeps its size. No general button, nav, accordion, item section or editor field layout change.
+- ListingSaveBar observes its actual height and reserves that much space at the editor's end. A second row therefore stays above the existing nav and cannot cover the last editor controls. Existing save handler, status text, readonly/disabled semantics and autosave are unchanged.
+- Playwright asserts Save text occupies one line, status text/icon are unclipped, button and status do not overlap, the bar is inside the viewport and above nav, its measured height is reserved, the last fieldset clears it, and document scrollWidth equals clientWidth. Requests remain isolated/allowlisted; no Save or eBay action is clicked for these geometry checks.
+- Focused after-fix cases: **8 passed**. Full browser suite: **22 passed**. Full frontend suite: **224 passed**, including CopyPackPanel3, ChannelListingsPage2/take-down and ItemDetail reachability19. Typecheck and production build PASS; only the existing large-bundle warning.
+- After screenshots: [Read-only390px larger text](docs/evidence/sprint25/save-bar-fix/after-save-bar-published-390-20.png), [Read-only320px larger text](docs/evidence/sprint25/save-bar-fix/after-save-bar-published-320-20.png), [Saved390px](docs/evidence/sprint25/save-bar-fix/after-save-bar-preview-390-16.png), [Saved320px](docs/evidence/sprint25/save-bar-fix/after-save-bar-preview-320-16.png). These are automated fixture screenshots, not owner phone captures.
+
+**Before deployment:** dual-lane Validation, collectstatic/actual-port8000 asset checks and Regan's phone confirmation are pending. No live data was saved or eBay called; no service restart by Codex. Final closure evidence is not yet declared complete by this implementation checkpoint.

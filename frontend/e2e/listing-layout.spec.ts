@@ -6,10 +6,10 @@ const healthFixture = JSON.parse(readFileSync(new URL("../src/fixtures/ebayHealt
 
 const titles = { spaced: "Australian gold nugget specimen with original surface marks retained for review. ".repeat(2).slice(0, 80), unbroken: "N".repeat(80) };
 
-async function isolatedListing(page: Page, state: "preview" | "staged" | "archived", title?: string) {
+async function isolatedListing(page: Page, state: "preview" | "staged" | "archived" | "published", title?: string) {
   const draft = structuredClone(fixture.draft);
   if (state !== "staged") delete (draft.channel_data as Record<string, unknown>).offer_id;
-  draft.status = state === "archived" ? "archived" : state === "staged" ? "staged" : "draft";
+  draft.status = state === "preview" ? "draft" : state;
   if (title) draft.title = title;
   const forbidden: string[] = [];
   const context = structuredClone(fixture.editor);
@@ -42,6 +42,74 @@ async function isolatedListing(page: Page, state: "preview" | "staged" | "archiv
   await page.goto("/e2e/listing-layout.html");
   await expect(page.getByRole("textbox", { name: "Title", exact: true })).toHaveValue(draft.title);
   return forbidden;
+}
+
+for (const { width, fontSize } of [390, 320].flatMap((width) => [16, 20].map((fontSize) => ({ width, fontSize })))) {
+  for (const state of ["preview", "published"] as const) {
+    test(`Save bar fits ${state === "published" ? "read-only history" : "Saved"} at ${width}px with ${fontSize}px root text`, async ({ page }, info) => {
+      await page.setViewportSize({ width, height: 844 });
+      const forbidden = await isolatedListing(page, state, titles.unbroken);
+      await page.addStyleTag({ content: `html { font-size: ${fontSize}px; }` });
+      await page.getByRole("textbox", { name: "Title", exact: true }).scrollIntoViewIfNeeded();
+      const bar = page.locator(".listing-save-bar");
+      await expect(bar).toBeVisible();
+      await expect(bar.getByRole("status")).toHaveText(state === "published" ? "Read-only history" : "Saved");
+      const save = bar.getByRole("button", { name: "Save", exact: true });
+      if (state === "published") await expect(save).toBeDisabled();
+      else await expect(save).toBeEnabled();
+      await expect.poll(() => bar.evaluate((element) => element.parentElement!.getBoundingClientRect().height >= element.getBoundingClientRect().height)).toBe(true);
+      const layout = await bar.evaluate((element) => {
+        const box = (node: Element) => {
+          const { left, right, top, bottom } = node.getBoundingClientRect();
+          return { left, right, top, bottom };
+        };
+        const status = element.querySelector('[role="status"]')!;
+        const button = element.querySelector("button")!;
+        const textRects = (node: Element) => {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+          const rects: { left: number; right: number; top: number; bottom: number }[] = [];
+          while (walker.nextNode()) {
+            if (!walker.currentNode.textContent?.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(walker.currentNode);
+            rects.push(...Array.from(range.getClientRects()).filter((rect) => rect.width > 0).map(({ left, right, top, bottom }) => ({ left, right, top, bottom })));
+          }
+          return rects;
+        };
+        return { bar: box(element), status: box(status), button: box(button), icon: box(button.querySelector("svg")!),
+          buttonText: textRects(button), statusText: textRects(status), nav: box(document.querySelector(".mobile-bottom-nav")!),
+          clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth };
+      });
+      await info.attach("save-bar-layout", { body: JSON.stringify(layout), contentType: "application/json" });
+      await page.screenshot({ path: info.outputPath(`save-bar-${state}-${width}-${fontSize}.png`) });
+      expect(new Set(layout.buttonText.map((rect) => Math.round(rect.top))).size, JSON.stringify(layout)).toBe(1);
+      for (const rect of [...layout.buttonText, layout.icon]) {
+        expect(rect.left).toBeGreaterThanOrEqual(layout.button.left);
+        expect(rect.right).toBeLessThanOrEqual(layout.button.right);
+        expect(rect.top).toBeGreaterThanOrEqual(layout.button.top);
+        expect(rect.bottom).toBeLessThanOrEqual(layout.button.bottom);
+      }
+      for (const rect of layout.statusText) {
+        expect(rect.left).toBeGreaterThanOrEqual(layout.status.left - 1);
+        expect(rect.right).toBeLessThanOrEqual(layout.status.right + 1);
+        expect(rect.bottom).toBeLessThanOrEqual(layout.status.bottom + 1);
+      }
+      expect(layout.status.right <= layout.button.left || layout.status.bottom <= layout.button.top).toBe(true);
+      expect(layout.bar.left).toBeGreaterThanOrEqual(0);
+      expect(layout.bar.right).toBeLessThanOrEqual(width);
+      expect(layout.bar.bottom).toBeLessThanOrEqual(layout.nav.top + 1);
+      expect(layout.scrollWidth).toBe(layout.clientWidth);
+      await page.locator(".listing-save-slot").scrollIntoViewIfNeeded();
+      await expect(bar).toBeVisible();
+      const lastField = page.locator(".listing-editor fieldset").first();
+      await expect.poll(async () => {
+        const field = await lastField.boundingBox();
+        const fixed = await bar.boundingBox();
+        return Boolean(field && fixed && field.y + field.height <= fixed.y + 1);
+      }).toBe(true);
+      expect(forbidden).toEqual([]);
+    });
+  }
 }
 
 async function fitsPhone(page: Page, info: TestInfo, label: string) {
