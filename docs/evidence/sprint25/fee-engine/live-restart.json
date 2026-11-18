@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "checked_at_utc": "2026-11-18T00:45:31.689644+00:00",
+  "checkout_head": "5a61a2d5e87647a392508f4de67a2809d2245cec",
+  "owner_restart_confirmed": true,
+  "runtime_pid": 4708,
+  "runtime_started_sydney": "2026-11-18T11:43:22.209358+11:00",
+  "statuses": {
+    "/api/health/": 200,
+    "/settings/ebay": 200,
+    "/assets/index-C_Qk6Kuk.js": 200,
+    "/assets/index-BJ2fjPO8.css": 200,
+    "/api/fee-engine/": 200,
+    "/api/profit/ledger/": 200
+  },
+  "served_index_sha256": "7d59424afbd6bed2d0f4dcaaeea102f62c9d5dd858d24ce01a750704d8d299c7",
+  "assets": {
+    "index-C_Qk6Kuk.js": "ba64fb44780f4ece214e12b2f4a3b1d448dc6b912f4f4eb9ddb93c667cb76b2d",
+    "index-BJ2fjPO8.css": "df0533e333f343ce56daa86a6a59eb622557b9d77b065c31abe9370ce81e8cde"
+  },
+  "fee_calendar_state": "schedule unknown",
+  "versions": 0,
+  "periods": 0,
+  "rates": 0,
+  "legacy_schedules": 2,
+  "legacy_sales": 4,
+  "recorded_fee_each": "0.46",
+  "known_profits": [
+    "0.34",
+    "0.34",
+    "0.34"
+  ],
+  "external_profit": "unknown",
+  "gst_inclusive": true,
+  "owner_not_gst_registered": true,
+  "coins_stamps_tier4": true,
+  "tables": 57,
+  "rows": 820,
+  "database_unchanged": true,
+  "get_only": true,
+  "new_session_created": false,
+  "no_external_calls": true,
+  "owner_rate_entry_and_phone_sample": "pending"
+}
