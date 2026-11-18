@@ -2969,3 +2969,19 @@ Regan replied **Running** to the restart request. NSSM Magpie is Running; child 
 - Machine-readable proof: `docs/evidence/sprint25/fee-engine/live-restart.json` (allowlisted statuses/counts/asset digests only).
 
 **Restart/deployment proof PASS. Owner rate entry and phone sample acceptance remain OPEN.** Regan may now open Pro Basic fee calendar, enter the confirmed periods/source/GST-inclusive figures himself, review and save, then use Check a what-if profit figure and send the result/screenshot. Codex has selected no effective date or rate and will make no live fee/default/listing save. Sprint25 remains OPEN for that check and the other outstanding closure evidence.
+
+### 2026-11-18: Owner-entered calendar and real-phone sample PASS
+
+Regan supplied real iPhone screenshots of the rendered immutable-version review (12:35) and calculated sample (12:37). Copied unchanged, hash-verified originals: `docs/evidence/sprint25/fee-engine/owner-fee-calendar-review.jpg` and `owner-fee-calendar-sample.jpg`. These are owner phone evidence, not synthetic browser fixtures.
+
+Read-only verification at **01:40:32 UTC / 12:40:32 Sydney**, actual NSSM/Waitress port8000, authenticated GETs only: **calendar configured, version1 persisted**, one Pro Basic period **2026-07-12 to open-ended**, AUD/EBAY_AU, GST-inclusive. Fixed order fee0.33, international1.1%, Tier4 FVF13.09% up to4000 per item and2.75% above. Source note present. Version created **01:35:40 UTC / 12:35:40 Sydney**, entered-by owner attribution matches its single `fee.calendar.created` audit row. Regan selected the date and entered/saved every figure; Codex did not seed, type or save any live default/rate/period.
+
+**Phone sample:** Gold; seller-receives item375.00; all-in direct costs270.00; buyer-paid postage0.00; AU delivery. Screenshot shows **calculated fees49.42; what-if profit55.58; GST added0.00**, explicitly not evidence of eBay's charge and not saved as valuation evidence. Recomputed in memory using the saved calendar at verification date18Nov2026 (the screenshot does not show its sale-date field): rounded FVF49.09 + fixed0.33 =49.42; 375.00 -49.42 -270.00 =55.58. No international fee, no GST double-count. Profit is conditional on the entered270.00 representing all direct costs; it is not a recorded sale/profit.
+
+**Persistence / preservation:** 57 tables/824 rows after Regan's explicit save: version1, period1, tier-rate1 and one creation audit row added to the prior820-row state. Actual sales4, legacy sale snapshots4, order snapshots0, fee adjustments0. Four original recorded0.46 and estimated0.52 fees, three0.34 profits and external unknown unchanged; original SaleRecord/FeeSchedule/snapshot/inventory/draft/ChannelListing/review digests still match installation proof. Protected published history unchanged. Every live table digest is unchanged by Codex's GET/in-memory verification; no new session, local save, OAuth renewal, eBay/external call or listing/quantity write.
+
+Actual health/Settings/assets/calendar/ledger endpoints all HTTP200; served index/JS/CSS hashes still match the verified build. Machine-readable allowlisted proof: `docs/evidence/sprint25/fee-engine/owner-fee-sample.json`.
+
+**Fee-engine live acceptance gate: PASS / COMPLETE + LIVE.** This does **not** close all of Sprint25: outstanding overall closure evidence, including Sprint24/23R2 catch-up and the remaining required Sprint25 phone screenshots/checklist, is not superseded. No next phase or additional feature work started.
+
+Validated source/evidence head at this phone check: **bca3f98c624f37a12ee53592f28cc5e9d0114081**; GitHub Validation **44210633819**, **SQLite and PostgreSQL both green**. This follow-up changes documentation/evidence only; no runtime code, dependency, migration, configuration or service change and no new restart required.

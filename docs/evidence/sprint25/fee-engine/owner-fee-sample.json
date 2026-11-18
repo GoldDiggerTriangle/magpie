@@ -1,0 +1,79 @@
+{
+  "ok": true,
+  "checked_at_utc": "2026-11-18T01:40:32.366759+00:00",
+  "checkout_head": "bca3f98c624f37a12ee53592f28cc5e9d0114081",
+  "owner_restart_confirmed": true,
+  "runtime_pid": 4708,
+  "runtime_started_sydney": "2026-11-18T11:43:22.209358+11:00",
+  "statuses": {
+    "/api/health/": 200,
+    "/settings/ebay": 200,
+    "/assets/index-C_Qk6Kuk.js": 200,
+    "/assets/index-BJ2fjPO8.css": 200,
+    "/api/fee-engine/": 200,
+    "/api/profit/ledger/": 200
+  },
+  "served_index_sha256": "7d59424afbd6bed2d0f4dcaaeea102f62c9d5dd858d24ce01a750704d8d299c7",
+  "assets": {
+    "index-C_Qk6Kuk.js": "ba64fb44780f4ece214e12b2f4a3b1d448dc6b912f4f4eb9ddb93c667cb76b2d",
+    "index-BJ2fjPO8.css": "df0533e333f343ce56daa86a6a59eb622557b9d77b065c31abe9370ce81e8cde"
+  },
+  "fee_calendar_state": "configured",
+  "versions": 1,
+  "periods": 1,
+  "rates": 1,
+  "legacy_schedules": 2,
+  "legacy_sales": 4,
+  "recorded_fee_each": "0.46",
+  "known_profits": [
+    "0.34",
+    "0.34",
+    "0.34"
+  ],
+  "external_profit": "unknown",
+  "gst_inclusive": true,
+  "owner_not_gst_registered": true,
+  "coins_stamps_tier4": true,
+  "tables": 57,
+  "rows": 824,
+  "database_unchanged": true,
+  "get_only": true,
+  "new_session_created": false,
+  "no_external_calls": true,
+  "owner_rate_entry_and_phone_sample": "PASS",
+  "calendar": {
+    "number": 1,
+    "created_at": "2026-11-18T01:35:40.858362+00:00",
+    "plan": "pro_basic",
+    "effective_from": "2026-07-12",
+    "effective_to": null,
+    "per_order_fee": "0.33",
+    "international_pct": "1.100000",
+    "gst_treatment": "inclusive",
+    "tier": {
+      "tier": "tier4",
+      "fvf_pct": "13.090000",
+      "threshold": "4000.00",
+      "above_pct": "2.750000"
+    },
+    "source_present": true,
+    "owner_attribution_verified": true,
+    "creation_audit_rows": 1
+  },
+  "sample": {
+    "verification_date": "2026-11-18",
+    "category": "gold",
+    "item_price": "375.00",
+    "costs": "270.00",
+    "buyer_postage": "0.00",
+    "destination": "AU",
+    "calculated_fee": "49.42",
+    "what_if_profit": "55.58",
+    "GST_added": "0.00",
+    "not_evidence_of_ebay_charges": true
+  },
+  "protected_financial_inventory_and_published_rows_unchanged": true,
+  "sale_snapshots": 4,
+  "order_snapshots": 0,
+  "adjustments": 0
+}
