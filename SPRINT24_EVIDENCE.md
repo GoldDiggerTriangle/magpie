@@ -1,6 +1,6 @@
 # Sprint 24 Evidence - AI Review Flow and Collapsible Item Page
 
-Status: reopened for Round 2. Round 1 was live-closed; Round 2 fixes are implemented and locally validated in this checkout. Formal Round 2 live closure remains pending owner proof that a full AI-approved/edited title saves and re-renders correctly from the restarted NSSM `Magpie` service.
+Status: Round 1 was live-closed. Round 2 implementation, historical/current Validation references and the owner's 18 November 2026 written phone confirmation are filed below. Formal Round 2 closure remains OPEN for the required current real-iPhone item/AI-review safe-area screenshot; the owner's confirmation is not a substitute for that image.
 
 ## Scope Implemented
 
@@ -563,3 +563,34 @@ Automated frontend coverage proves the banner action itself:
     - Browser `/admin/` renders Django admin login HTML.
     - Browser `/admin/login/?next=%2F` renders Django admin login HTML.
     - Neither route shows `Unexpected Application Error`.
+
+## 18 November 2026: Closure Audit Follow-up and Owner Confirmation
+
+After the read-only Sprint25 closure audit listed the remaining phone checks and evidence gaps, Regan replied **"yes to all"**. Recorded as **owner-reported confirmation of the applicable phone checks**, including full-title save/re-render after reload, item/AI controls clear of the status bar, and browser/PWA admin-login recovery. This is the owner's written report, not a new agent browser run, a supplied full-title string or a new screenshot. It does not waive any required visual proof. Earlier pending paragraphs remain as historical checkpoints; this section is the current confirmation/filing state.
+
+The audit separately checked actual port8000 without browser automation: `/admin/`302 to Django admin login; `/admin/login/?next=%2F`200 with username/password inputs, not React404; every live table digest unchanged. Direct HTTP cannot prove service-worker behaviour; the browser/PWA result above is explicitly owner-reported. No login/session was created by the audit and no eBay call occurred.
+
+### Sprint23 Round2 Original Picker Photos Archived
+
+The four original owner JPEGs are now copied unchanged and source/copy SHA256 equality checked:
+
+| Original owner image | Archived proof | What it shows |
+|---|---|---|
+| 1-Photo-1.jpg | `docs/evidence/sprint23-round2/owner-add-country.jpg` | Add navigation selected; native Country picker open. |
+| 2-Photo-2.jpg | `docs/evidence/sprint23-round2/owner-add-denomination.jpg` | Add navigation selected; native Denomination picker open. |
+| 3-Photo-3.jpg | `docs/evidence/sprint23-round2/owner-edit-country.jpg` | Items navigation selected; edit Country picker open. |
+| 4-Photo-4.jpg | `docs/evidence/sprint23-round2/owner-edit-denomination.jpg` | Items navigation selected; edit Denomination picker open. |
+
+These are the original real-iPhone open-picker proofs, **not fresh captures of the current build**. Country images visibly contain the older AU/Australia, CA/Canada etc. mixed code/name choices; they predate the names-only follow-up already recorded above and must not be described as photos of that later display. They also are not Sprint24 safe-area proof. No image was edited or imported into item media. Sprint23R2 final head `b3aa7ca06e1db707ad69621a8876a79ed8ba8967`, Validation28769192729, and Sprint24R1 head `b9b7d8e7171a6a0e782cf0b8623e423fb2489e35`, Validation28771991489, remain the supplied historical closure references. This filing does not silently declare a new standalone Sprint23 closure.
+
+### Round2 Follow-up / Current Regression References
+
+- Last documented Sprint24 follow-up/admin-routing regression commit: **0d36a97e9dcd327d5df9dd044929dd1ff61ebb40**. GitHub metadata rechecked18Nov2026: **Validation29144786471, completed success, SQLite and PostgreSQL both success**. This recovers the historical reference; it is not a fresh execution of that old build.
+- Current closure-audit/regression baseline: **15b1dbf9170510453aa717d71087f5b9eed2f743**, **Validation44217970408**, both lanes green. Full suites include the title approve/edit/reload, scoped core/category save, structured suggestions/audit metadata and admin/PWA routing regressions.
+- The pre-existing23R2/24R1 catch-up and later title-fill owner note were already present; they have not been overwritten or represented as newly supplied test results.
+
+### Remaining Formal Closure Gate
+
+**Regan:** supply a current real-iPhone item/AI-review screenshot with the iOS clock/status bar visible and review/sticky controls clear of it. A current item-header capture can supplement this. No new Identify call, apply/save, publish or other live mutation is needed for a stored review's visual proof. The existing mobile-sized port8000 screenshots do not substitute for the specifically requested current real-device image.
+
+**Codex:** file the supplied current image, cross-reference the owner confirmation and verified head/run, then write the formal Round2 closure note only if the controlling visual requirements are met. **Sprint24 remains OPEN at this checkpoint.** This follow-up changes documentation and archives existing owner photos only: no code, settings, migration, service, live database/media, AI/provider or eBay action.

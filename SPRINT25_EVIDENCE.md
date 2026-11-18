@@ -2985,3 +2985,66 @@ Actual health/Settings/assets/calendar/ledger endpoints all HTTP200; served inde
 **Fee-engine live acceptance gate: PASS / COMPLETE + LIVE.** This does **not** close all of Sprint25: outstanding overall closure evidence, including Sprint24/23R2 catch-up and the remaining required Sprint25 phone screenshots/checklist, is not superseded. No next phase or additional feature work started.
 
 Validated source/evidence head at this phone check: **bca3f98c624f37a12ee53592f28cc5e9d0114081**; GitHub Validation **44210633819**, **SQLite and PostgreSQL both green**. This follow-up changes documentation/evidence only; no runtime code, dependency, migration, configuration or service change and no new restart required.
+
+## 18 November 2026: Closure Audit and Owner's "Yes to All"
+
+Read-only audit baseline: **15b1dbf9170510453aa717d71087f5b9eed2f743**, **Validation44217970408**, both lanes green. GitHub job logs confirm SQLite526 passed/1 skipped, PostgreSQL514 passed/13 skipped; CopyPackPanel3 tests, ChannelListingsPage2 tests including take-down ticking, and integrated reachability19 tests all pass. No local suite/build, live-data write or eBay call was made for that audit.
+
+Regan answered **"yes to all"** to the audit listing the outstanding owner checks and filing tasks. Recorded as **owner-reported confirmation that the applicable phone checks pass**, not a waiver of required screenshots, a new agent-observed test run, authorisation to create stock/sales, or permission to stage/publish/reconcile. No new image was attached to that answer.
+
+### Applicable Phone Checks: Owner-Reported PASS
+
+| Check | Scope / evidence limit |
+|---|---|
+| Fresh accordion defaults, reload persistence, clock-safe sticky headers and phone index absence | Owner confirmation in the audit context; no new device screenshot or per-item values supplied. |
+| Canonical editor and reviewed publish surface visibly reachable | Prior phone editor/supervised-review/Phase6 checks plus this confirmation; old nested-panel paths are superseded. |
+| Staged/published and available genuine sold/partial-stock views | Confirmed only where applicable. Prior inventory report has sold-out STM-00002 but no genuine partial-stock listing case; **no live partial-stock test or fabricated sale is claimed**. Automated partial/sold coverage remains the evidence for unavailable states. |
+| Category/postage/condition/photo blocker expansion, scrolling, focus and return | Owner-reported phone confirmation plus current automated reachability; not re-executed by Codex. |
+| Copy, Copy whole ad, Photo zip/download and navigation clearance | Owner-reported actual-phone confirmation plus current regression suite; no clipboard/download action performed by Codex. |
+| Drawer / PRODUCTION badge | Owner reports the applicable phone check passes. Exact drawer open/closed/absent state was not specified. Preserve the original closure note and this evidence limit; **no cause, agent reproduction or code fix is claimed**. Existing owner Settings image shows the badge readable. |
+| Sprint24 full-title reload, item/AI safe areas and admin/PWA login | Owner-reported confirmation recorded in SPRINT24_EVIDENCE.md; required current safe-area image still missing. |
+
+### Spec v3.4 Section13: Current Filing State
+
+| Criterion | Result / reference |
+|---|---|
+| Gate0/Phase0 before v3 UI restoration | Met: Gate0 closed13Nov; Phase0 section and later Phase3 chronology above. |
+| Phase1 inventory and field-by-field restoration comparison | Met: original Phase1 inventory, Phase3 field matrix and76-row Phase6 parity checklist above. |
+| Canonical status classification / complete active constraint | Met: status table and current canonical/constraint suites. |
+| Approved A dry run, unresolved0, B seeded-violation abort | Met:64712feb approval,6202c4e0 execution and Migration B evidence/tests. |
+| Archived duplicates/audits, published history unchanged | Met: exact four archives, audit151->155, preservation/restore proofs. |
+| Active uniqueness on SQLite and PostgreSQL | Met: current dual-lane constraint tests, including unknown status/file-backed SQLite. |
+| Keeper offer/score/time/PK tie-break rules | Met: canonical suite. |
+| Creation reuses the active canonical draft | Met: canonical API/model/reachability suite. |
+| Concurrent publish, reconcile outcomes and crash recovery | Met: Phase5 test matrix and current file-backed SQLite/PostgreSQL suites. |
+| Phase0 staging-unproven wording | Met: original diagnostic report retained. |
+| Editor full-field save/resume/preview, tests and live proof | Met for functional owner confirmation: prior full-field tests/phone evidence plus "yes to all"; required current editor image remains under the separate screenshot gate. |
+| Default labels, no price/quantity defaults, remaining stock, no draft rewrites | Met: Phase4/Phase8 suites and owner checks. |
+| Named blockers / conditionless139965 | Met: publish/editor tests and supervised gold review. |
+| Real policy terms in options and preview | Met: editor/workflow tests and real staged-phone review. |
+| Expired EPS re-upload before publish | Met: explicit-update/31-day expiry tests; no silent publish bypass. |
+| Forced expiry/validation/permission errors named | Met: Phase5/7 fixtures; current CI. |
+| Every Phase1 row accounted for; reachability CI | Met:76 checked functional homes and19 current reachability tests. |
+| No item-page layout migration | Met: existing seven accordions retained; no tabs. |
+| One supervised real listing, URL and ChannelListing | Met:756f29cb, GOLD-00002 listing128199443689, real owner eBay-app image. Not re-fetched in this follow-up. |
+| No zero-tap; copy packs / take-down regression-green | Met: explicit review gates and current CopyPackPanel/ChannelListingsPage/backend Sprint22 suites; owner phone confirmation above. |
+| Suites/CI/build/static, approved preservation migrations, backup/restore/restart | Met under rule12/express owner-approved exceptions; current run and prior deployment proofs. |
+| Four required real-phone images | **Partly met:** staged/gated review image filed; current top-entry/editor/URL-visible captures still required below. |
+| Both evidence files current with owner confirmations | Confirmation/reference filing updated in this follow-up; required visual attachments and formal Sprint24 closure are still open, not represented as complete. |
+| Final closure note with final head/Validation | **Not met:** intentionally withheld until the remaining proof is filed. This section is a checkpoint, not a sprint closure. |
+
+### Documentation Catch-up Completed / No Visual Waiver
+
+SPRINT24_EVIDENCE.md now records the owner's written confirmation, the four original23R2 picker photos with historical/pre-name-cleanup captions, and recovered Sprint24 follow-up **0d36a97e9dcd327d5df9dd044929dd1ff61ebb40 / Validation29144786471** (both lanes success, metadata checked18Nov). Existing23R2 **b3aa7ca /28769192729** and24R1 **b9b7d8e7 /28771991489** references remain. Source/copy hashes match; no photo edited or imported into live media. The phone photos are historical open-picker evidence, not current safe-area images.
+
+**Still required from Regan (current real-phone captures):**
+1. Item header with the top **List on eBay** action visible outside collapsed sections.
+2. Current clean listing editor (not the older pre-placeholder-removal attachment).
+3. Live listing with its **URL visible**; the existing eBay-app Active listing image remains valid listing proof but does not show the URL.
+4. Sprint24 item/AI-review controls clear of the **visible iOS clock/status bar**.
+
+The existing real staged/SKU-gate and expired-review photos already satisfy gated-preview proof; do not repeat staging or publishing for another photo. Codex will file the new images and finish the closure notes only after they are supplied. No new eBay call/action by Codex is authorised by this checkpoint.
+
+The Gold what-if remains375 item/270 all-in costs/**buyer-paid postage0.00**/AU: calculated49.42 fees,55.58 what-if profit, GST0.00; no actual fee/sale persisted. Seller-paid postage/packing must be inside the270 combined costs; the buyer-postage field does not represent that expense.
+
+**Sprint25 and formal Sprint24 Round2 closure remain OPEN for visual proof.** No code, dependency, configuration, service, migration, database, inventory-media or external/eBay change; no restart required.
