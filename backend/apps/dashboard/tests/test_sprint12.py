@@ -199,7 +199,7 @@ def test_analytics_sections_return_live_dashboard_payloads(api_client, dashboard
     assert estimate.data["accuracy"]["small_sample"] is True
     assert estimate.data["points"][0]["estimated"] == "75.00"
     assert estimate.data["points"][0]["actual"] == "80.00"
-    assert estimate.data["fees"]["sample_size"] == 1
+    assert estimate.data["fees"]["sample_size"] == 0  # No confirmed fee estimate was captured for the new sale.
 
     aging = api_client.get("/api/analytics/aging/?range=all")
     assert aging.status_code == 200

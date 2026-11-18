@@ -204,7 +204,7 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
             <span>Fee schedule</span>
             <select className="field" value={feeSchedule} onChange={(event) => setFeeSchedule(event.target.value as UUID)}>
               <option value="">Active schedule</option>
-              {(schedules.data?.results ?? []).map((schedule) => <option key={schedule.id} value={schedule.id}>{schedule.name}</option>)}
+              {(schedules.data?.results ?? []).map((schedule) => <option key={schedule.id} value={schedule.id}>{schedule.name} (legacy / unverified)</option>)}
             </select>
           </label>
           <label className="flex items-end gap-2 text-sm font-medium text-slate-300">

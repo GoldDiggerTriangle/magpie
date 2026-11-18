@@ -168,3 +168,9 @@ class MetalSpotCache(TimeStampedUUIDModel):
 
     def __str__(self) -> str:
         return f"{self.metal} {self.currency} via {self.provider}"
+
+
+from .fee_models import (  # noqa: E402,F401
+    FeeScheduleVersion, FeePlanPeriod, FeeTierRate, FeeOrderSnapshot,
+    SaleFeeSnapshot, FeeAdjustment,
+)

@@ -13,7 +13,13 @@ class FeeScheduleAdmin(admin.ModelAdmin):
     list_display = ("name", "effective_from", "is_active", "final_value_pct", "promoted_pct", "gst_pct")
     list_filter = ("is_active", "effective_from")
     search_fields = ("name", "notes")
-    readonly_fields = ("id", "created_at", "updated_at")
+    readonly_fields = tuple(field.name for field in FeeSchedule._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class ValuationComparableInline(admin.TabularInline):

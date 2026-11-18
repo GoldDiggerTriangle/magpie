@@ -1,0 +1,18 @@
+{
+  "note": "TEST INPUTS ONLY. Never seeded into production. Shared Decimal/integer-cent parity for Sprint 25; the Sprint 19 BPF and ROI cases remain unchanged.",
+  "period": {"per_order_fee": "0.33", "international_pct": "1.100000"},
+  "buy_case": {"expected_sell_price": "100.00", "price_basis": "seller_receives", "seller_mode": "pro_other", "target_type": "roi", "flat_profit_target": "25.00", "roi_pct": "30.00", "roi_basis": "all_in_cash", "postage": "0.00", "packaging": "0.00", "refurb": "0.00", "asking_price": "60.00", "fee_category": "coins", "fee_date": "2026-11-18", "delivery_country": "AU", "evidence_source": "what_if", "confidence_label": "what-if", "expected_max_buy": "66.60", "expected_profit": "26.58", "expected_roi": "44.30"},
+  "rates": {"tier4": {"tier": "tier4", "fvf_pct": "13.090000", "threshold": "4000.00", "above_pct": "2.750000"}, "tier1": {"tier": "tier1", "fvf_pct": "8.030000", "threshold": "4000.00", "above_pct": "2.750000"}},
+  "cases": [
+    {"id": "below", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 1, "item_total": "100.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "13.42"},
+    {"id": "just-below-break", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 1, "item_total": "3999.99", "category_slug": "coins", "tier": "tier4"}]}, "total": "523.93"},
+    {"id": "at-break", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 1, "item_total": "4000.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "523.93"},
+    {"id": "just-above-break", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 1, "item_total": "4000.01", "category_slug": "coins", "tier": "tier4"}]}, "total": "523.93"},
+    {"id": "above", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 1, "item_total": "5000.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "551.43"},
+    {"id": "international", "order": {"sale_date": "2026-11-18", "destination_country": "NZ", "lines": [{"key": "a", "quantity": 1, "item_total": "100.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "14.52"},
+    {"id": "per-unit-threshold-order-fee-once", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 2, "item_total": "10000.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "1102.53"},
+    {"id": "mixed-tiers", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "b", "quantity": 1, "item_total": "100.00", "category_slug": "synthetic-tier4", "tier": "tier4"}, {"key": "a", "quantity": 1, "item_total": "100.00", "category_slug": "synthetic-tier1", "tier": "tier1"}]}, "total": "21.45"},
+    {"id": "postage-tax-discount-promotion-extras", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "postage": "10.00", "handling": "2.00", "marketplace_tax": "20.00", "seller_discount": "10.00", "buyer_incentives": "50.00", "promoted_fee": "2.00", "extra_charges": [{"label": "Recorded extra", "amount": "1.00", "source": "fixture"}], "lines": [{"key": "a", "quantity": 2, "item_total": "200.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "32.39", "revenue": "202.00", "base": "222.00"},
+    {"id": "rounding-residue", "order": {"sale_date": "2026-11-18", "destination_country": "AU", "lines": [{"key": "a", "quantity": 3, "item_total": "1.00", "category_slug": "coins", "tier": "tier4"}]}, "total": "0.45"}
+  ]
+}

@@ -1052,7 +1052,10 @@ export interface SaleRecord {
   actual_fee_breakdown: Record<string, unknown>;
   fee_status: "authoritative" | "estimated_or_unmapped";
   actual_shipping_cost: string;
-  net_proceeds: string;
+  net_proceeds: string | null;
+  effective_revenue?: string;
+  effective_fee_total?: string | null;
+  fee_label?: string;
   allocated_cost_basis: string | null;
   realised_profit: string | null;
   cost_basis_override: string | null;
@@ -1209,6 +1212,9 @@ export interface BoughtItPayload {
 }
 
 export interface BuyCalculationPayload {
+  fee_category?: string;
+  fee_date?: string;
+  delivery_country?: string;
   expected_sell_price: string;
   price_basis: PriceBasis;
   seller_mode?: SellerMode;
@@ -1241,6 +1247,7 @@ export interface BuyCalculationResult {
 }
 
 export interface ProfitSummary {
+  unknown_fee_sale_count?: number;
   sale_count: number;
   known_profit_sale_count: number;
   unknown_cost_sale_count: number;
@@ -1275,8 +1282,10 @@ export interface ProfitLedgerRow {
   listed_date_basis: string;
   revenue: string;
   price_basis: PriceBasis;
-  fees: string;
-  fee_provenance: "actual_recorded" | "schedule_derived";
+  fees: string | null;
+  fee_provenance: "actual_recorded" | "schedule_derived" | "calculated" | "adjusted" | "schedule unknown" | "fee rate not configured" | "plan restriction";
+  fee_label?: string;
+  fee_snapshot_id?: string | null;
   fee_breakdown: Record<string, unknown>;
   cost_components: {
     acquisition: string;
@@ -1296,7 +1305,7 @@ export interface ProfitLedgerRow {
   days_held_basis: string;
   profit_per_day: string | null;
   annualised_all_in_roi: string | null;
-  velocity_state: "known" | "unknown_date" | "unknown_cost";
+  velocity_state: "known" | "unknown_date" | "unknown_cost" | "unknown_fee";
   detail_url: string;
 }
 
@@ -1455,6 +1464,7 @@ export interface LotSummary {
 }
 
 export interface SaleRecordPayload {
+  fee_context?: { destination_country: string; postage: string; handling: string; marketplace_tax: string; seller_discount: string; promoted_fee: string };
   item?: UUID;
   sale_date: string;
   quantity: number;

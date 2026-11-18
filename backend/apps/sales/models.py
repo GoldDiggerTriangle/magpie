@@ -145,11 +145,37 @@ class SaleRecord(TimeStampedUUIDModel):
         ]
 
     @property
-    def net_proceeds(self) -> Decimal:
+    def recorded_revenue(self) -> Decimal:
+        from apps.valuation.fee_engine import snapshot_for, effective_result
+        snapshot = snapshot_for(self)
+        return Decimal(effective_result(snapshot)["revenue"]) if snapshot else money(self.sale_price)
+
+    @property
+    def effective_fees_total(self) -> Decimal | None:
+        from apps.valuation.fee_engine import snapshot_for, effective_result
+        snapshot = snapshot_for(self)
+        if snapshot:
+            value = effective_result(snapshot).get("fees")
+            return Decimal(value) if value is not None else None
+        return money(self.actual_fees_total) if self.fee_status == self.FeeStatus.AUTHORITATIVE else None
+
+    @property
+    def net_proceeds(self) -> Decimal | None:
+        from apps.valuation.fee_engine import snapshot_for, effective_result
+        frozen = snapshot_for(self)
+        if frozen:
+            r = effective_result(frozen)
+            return money(Decimal(r["revenue"]) - Decimal(r["fees"]) - Decimal(r["cost_components"].get("postage_label", "0"))) if r.get("fees") is not None else None
+        if self.fee_status != self.FeeStatus.AUTHORITATIVE:
+            return None
         return money(self.sale_price - self.actual_fees_total - self.actual_shipping_cost)
 
     @property
     def allocated_cost_basis(self) -> Decimal | None:
+        from apps.valuation.fee_engine import snapshot_for
+        frozen = snapshot_for(self)
+        if frozen:
+            return Decimal(frozen.result["cost_components"]["acquisition"]) if frozen.result["cost_state"] == "known" else None
         if self.cost_basis_unknown:
             return None
         if self.cost_basis_override is not None:
@@ -161,10 +187,17 @@ class SaleRecord(TimeStampedUUIDModel):
 
     @property
     def realised_profit(self) -> Decimal | None:
+        from apps.valuation.fee_engine import snapshot_for, effective_result
+        frozen = snapshot_for(self)
+        if frozen:
+            value = effective_result(frozen).get("realised_profit")
+            return Decimal(value) if value is not None else None
         allocated_cost = self.allocated_cost_basis
-        if allocated_cost is None:
+        if allocated_cost is None or self.net_proceeds is None:
             return None
-        return money(self.net_proceeds - allocated_cost)
+        from apps.profit.ledger import cost_components_for_sale
+        costs, state, _ = cost_components_for_sale(self)
+        return money(self.recorded_revenue - self.effective_fees_total - sum(costs.values())) if state == "known" else None
 
     @property
     def is_superseded(self) -> bool:

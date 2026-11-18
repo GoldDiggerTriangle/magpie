@@ -37,7 +37,7 @@ RANKING_TOOLTIP = (
 
 @dataclass(frozen=True)
 class FeeChoice:
-    total: Decimal
+    total: Decimal | None
     provenance: str
     seller_mode: str
     seller_mode_basis: str
@@ -183,7 +183,21 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
     costs, cost_state, cost_warning = cost_components_for_sale(sale)
     source = effective_source_for_item(item)
     total_costs = sum(costs.values(), Decimal("0.00")) if cost_state == "known" else None
-    realised_profit = money(revenue - fee_choice.total - total_costs) if total_costs is not None else None
+    realised_profit = money(revenue - fee_choice.total - total_costs) if total_costs is not None and fee_choice.total is not None else None
+    from apps.valuation.fee_engine import snapshot_for, effective_result
+    frozen = snapshot_for(sale)
+    if frozen:
+        saved = effective_result(frozen)
+        revenue = Decimal(saved["revenue"])
+        costs = {k: Decimal(v) for k, v in saved["cost_components"].items()}
+        cost_state = saved["cost_state"]
+        cost_warning = saved.get("cost_warning", "" if cost_state == "known" else "Frozen sale cost basis is unknown.")
+        total_costs = Decimal(saved["total_costs"]) if saved["total_costs"] is not None else None
+        realised_profit = Decimal(saved["realised_profit"]) if saved["realised_profit"] is not None else None
+        if "days_held" in saved:
+            days_held, days_basis = saved["days_held"], saved["days_held_basis"]
+            acquired_on = date.fromisoformat(saved["acquired_date"]) if saved.get("acquired_date") else None
+            acquired_basis = saved["acquisition_date_basis"]
     all_in_roi = ratio(realised_profit, total_costs) if realised_profit is not None and total_costs and total_costs > 0 else None
     profit_per_day = money(realised_profit / Decimal(days_held)) if realised_profit is not None and days_held else None
     annualised_roi = (
@@ -215,7 +229,10 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
         "listed_date_basis": listed_basis,
         "revenue": str(money(revenue)),
         "price_basis": PriceBasis.SELLER_RECEIVES,
-        "fees": str(fee_choice.total),
+        "fees": str(fee_choice.total) if fee_choice.total is not None else None,
+        "fee_state": "known" if fee_choice.total is not None else "unknown",
+        "fee_label": frozen.label if frozen else ("Actual recorded fees" if sale.fee_status == "authoritative" else "schedule unknown"),
+        "fee_snapshot_id": str(frozen.pk) if frozen else None,
         "fee_provenance": fee_choice.provenance,
         "fee_breakdown": stringify_money_dict(fee_choice.breakdown),
         "cost_components": stringify_money_dict(costs),
@@ -229,7 +246,7 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
         "days_held_basis": days_basis,
         "profit_per_day": str(profit_per_day) if profit_per_day is not None else None,
         "annualised_all_in_roi": str(annualised_roi) if annualised_roi is not None else None,
-        "velocity_state": "known" if profit_per_day is not None else ("unknown_date" if days_held is None else "unknown_cost"),
+        "velocity_state": "known" if profit_per_day is not None else ("unknown_fee" if fee_choice.total is None else "unknown_date" if days_held is None else "unknown_cost"),
         "detail_url": f"/inventory/{item.id}" if item else "/sales",
     }
 
@@ -295,6 +312,13 @@ def serialize_scrapped_row(item: InventoryItem) -> dict:
 
 def fee_choice_for_sale(sale: SaleRecord, revenue: Decimal, setting: ProfitSetting) -> FeeChoice:
     seller_mode, seller_mode_basis = seller_mode_for_sale(sale, setting)
+    from apps.valuation.fee_engine import snapshot_for, effective_result
+    snapshot = snapshot_for(sale)
+    if snapshot:
+        result = effective_result(snapshot)
+        return FeeChoice(total=Decimal(result["fees"]) if result.get("fees") is not None else None,
+                         provenance=result["fee_provenance"], seller_mode=result.get("seller_mode") or ("pro_other" if snapshot.version_id else "unverified"),
+                         seller_mode_basis="frozen_sale_snapshot", breakdown=snapshot.components)
     if sale.fee_status == SaleRecord.FeeStatus.AUTHORITATIVE:
         breakdown = dict(sale.actual_fee_breakdown or {})
         if "total" not in breakdown:
@@ -306,25 +330,8 @@ def fee_choice_for_sale(sale: SaleRecord, revenue: Decimal, setting: ProfitSetti
             seller_mode_basis=seller_mode_basis,
             breakdown=breakdown,
         )
-    derived = fees_for_seller_receives(
-        seller_receives=revenue,
-        seller_mode=seller_mode,
-        setting=setting,
-    )
-    return FeeChoice(
-        total=derived.total_seller_fees,
-        provenance="schedule_derived",
-        seller_mode=seller_mode,
-        seller_mode_basis=seller_mode_basis,
-        breakdown={
-            "seller_final_value_fee": derived.seller_final_value_fee,
-            "seller_fixed_fee": derived.seller_fixed_fee,
-            "international_delivery_fee": derived.international_delivery_fee,
-            "buyer_protection_fee": derived.buyer_protection_fee,
-            "buyer_visible_total": derived.buyer_visible_total,
-            "basis_note": derived.basis_note,
-        },
-    )
+    return FeeChoice(total=None, provenance="schedule unknown", seller_mode="unverified",
+                     seller_mode_basis="no_frozen_fee_snapshot", breakdown={"state": "schedule unknown"})
 
 
 def seller_mode_for_sale(sale: SaleRecord, setting: ProfitSetting) -> tuple[str, str]:
@@ -620,6 +627,7 @@ def velocity_summary(rows: list[dict]) -> dict:
         "sample_size": len(values),
         "unknown_date_count": sum(1 for row in rows if row["velocity_state"] == "unknown_date"),
         "unknown_cost_count": sum(1 for row in rows if row["velocity_state"] == "unknown_cost"),
+        "unknown_fee_count": sum(1 for row in rows if row["velocity_state"] == "unknown_fee"),
         "thin": len(values) < RANKING_THRESHOLD,
         "tooltip": PROFIT_DAY_TOOLTIP,
     }
@@ -628,13 +636,14 @@ def velocity_summary(rows: list[dict]) -> dict:
 def summary_for_rows(rows: list[dict]) -> dict:
     revenue = sum_decimal(row["revenue"] for row in rows)
     fees = sum_decimal(row["fees"] for row in rows)
-    known_cost_rows = [row for row in rows if row["total_costs"] is not None]
-    total_costs = sum_decimal(row["total_costs"] for row in known_cost_rows)
+    known_cost_rows = [row for row in rows if row["realised_profit"] is not None]
+    total_costs = sum_decimal(row["total_costs"] for row in rows if row["total_costs"] is not None)
     realised_profit = sum_decimal(row["realised_profit"] for row in known_cost_rows)
     return {
         "sale_count": len(rows),
         "known_profit_sale_count": len(known_cost_rows),
-        "unknown_cost_sale_count": len(rows) - len(known_cost_rows),
+        "unknown_cost_sale_count": sum(1 for row in rows if row["total_costs"] is None),
+        "unknown_fee_sale_count": sum(1 for row in rows if row["fees"] is None),
         "revenue": str(money(revenue)),
         "fees": str(money(fees)),
         "total_costs": str(money(total_costs)),

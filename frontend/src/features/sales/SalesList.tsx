@@ -43,8 +43,8 @@ export function SalesList() {
                   )}
                 </td>
                 <td className="px-4 py-3">{sale.quantity}</td>
-                <td className="px-4 py-3">${sale.sale_price}</td>
-                <td className="px-4 py-3">${sale.net_proceeds}</td>
+                <td className="px-4 py-3">${sale.effective_revenue ?? sale.sale_price}</td>
+                <td className="px-4 py-3">{sale.net_proceeds == null ? "Unknown" : `$${sale.net_proceeds}`}<p className="text-xs">{sale.fee_label}</p></td>
                 <td className="px-4 py-3">{sale.allocated_cost_basis ? `$${sale.allocated_cost_basis}` : "-"}</td>
                 <td className="px-4 py-3">{sale.realised_profit ? `$${sale.realised_profit}` : "-"}</td>
                 <td className="px-4 py-3">{sale.is_superseded ? "Superseded" : sale.corrected_from ? "Correction" : "Active"}</td>
@@ -76,11 +76,12 @@ export function SalesList() {
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <MobileMetric label="Qty" value={String(sale.quantity)} />
-              <MobileMetric label="Gross" value={`$${sale.sale_price}`} />
-              <MobileMetric label="Net" value={`$${sale.net_proceeds}`} />
+              <MobileMetric label="Gross" value={`$${sale.effective_revenue ?? sale.sale_price}`} />
+              <MobileMetric label="Net" value={sale.net_proceeds == null ? "Unknown" : `$${sale.net_proceeds}`} />
               <MobileMetric label="Cost" value={sale.allocated_cost_basis ? `$${sale.allocated_cost_basis}` : "-"} />
               <MobileMetric label="P&L" value={sale.realised_profit ? `$${sale.realised_profit}` : "-"} />
             </dl>
+            <p className="mt-2 text-sm">{sale.fee_label}</p>
           </article>
         ))}
       </div>

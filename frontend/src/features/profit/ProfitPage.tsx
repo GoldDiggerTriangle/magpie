@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { getProfitLedger, profitLedgerCsvUrl } from "../../api/profit";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
 import { EmptyState } from "../../components/EmptyState";
+import { FeeAdjustmentControl } from "../../components/FeeAdjustmentControl";
 import type { BuyMoreGroup, CashLockBucket, FinancialYearOption, ProfitLedger, ProfitLedgerRow, ProfitSummary } from "../../types";
 
 const currencyFormatter = new Intl.NumberFormat("en-AU", {
@@ -43,7 +44,7 @@ export function ProfitPage() {
           <p className="ledger-kicker">Profit intelligence</p>
           <h1 className="ledger-title">Realised profit ledger</h1>
           <p className="ledger-subtitle">
-            Owned sales only. Revenue is seller-receives, fees are labelled actual or schedule-derived, and thin data stays thin.
+            Owned sales only. Revenue is seller-receives; fees are labelled recorded, calculated, legacy or unknown.
           </p>
         </div>
         <div className="profit-controls">
@@ -75,6 +76,7 @@ export function ProfitPage() {
       ) : (
         <>
           <SummaryTiles summary={data.summary} velocity={data.velocity} cashLocked={data.cash_lock.total_known_cash_locked} />
+          {(data.summary.unknown_fee_sale_count ?? 0) > 0 ? <WarningLine>Unknown fees: those rows are excluded from profit totals. Totals include known fees only.</WarningLine> : null}
           <section className="profit-section">
             <div className="profit-section-header">
               <div>
@@ -132,6 +134,7 @@ export function ProfitPage() {
               </a>
             </div>
             <p className="profit-warning-text">{data.not_tax_advice_label}</p>
+            {(data.financial_years.summary.unknown_fee_sale_count ?? 0) > 0 ? <WarningLine>Unknown-fee rows are excluded from profit totals; fee totals include known fees only.</WarningLine> : null}
             <FySummary option={data.financial_years.selected} summary={data.financial_years.summary} />
           </section>
         </>
@@ -181,13 +184,16 @@ function LedgerTable({ rows }: { rows: ProfitLedgerRow[] }) {
           </div>
           <dl>
             <Metric label="Revenue" value={formatCurrency(row.revenue)} />
-            <Metric label={`Fees (${feeLabel(row.fee_provenance)})`} value={formatCurrency(row.fees)} />
+            <Metric label={`Fees (${feeLabel(row.fee_provenance)})`} value={row.fees === null ? "Unknown" : formatCurrency(row.fees)} />
             <Metric label="Costs" value={row.total_costs ? formatCurrency(row.total_costs) : "Unknown"} />
             <Metric label="Profit" value={row.realised_profit ? formatCurrency(row.realised_profit) : "Unknown"} />
             <Metric label="Days held" value={row.days_held ? `${row.days_held}d` : "Unknown"} />
             <Metric label="Profit/day" value={row.profit_per_day ? formatCurrency(row.profit_per_day) : "Thin"} />
           </dl>
           {row.cost_warning ? <WarningLine>{row.cost_warning}</WarningLine> : null}
+          {row.fee_label ? <p className="mt-2">{row.fee_label}</p> : null}
+          {row.fees === null ? <WarningLine>Fee basis unknown; excluded from profit maths.</WarningLine> : null}
+          {row.fee_snapshot_id && row.fees !== null ? <FeeAdjustmentControl saleId={row.sale_id} /> : null}
           {row.days_held_basis === "unknown_acquisition_date" ? <WarningLine>Acquisition date missing; velocity not computed.</WarningLine> : null}
         </article>
       ))}
@@ -312,7 +318,7 @@ function ProfitSkeleton() {
 }
 
 function feeLabel(value: ProfitLedgerRow["fee_provenance"]) {
-  return value === "actual_recorded" ? "actual recorded" : "schedule derived";
+  return ({ actual_recorded: "actual recorded", calculated: "calculated, not charged", adjusted: "audited adjustment", schedule_derived: "legacy schedule derived", "schedule unknown": "schedule unknown", "fee rate not configured": "rate not configured", "plan restriction": "plan restriction" })[value];
 }
 
 function channelLabel(value: string) {

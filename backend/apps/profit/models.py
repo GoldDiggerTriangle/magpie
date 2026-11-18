@@ -63,7 +63,7 @@ class ProfitSetting(TimeStampedUUIDModel):
 
 
 def current_profit_setting() -> ProfitSetting:
-    return ProfitSetting.objects.order_by("-updated_at").first() or ProfitSetting()
+    return ProfitSetting.objects.order_by("-updated_at").first() or ProfitSetting(seller_mode=ProfitSetting.SellerMode.PRO_OTHER)
 
 
 class Source(TimeStampedUUIDModel):

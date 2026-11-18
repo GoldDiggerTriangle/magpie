@@ -84,6 +84,9 @@ def build_summary(filters: AnalyticsFilters) -> dict:
     known_sales = known_profit_sales(sales)
     linked_sales = sales.filter(item__isnull=False)
     unknown_count = sales.filter(cost_basis_unknown=True).count()
+    unknown_fee_count = sum(s.effective_fees_total is None for s in sales.select_related("fee_snapshot"))
+    excluded_profit_count = sales.count() - known_sales.count()
+    profit_note = "; ".join(s for s in (_unknown_secondary(unknown_count), f"{unknown_fee_count} sale(s): fees unknown" if unknown_fee_count else "") if s)
     revenue = sum_money(sales, "sale_price")
     known_revenue = sum_money(known_sales, "sale_price")
     net_proceeds = sum_sale_net(sales)
@@ -109,18 +112,18 @@ def build_summary(filters: AnalyticsFilters) -> dict:
         "realised_profit": tile_value(
             "realised_profit",
             realised_profit,
-            secondary=_unknown_secondary(unknown_count),
-            excluded_count=unknown_count,
+            secondary=profit_note,
+            excluded_count=excluded_profit_count,
         ),
         "gross_revenue": tile_value("gross_revenue", revenue),
-        "net_proceeds": tile_value("net_proceeds", net_proceeds),
+        "net_proceeds": tile_value("net_proceeds", net_proceeds, secondary=f"{unknown_fee_count} sale(s): fees unknown" if unknown_fee_count else "", excluded_count=unknown_fee_count),
         "items_sold": tile_value("items_sold", sold_quantity),
         "sell_through": tile_value("sell_through", sell_through),
         "avg_realised_margin": tile_value(
             "avg_realised_margin",
             avg_margin,
-            secondary=_unknown_secondary(unknown_count),
-            excluded_count=unknown_count,
+            secondary=profit_note,
+            excluded_count=excluded_profit_count,
         ),
         "avg_time_to_sale": tile_value("avg_time_to_sale", avg_time_to_sale),
         "inventory_cost_basis": tile_value("inventory_cost_basis", inventory_cost),
@@ -156,19 +159,15 @@ def build_summary(filters: AnalyticsFilters) -> dict:
 def build_pnl(filters: AnalyticsFilters) -> dict:
     sales = filtered_sales(filters)
     net_by_month = {}
-    for row in (
-        sales.annotate(month=TruncMonth("sale_date"))
-        .values("month")
-        .annotate(
-            sale_price=Sum("sale_price"),
-            fees=Sum("actual_fees_total"),
-            shipping=Sum("actual_shipping_cost"),
-            quantity=Sum("quantity"),
-        )
-    ):
-        month = row["month"]
-        month_date = month.date() if hasattr(month, "date") else month
-        net_by_month[month_date.isoformat()] = row
+    for sale in sales.select_related("item", "fee_snapshot"):
+        key = sale.sale_date.replace(day=1).isoformat()
+        row = net_by_month.setdefault(key, {"sale_price": ZERO, "net": ZERO, "quantity": 0, "unknown_fees": 0})
+        row["sale_price"] += sale.recorded_revenue
+        row["quantity"] += sale.quantity
+        if sale.net_proceeds is None:
+            row["unknown_fees"] += 1
+        else:
+            row["net"] += sale.net_proceeds
     profit_by_month = defaultdict(lambda: ZERO)
     unknown_by_month = defaultdict(int)
     for sale in sales.select_related("item").order_by("sale_date"):
@@ -184,11 +183,7 @@ def build_pnl(filters: AnalyticsFilters) -> dict:
     series = []
     for month in months:
         row = net_by_month.get(month, {})
-        net = money(
-            (row.get("sale_price") or ZERO)
-            - (row.get("fees") or ZERO)
-            - (row.get("shipping") or ZERO)
-        )
+        net = money(row.get("net") or ZERO)
         series.append(
             {
                 "month": month,
@@ -197,6 +192,7 @@ def build_pnl(filters: AnalyticsFilters) -> dict:
                 "gross_revenue": money(row.get("sale_price") or ZERO),
                 "quantity": int(row.get("quantity") or 0),
                 "unknown_cost_sales": unknown_by_month[month],
+                "unknown_fee_sales": row.get("unknown_fees", 0),
             }
         )
     return {
@@ -400,7 +396,8 @@ def filtered_sales(filters: AnalyticsFilters):
 
 
 def known_profit_sales(queryset):
-    return queryset.filter(cost_basis_unknown=False)
+    ids = [s.pk for s in queryset.select_related("item", "fee_snapshot") if s.realised_profit is not None]
+    return queryset.filter(pk__in=ids)
 
 
 def inventory_queryset(filters: AnalyticsFilters):
@@ -435,20 +432,13 @@ def tile_value(tile_id: str, value, *, secondary: str = "", excluded_count: int 
 
 
 def sum_money(queryset, field: str) -> Decimal:
+    if field == "sale_price":
+        return money(sum((s.recorded_revenue for s in queryset.select_related("fee_snapshot")), ZERO))
     return money(queryset.aggregate(total=Sum(field))["total"] or ZERO)
 
 
 def sum_sale_net(queryset) -> Decimal:
-    totals = queryset.aggregate(
-        revenue=Sum("sale_price"),
-        fees=Sum("actual_fees_total"),
-        shipping=Sum("actual_shipping_cost"),
-    )
-    return money(
-        (totals["revenue"] or ZERO)
-        - (totals["fees"] or ZERO)
-        - (totals["shipping"] or ZERO)
-    )
+    return money(sum((s.net_proceeds for s in queryset.select_related("fee_snapshot") if s.net_proceeds is not None), ZERO))
 
 
 def sum_sale_profit(queryset) -> Decimal:

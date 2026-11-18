@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Calculator, CircleAlert, Gauge, ReceiptText, ShoppingBag } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -12,6 +12,7 @@ import { DescriptorEvidencePanel } from "../../components/DescriptorEvidencePane
 import { EmptyState } from "../../components/EmptyState";
 import type { BuyCalculationPayload, BuyEvidenceOption, DescriptorEvidenceRow, PriceBasis, RoiBasis, SellerMode, UUID } from "../../types";
 import { calculateLocalBuy } from "./localCalculator";
+import { getFeeCalendar } from "../../api/feeEngine";
 
 const sellerModeOptions: Array<[SellerMode, string]> = [
   ["free_selling", "eBay AU free selling"],
@@ -35,6 +36,7 @@ export function BuyCalculator() {
   const appliedEvidence = useRef<string>();
   const items = useQuery({ queryKey: ["items", "buy-calculator"], queryFn: () => listItems({ page: 1 }) });
   const categories = useQuery({ queryKey: ["categories", "buy-calculator"], queryFn: () => listCategories() });
+  const feeCalendar = useQuery({ queryKey: ["fee-calendar"], queryFn: getFeeCalendar });
   const [itemId, setItemId] = useState<UUID>(selection?.itemId ?? "");
   const evidence = useQuery({
     queryKey: ["buy-calculator-evidence", itemId],
@@ -58,6 +60,8 @@ export function BuyCalculator() {
   const [confidence, setConfidence] = useState("what-if (your estimate)");
   const [descriptorCategory, setDescriptorCategory] = useState<UUID | "">(selection?.category ?? "");
   const [descriptorTerms, setDescriptorTerms] = useState(selection?.terms ?? "");
+  const [deliveryCountry, setDeliveryCountry] = useState("AU");
+  const [feeDate, setFeeDate] = useState("");
 
   const boughtIt = useMutation({
     mutationFn: () => createBoughtItItem({
@@ -108,6 +112,9 @@ export function BuyCalculator() {
   }, [itemId, items.data?.results]);
 
   const payload = useMemo<BuyCalculationPayload>(() => ({
+    fee_category: categories.data?.results.find((c) => c.id === descriptorCategory)?.profile_key ?? "unknown",
+    fee_date: feeDate || feeCalendar.data?.today,
+    delivery_country: deliveryCountry,
     expected_sell_price: expectedSellPrice,
     price_basis: priceBasis,
     seller_mode: sellerMode,
@@ -123,18 +130,18 @@ export function BuyCalculator() {
     confidence_label: confidence,
     auction_mode: auctionMode,
     lot_mode: lotMode
-  }), [askingPrice, auctionMode, confidence, expectedSellPrice, flatProfitTarget, lotMode, packaging, postage, priceBasis, refurb, roiBasis, roiPct, sellerMode, source, targetType]);
+  }), [askingPrice, auctionMode, confidence, expectedSellPrice, flatProfitTarget, lotMode, packaging, postage, priceBasis, refurb, roiBasis, roiPct, sellerMode, source, targetType, categories.data, descriptorCategory, deliveryCountry, feeDate, feeCalendar.data?.today]);
 
   const calculation = useMemo(() => {
     if (!expectedSellPrice || priceBasis === "unknown") {
       return { result: null, error: "" };
     }
     try {
-      return { result: calculateLocalBuy(payload, evidence.data?.settings), error: "" };
+      return { result: calculateLocalBuy(payload, evidence.data?.settings, feeCalendar.data), error: "" };
     } catch (error) {
       return { result: null, error: errorText(error) };
     }
-  }, [evidence.data?.settings, expectedSellPrice, payload, priceBasis]);
+  }, [evidence.data?.settings, expectedSellPrice, payload, priceBasis, feeCalendar.data]);
 
   function useEvidence(option: BuyEvidenceOption) {
     if (!option.seller_receives || option.basis_uncertain) {
@@ -189,6 +196,11 @@ export function BuyCalculator() {
             <h2>Evidence and assumptions</h2>
           </div>
           <div className="buy-form-grid">
+            {sellerMode === "pro_other" ? <>
+              <label className="label"><span>Fee category</span><select className="field" value={descriptorCategory} onChange={(e) => setDescriptorCategory(e.target.value)}><option value="">Choose category</option>{categories.data?.results.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+              <label className="label"><span>Fee date</span><input className="field" type="date" value={feeDate || feeCalendar.data?.today || ""} onChange={(e) => setFeeDate(e.target.value)} /></label>
+              <label className="label"><span>Delivery country (ISO)</span><input className="field" maxLength={2} value={deliveryCountry} onChange={(e) => setDeliveryCountry(e.target.value.toUpperCase())} /></label>
+            </> : null}
             <label className="label buy-span-2">
               <span>Evidence item</span>
               <select className="field" value={itemId} onChange={(event) => setItemId(event.target.value)}>
@@ -298,6 +310,8 @@ export function BuyCalculator() {
           </div>
           {cannotCalculate ? (
             <EmptyState title="Choose a known-basis sell price" detail="Unknown-basis comps stay visible as evidence, but they are not used for precise max-buy maths." />
+          ) : calculation.error ? (
+            <div><EmptyState title="Fee calculation unavailable" detail={calculation.error} /><Link to="/settings/ebay">Open fee calendar in Settings</Link></div>
           ) : result ? (
             <>
               <strong className="buy-max">${money(result.max_buy)}</strong>
@@ -322,7 +336,6 @@ export function BuyCalculator() {
           ) : (
             <EmptyState title="Enter a sell price" detail="The result updates from local calculator maths only." />
           )}
-          {calculation.error ? <p className="buy-error">{calculation.error}</p> : null}
         </section>
 
         <section className="buy-card buy-evidence">

@@ -195,7 +195,9 @@ def test_fake_sync_matched_partial_sale_idempotency_snapshots_and_local_listing_
     assert sale.ebay_line_item_id == "LINE-1"
     assert sale.ebay_transaction_id == "TXN-1"
     assert sale.valuation_snapshot["current_report"]["suggested_price"] == "120.00"
-    assert sale.estimated_fee_snapshot["schedule"]["id"] == str(fee_schedule.id)
+    assert sale.estimated_fee_snapshot["schedule"] is None
+    assert sale.fee_snapshot.result["fees"] == "9.00"
+    assert sale.fee_snapshot.provenance == "actual_recorded"
 
     item.refresh_from_db()
     assert item.quantity_sold == 3
@@ -281,7 +283,9 @@ def test_matched_order_with_uncertain_finance_keeps_estimated_fee_status(
     sale = SaleRecord.objects.get()
     assert sale.fee_status == SaleRecord.FeeStatus.ESTIMATED_OR_UNMAPPED
     assert sale.ebay_transaction_id == ""
-    assert sale.actual_fees_total == Decimal(sale.estimated_fee_snapshot["estimated_fees_total"])
+    assert sale.estimated_fee_snapshot["estimated_fees_total"] is None
+    assert sale.fee_snapshot.result["fees"] is None
+    assert sale.realised_profit is None
     assert sale.channel_data["ebay_finance_snapshot"]["join_status"] == "unmapped"
 
 

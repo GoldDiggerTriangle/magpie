@@ -57,11 +57,23 @@ def recompute_item_sale_status(item: InventoryItem) -> InventoryItem:
 def create_sale_record(*, data: dict, corrected_from: SaleRecord | None = None) -> SaleRecord:
     using = data["item"]._state.db if data.get("item") is not None else "default"
     using = using or "default"
-    with transaction.atomic(using=using):
-        return _create_sale_record(data=data, corrected_from=corrected_from, using=using)
+    from django.core.exceptions import ValidationError as ModelValidationError
+    try:
+        with transaction.atomic(using=using):
+            return _create_sale_record(data=data, corrected_from=corrected_from, using=using)
+    except (ValueError, ModelValidationError):
+        raise serializers.ValidationError({"fee_inputs": ["Check the complete order, fee inputs and immutable snapshot identity."]}) from None
 
 
 def _create_sale_record(*, data: dict, corrected_from: SaleRecord | None, using: str) -> SaleRecord:
+    data = dict(data)
+    fee_context = data.pop("fee_context", None)
+    fee_order = data.pop("fee_order", None)
+    fee_line_key = data.pop("fee_line_key", None)
+    actual_known = data.get("actual_fees_total") is not None and data.get("fee_status", "authoritative") == "authoritative"
+    if not actual_known:
+        data["actual_fees_total"] = Decimal("0.00")  # Legacy column; the nullable snapshot holds the truth.
+        data["fee_status"] = SaleRecord.FeeStatus.ESTIMATED_OR_UNMAPPED
     item = data.get("item")
     if item is None:
         if not data.get("is_external"):
@@ -70,16 +82,13 @@ def _create_sale_record(*, data: dict, corrected_from: SaleRecord | None, using:
             raise serializers.ValidationError(
                 {"corrected_from": ["External sale corrections are not supported yet."]}
             )
-        estimated_fee_snapshot = fee_snapshot_for_sale_price(data["sale_price"])
-        if data.get("actual_fees_total") is None:
-            data["actual_fees_total"] = money(estimated_fee_snapshot["estimated_fees_total"])
-        if not data.get("actual_fee_breakdown"):
-            data["actual_fee_breakdown"] = estimated_fee_snapshot.get("fee_breakdown", {})
-        return SaleRecord.objects.using(using).create(
+        sale = SaleRecord.objects.using(using).create(
             **data,
             valuation_snapshot=valuation_snapshot_for(None),
-            estimated_fee_snapshot=estimated_fee_snapshot,
+            estimated_fee_snapshot=fee_snapshot_for_sale_price(data["sale_price"]),
         )
+        _capture_fee(sale, fee_context, fee_order, fee_line_key, actual_known)
+        return sale
 
     from django.db.models import F
     InventoryItem.objects.using(using).filter(pk=item.pk).update(stock_revision=F("stock_revision") + 1)
@@ -111,18 +120,13 @@ def _create_sale_record(*, data: dict, corrected_from: SaleRecord | None, using:
             {"quantity": [f"Quantity exceeds remaining available units ({remaining})."]}
         )
 
-    estimated_fee_snapshot = fee_snapshot_for_sale_price(data["sale_price"])
-    if data.get("actual_fees_total") is None:
-        data["actual_fees_total"] = money(estimated_fee_snapshot["estimated_fees_total"])
-    if not data.get("actual_fee_breakdown"):
-        data["actual_fee_breakdown"] = estimated_fee_snapshot.get("fee_breakdown", {})
-
     sale = SaleRecord.objects.using(using).create(
         **data,
         corrected_from=corrected_from,
         valuation_snapshot=valuation_snapshot_for(item),
-        estimated_fee_snapshot=estimated_fee_snapshot,
+        estimated_fee_snapshot=fee_snapshot_for_sale_price(data["sale_price"]),
     )
+    _capture_fee(sale, fee_context, fee_order, fee_line_key, actual_known)
     recompute_item_sale_status(item)
     return sale
 
@@ -171,46 +175,36 @@ def valuation_snapshot_for(item: InventoryItem | None) -> dict:
 
 
 def fee_snapshot_for_sale_price(sale_price) -> dict:
-    schedule = FeeSchedule.objects.filter(is_active=True).order_by("-effective_from").first()
-    if schedule is None:
-        return {
-            "captured_at": timezone.now().isoformat(),
-            "schedule": None,
-            "estimated_fees_total": "0.00",
-            "fee_breakdown": {},
-        }
-    breakdown = calculate_profit(
-        sale_price=sale_price,
-        true_cost=Decimal("0.00"),
-        schedule=schedule,
-        outbound_shipping=Decimal("0.00"),
-        packaging=Decimal("0.00"),
-    )
-    fee_total = money(
-        breakdown.final_value_fee
-        + breakdown.per_order_fee
-        + breakdown.promoted_fee
-        + breakdown.gst_on_fees
-    )
-    return {
-        "captured_at": timezone.now().isoformat(),
-        "schedule": {
-            "id": str(schedule.id),
-            "name": schedule.name,
-            "effective_from": schedule.effective_from.isoformat(),
-            "final_value_pct": str(schedule.final_value_pct),
-            "per_order_fee": str(schedule.per_order_fee),
-            "promoted_pct": str(schedule.promoted_pct),
-            "gst_pct": str(schedule.gst_pct),
-        },
-        "estimated_fees_total": str(fee_total),
-        "fee_breakdown": {
-            "final_value_fee": str(breakdown.final_value_fee),
-            "per_order_fee": str(breakdown.per_order_fee),
-            "promoted_fee": str(breakdown.promoted_fee),
-            "gst_on_fees": str(breakdown.gst_on_fees),
-        },
-    }
+    # Legacy FeeSchedule is unverified history, never a new-sale default.
+    return {"captured_at": timezone.now().isoformat(), "schedule": None,
+            "estimated_fees_total": None, "fee_breakdown": {}, "state": "schedule unknown"}
+
+
+def _capture_fee(sale, context, order, line_key, actual_known):
+    from apps.valuation.fee_engine import capture_sale, strict
+    if sale.channel != SaleRecord.Channel.EBAY_AU:
+        # An eBay calendar is never a fee schedule for a sale on another channel.
+        context, order = None, None
+    if context is not None:
+        strict(context, {"destination_country", "postage", "handling", "marketplace_tax", "other_fee_base", "seller_discount", "buyer_incentives", "promoted_fee", "extra_charges", "ebay_category_id", "ebay_path"}, {"destination_country"})
+        category = sale.item.category if sale.item_id and sale.item.category_id else None
+        line = {"key": str(sale.pk), "quantity": sale.quantity, "item_total": str(sale.sale_price),
+                "category_slug": (category.profile_key or category.slug) if category else "unknown"}
+        for k in ("ebay_category_id", "ebay_path"):
+            if k in context:
+                line[k] = context[k]
+        if sale.listing_draft_id and "ebay_category_id" not in line:
+            from apps.listing.editor_metadata import cached_category
+            draft = sale.listing_draft
+            category_id = str((draft.channel_data or {}).get("category_id") or "")
+            if category_id:
+                saved = cached_category(draft, category_id).get("category", {})
+                line["ebay_category_id"] = category_id
+                line["ebay_path"] = [str(a["category_id"]) for a in saved.get("ancestors", []) if a.get("category_id")]
+        order = {k: v for k, v in context.items() if k not in {"ebay_category_id", "ebay_path"}}
+        order.update(sale_date=str(sale.sale_date), lines=[line])
+    snapshot = capture_sale(sale, order, line_key=line_key, actual_known=actual_known)
+    sale._fee_snapshot_for_display = snapshot
 
 
 def _decimal_or_none(value) -> str | None:

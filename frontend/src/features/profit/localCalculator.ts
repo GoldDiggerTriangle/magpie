@@ -1,4 +1,6 @@
 import type { BuyCalculationPayload, BuyCalculationResult, ProfitSettings, RoiBasis, SellerMode } from "../../types";
+import type { FeeCalendar } from "../../api/feeEngine";
+import { proBasicLocal } from "./feeMath";
 
 const BPF_CAP = 210.7;
 
@@ -52,7 +54,7 @@ function sellerReceives(price: string, basis: BuyCalculationPayload["price_basis
 
 function sellerFees(price: number, sellerMode: SellerMode, settings?: ProfitSettings) {
   if (sellerMode === "pro_starter") return money(price * 0.134);
-  if (sellerMode === "pro_other") return money(price * decimal(settings?.pro_other_final_value_pct, 13.4) / 100);
+  if (sellerMode === "pro_other") throw new Error("schedule unknown - use a confirmed Pro Basic period and category.");
   if (sellerMode === "legacy_manual") {
     return money(price * decimal(settings?.manual_final_value_pct, 0) / 100 + decimal(settings?.manual_fixed_fee, 0));
   }
@@ -68,10 +70,17 @@ function maxBuyForRoi(netBeforeBuy: number, nonBuyCosts: number, roiPct: number,
 
 export function calculateLocalBuy(
   payload: BuyCalculationPayload,
-  settings?: ProfitSettings
+  settings?: ProfitSettings,
+  calendar?: FeeCalendar
 ): BuyCalculationResult {
   const receives = sellerReceives(payload.expected_sell_price, payload.price_basis);
-  const fees = sellerFees(receives, payload.seller_mode ?? settings?.seller_mode ?? "free_selling", settings);
+  const mode = payload.seller_mode ?? settings?.seller_mode ?? "free_selling";
+  let fees: number;
+  if (mode === "pro_other") {
+    const result = proBasicLocal({ sale_date: payload.fee_date ?? calendar?.today ?? "", destination_country: payload.delivery_country ?? "AU", lines: [{ key: "calculator", quantity: 1, item_total: receives.toFixed(2), category_slug: payload.fee_category ?? "unknown" }] }, calendar);
+    if (result.fee_total === null) throw new Error(result.label === "Calculated fees - not evidence of what eBay charged" ? result.state : result.label);
+    fees = Number(result.fee_total);
+  } else fees = sellerFees(receives, mode, settings);
   const nonBuyCosts = money(decimal(payload.postage) + decimal(payload.packaging) + decimal(payload.refurb));
   const netBeforeBuy = money(receives - fees - nonBuyCosts);
   const maxBuy = payload.target_type === "flat"

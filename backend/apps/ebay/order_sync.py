@@ -396,7 +396,10 @@ def _sale_data_for_line(
     fee: FeeMapping,
     item: InventoryItem | None,
 ) -> dict:
+    from apps.valuation.fee_engine import fee_order_from_owned
+    fee_order = fee_order_from_owned(line)
     return {
+        **({"fee_order": fee_order, "fee_line_key": line.line_item_id} if fee_order else {}),
         "item": item,
         "sale_date": line.sale_date,
         "quantity": line.quantity,

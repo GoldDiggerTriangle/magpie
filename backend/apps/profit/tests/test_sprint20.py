@@ -152,9 +152,9 @@ def test_per_sale_pnl_uses_actual_recorded_fees_before_schedule_derivation(api_c
     assert actual["all_in_roi"] == "33.80"
 
     derived = by_title["Schedule-derived fee item"]
-    assert derived["fee_provenance"] == "schedule_derived"
-    assert derived["fees"] == "13.40"
-    assert derived["realised_profit"] == "36.60"
+    assert derived["fee_provenance"] == "schedule unknown"
+    assert derived["fees"] is None
+    assert derived["realised_profit"] is None  # A current Pro setting is not historical fee evidence.
 
 
 def test_negative_profit_missing_date_and_missing_cost_are_honest(api_client, setting, category):

@@ -86,11 +86,15 @@ class EbayFeePreviewView(APIView):
         setting = current_profit_setting()
         seller_price = Decimal(str(request.query_params.get("seller_price", "0") or "0"))
         buyer_total = Decimal(str(request.query_params.get("buyer_total", "0") or "0"))
-        fee = fees_for_seller_receives(
-            seller_receives=seller_price,
-            seller_mode=request.query_params.get("seller_mode") or setting.seller_mode,
-            setting=setting,
-        )
+        try:
+            fee = fees_for_seller_receives(
+                seller_receives=seller_price,
+                seller_mode=request.query_params.get("seller_mode") or setting.seller_mode,
+                setting=setting,
+                fee_context={"sale_date": request.query_params.get("sale_date"), "category_slug": request.query_params.get("category_slug"), "destination_country": request.query_params.get("destination_country")},
+            )
+        except (ValueError, TypeError):
+            return Response({"detail": "Fee calculation unavailable: check the dated schedule, category and delivery country."}, status=400)
         return Response(
             {
                 "seller_price": str(fee.seller_receives),
@@ -148,9 +152,10 @@ class BuyCalculatorCalculateView(APIView):
                 asking_price=payload.get("asking_price"),
                 evidence_source=payload.get("evidence_source") or "what_if",
                 confidence_label=payload.get("confidence_label") or "what-if (your estimate)",
+                fee_context={"sale_date": payload.get("fee_date", ""), "category_slug": payload.get("fee_category", "unknown"), "destination_country": payload.get("delivery_country", "AU")} if (payload.get("seller_mode") or setting.seller_mode) == "pro_other" else None,
             )
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({"detail": "Check numeric price inputs and a confirmed fee period, category and delivery country; schedule unknown when not configured."}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {

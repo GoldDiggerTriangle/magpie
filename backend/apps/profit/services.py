@@ -129,6 +129,7 @@ def fees_for_seller_receives(
     seller_mode: str,
     setting: ProfitSetting,
     international: bool = False,
+    fee_context: dict | None = None,
 ) -> FeeBreakdown:
     price = money(seller_receives)
     bpf = buyer_protection_fee(price) if seller_mode == ProfitSetting.SellerMode.FREE_SELLING else Decimal("0.00")
@@ -139,8 +140,19 @@ def fees_for_seller_receives(
         fvf_pct = Decimal("13.400")
         basis_note = "Pro Starter seller FVF"
     elif seller_mode == ProfitSetting.SellerMode.PRO_OTHER:
-        fvf_pct = Decimal(setting.pro_other_final_value_pct)
-        basis_note = "Configured Pro seller FVF"
+        from apps.valuation.fee_engine import evaluate_order
+        if not fee_context:
+            raise ValueError("schedule unknown - choose a confirmed Pro Basic period and category.")
+        order = {"sale_date": fee_context.get("sale_date", ""), "destination_country": fee_context.get("destination_country", ""),
+                 "lines": [{"key": "calculator", "quantity": 1, "item_total": str(price), "category_slug": fee_context.get("category_slug", "unknown")} ]}
+        result, _, _ = evaluate_order(order)
+        if result["fee_total"] is None:
+            raise ValueError(result["state"])
+        c = result["lines"]["calculator"]["components"]
+        total = Decimal(result["fee_total"])
+        return FeeBreakdown(seller_mode=seller_mode, seller_receives=price, buyer_visible_total=price, buyer_protection_fee=Decimal(0),
+            seller_final_value_fee=Decimal(c["final_value_fee"]), seller_fixed_fee=Decimal(c["per_order_fee"]), total_seller_fees=total,
+            international_delivery_fee=Decimal(c["international_fee"]), basis_note="Calculated Pro Basic fees, GST-inclusive; not actual charged fees")
     elif seller_mode == ProfitSetting.SellerMode.LEGACY_MANUAL:
         fvf_pct = Decimal(setting.manual_final_value_pct)
         fixed = Decimal(setting.manual_fixed_fee)
@@ -196,6 +208,7 @@ def calculate_buy(
     asking_price=None,
     evidence_source: str = EvidenceSource.WHAT_IF,
     confidence_label: str = "what-if (your estimate)",
+    fee_context: dict | None = None,
 ) -> BuyCalculation:
     normalized = normalize_to_seller_receives(expected_sell_price, price_basis)
     if normalized.seller_receives is None:
@@ -205,6 +218,7 @@ def calculate_buy(
         seller_receives=normalized.seller_receives,
         seller_mode=seller_mode,
         setting=setting,
+        fee_context=fee_context,
     )
     net_before_buy = money(normalized.seller_receives - fee.total_seller_fees - non_buy_costs)
     if target_type == "flat":

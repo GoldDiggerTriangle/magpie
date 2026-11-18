@@ -142,17 +142,18 @@ function renderPanel(panelItem: InventoryItemDetail = item) {
   );
 }
 
-test("SalesPanel records a manual sale with fee prefill and cost-basis preview", async () => {
+test("SalesPanel never prefills unverified fees and records a human fee", async () => {
   const user = userEvent.setup();
   renderPanel();
 
   expect(screen.getByText("3 sold / 7 remaining from 10")).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText("Fees")).toHaveValue("9.00"));
+  expect(screen.getByLabelText("Actual recorded fees (optional)")).toHaveValue("");
 
   await user.clear(screen.getByLabelText("Sale price"));
   await user.type(screen.getByLabelText("Sale price"), "80.00");
-  await waitFor(() => expect(screen.getByLabelText("Fees")).toHaveValue("8.00"));
-  expect(screen.getByText("Cost basis $10.00")).toBeInTheDocument();
+  expect(screen.getByLabelText("Actual recorded fees (optional)")).toHaveValue("");
+  await user.type(screen.getByLabelText("Actual recorded fees (optional)"), "8.00");
+  expect(screen.getByText("Recorded fees will be frozen with the sale and its full cost basis.")).toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Record sale" }));
 
@@ -163,6 +164,16 @@ test("SalesPanel records a manual sale with fee prefill and cost-basis preview",
     actual_shipping_cost: "0.00",
     cost_basis_override: null
   })));
+});
+
+test("unknown fees and profit never render as zero or null currency", async () => {
+  mocks.listItemSales.mockResolvedValue({ count: 1, results: [{ ...sale, net_proceeds: null, realised_profit: null, fee_label: "schedule unknown", fee_status: "estimated_or_unmapped" }] });
+  const view = renderPanel();
+  expect((await screen.findAllByText("schedule unknown")).length).toBeGreaterThan(0);
+  expect(screen.getAllByText("Unknown").length).toBeGreaterThan(0);
+  expect(view.container.textContent).not.toContain("$null");
+  await userEvent.click(screen.getAllByRole("button", { name: "Correct" })[0]);
+  expect(screen.getByLabelText("Actual recorded fees (optional)")).toHaveValue("");
 });
 
 test("SalesPanel writes corrections as a correction endpoint call", async () => {

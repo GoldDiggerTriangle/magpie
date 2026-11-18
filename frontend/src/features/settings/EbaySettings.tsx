@@ -38,6 +38,7 @@ import { formatUsd } from "../../utils/currency";
 import { ListingDefaultsPanel } from "../../components/ListingDefaultsPanel";
 import { PublishHealthPanel } from "../../components/PublishHealthPanel";
 import { EbayConnectionHealth } from "../../components/EbayConnectionHealth";
+import { FeeEnginePanel } from "../../components/FeeEnginePanel";
 
 export function EbaySettings() {
   const queryClient = useQueryClient();
@@ -232,6 +233,7 @@ export function EbaySettings() {
             status={aiStatus.data}
             statusError={errorText(aiStatus.error)}
           />
+          <FeeEnginePanel />
           <ProfitSettingsPanel
             error={errorText(profitSettings.error) || errorText(profitSettingsMutation.error)}
             form={profitSettingsForm}
@@ -472,8 +474,8 @@ function ProfitSettingsPanel({
           </select>
         </label>
         <label className="label">
-          <span>Pro other FVF %</span>
-          <input className="field" inputMode="decimal" value={form.pro_other_final_value_pct} onChange={(event) => patch({ pro_other_final_value_pct: event.target.value })} />
+          <span>Legacy Pro percentage (unverified history)</span>
+          <input className="field" readOnly value={form.pro_other_final_value_pct} />
         </label>
         <label className="label">
           <span>Manual FVF %</span>

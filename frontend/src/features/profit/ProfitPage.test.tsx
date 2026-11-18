@@ -33,7 +33,7 @@ test("ProfitPage renders realised ledger losses and fee provenance", async () =>
   expect(await screen.findByText("Loss-making test sale")).toBeInTheDocument();
   expect(screen.getAllByText("-$50.00").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Fees (actual recorded)").length).toBeGreaterThan(0);
-  expect(screen.getByText("Fees (schedule derived)")).toBeInTheDocument();
+  expect(screen.getByText("Fees (legacy schedule derived)")).toBeInTheDocument();
   expect(screen.getByText("Acquisition date missing; velocity not computed.")).toBeInTheDocument();
   expect(screen.getByText("Acquisition/material cost basis is missing; profit is not computed.")).toBeInTheDocument();
 });

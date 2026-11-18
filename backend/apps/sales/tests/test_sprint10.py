@@ -207,9 +207,10 @@ def test_snapshots_are_stable_after_valuation_and_fee_changes(category, fee_sche
         }
     )
     assert sale.valuation_snapshot["current_report"]["suggested_price"] == "190.00"
-    assert sale.estimated_fee_snapshot["schedule"]["id"] == str(fee_schedule.id)
-    assert sale.estimated_fee_snapshot["estimated_fees_total"] == "13.53"
-    assert sale.actual_fees_total == Decimal("13.53")
+    assert sale.estimated_fee_snapshot["schedule"] is None
+    assert sale.estimated_fee_snapshot["estimated_fees_total"] is None
+    assert sale.fee_snapshot.label == "schedule unknown"
+    assert sale.realised_profit is None
 
     report.suggested_price = Decimal("250.00")
     report.save(update_fields=["suggested_price", "updated_at"])
@@ -218,8 +219,9 @@ def test_snapshots_are_stable_after_valuation_and_fee_changes(category, fee_sche
 
     sale.refresh_from_db()
     assert sale.valuation_snapshot["current_report"]["suggested_price"] == "190.00"
-    assert sale.estimated_fee_snapshot["schedule"]["final_value_pct"] == "10.000"
-    assert sale.estimated_fee_snapshot["estimated_fees_total"] == "13.53"
+    assert sale.estimated_fee_snapshot["schedule"] is None
+    assert sale.estimated_fee_snapshot["estimated_fees_total"] is None
+    assert sale.realised_profit is None  # Editing legacy rates cannot invent a historical estimate.
 
 
 @pytest.mark.django_db

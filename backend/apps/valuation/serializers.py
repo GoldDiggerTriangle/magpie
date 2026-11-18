@@ -24,11 +24,16 @@ DERIVED_FIELDS = {
 
 
 class FeeScheduleSerializer(serializers.ModelSerializer):
+    verification_label = serializers.SerializerMethodField()
+
+    def get_verification_label(self, obj):
+        return "Legacy / unverified - history only, not a Pro Basic plan period"
     class Meta:
         model = FeeSchedule
         fields = [
             "id",
             "name",
+            "verification_label",
             "effective_from",
             "is_active",
             "seller_mode",

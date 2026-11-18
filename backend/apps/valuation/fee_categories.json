@@ -1,0 +1,10 @@
+{
+  "source": "eBay AU Pro selling fees, expanded Tier 4 list, checked 2026-11-18",
+  "categories": {
+    "coins": {"tier": "tier4", "roots": ["11116"]},
+    "stamps": {"tier": "tier4", "roots": ["260"]},
+    "collectibles": {"tier": "tier4", "roots": ["1"]},
+    "banknotes": {"tier": "tier4", "roots": ["11116", "1"]},
+    "gold": {"tier": "tier4", "roots": ["11116", "281"]}
+  }
+}
