@@ -1,0 +1,49 @@
+{
+  "implementation_head": "3f4fcc2f5ab05da4ed09538e753393e9e3e44e12",
+  "validation_run": 44271878958,
+  "at_sydney": "2026-11-18T20:11:43.255248+11:00",
+  "checks": {
+    "collectstatic": "PASS",
+    "deploy_check": "PASS",
+    "warning_ids": [
+      "security.W004",
+      "security.W008",
+      "security.W012",
+      "security.W016"
+    ]
+  },
+  "collection_summary": "7 static files copied to 'D:\\Magpie\\app\\backend\\staticfiles', 155 unmodified, 425 post-processed.",
+  "collected_index_matches_build": true,
+  "live_gets": [
+    {
+      "path": "/",
+      "status": 200,
+      "matches_build": true
+    },
+    {
+      "path": "/api/health/",
+      "status": 200,
+      "matches_build": null
+    },
+    {
+      "path": "/assets/index-B1uKzbQb.js",
+      "status": 404,
+      "matches_build": false
+    },
+    {
+      "path": "/assets/index-J2nf8C7H.css",
+      "status": 404,
+      "matches_build": false
+    }
+  ],
+  "requires_restart": true,
+  "no_auth_no_external_get": true,
+  "preservation": {
+    "allUnchanged": true,
+    "databaseUnchanged": true,
+    "environmentUnchanged": true,
+    "mediaFiles": 64
+  },
+  "owner_restart_confirmation": "pending",
+  "owner_phone_confirmation": "pending"
+}
