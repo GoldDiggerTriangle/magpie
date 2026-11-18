@@ -245,7 +245,8 @@ def test_unconfigured_preview_is_safe_and_legacy_estimates_remain_history(item, 
     assert history["sample_size"] == 1 and history["estimated_fees_total"] == "0.52" and history["actual_fees_total"] == "0.46"
 
 
-def test_concurrent_calendars_cannot_fork_file_sqlite_and_postgres(concurrent_draft):
+def test_concurrent_calendars_cannot_fork_file_sqlite_and_postgres(concurrent_draft, settings, tmp_path):
+    assert Path(settings.MEDIA_ROOT).is_relative_to(tmp_path)
     using = concurrent_draft._state.db
     barrier = Barrier(2)
     def worker(_):

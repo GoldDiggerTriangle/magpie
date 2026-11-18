@@ -2932,3 +2932,7 @@ Technical sources: [eBay AU Pro selling fees](https://www.ebay.com.au/help/selli
 ### Live installation gate
 
 PENDING: both CI lanes green, fresh B-verified pre-backup/restore, approved valuation0004 only, exact four legacy copies, original-column digests/bookkeeping/schema/integrity checks, B-verified post-backup/restore, collectstatic, owner Administrator restart and phone rate/sample check. Sprint25 remains OPEN. The older approval-stop paragraph above is retained as historical evidence, not the current approval state.
+
+### Validation / preflight follow-up
+
+Implementation **479887ca6799a28ed07159aecb2f3c32e11ce29e**, Validation **44206728696**, both SQLite and PostgreSQL green. Before any backup/migration, the strict media-count preflight stopped at65 rather than64. Diagnosis: an existing `concurrent_draft` test fixture wrote a16-byte `race.jpg` under default MEDIA_ROOT. Read-only checks proved zero live photo/derivative references, exact known fixture bytes, and **all51 live table digests identical to the pre-engine capture**. Removed only that self-created artifact after verifying its absolute path; actual64 media files remain. Fixed the shared concurrency fixture to use `tmp_path/media`, and added an explicit temporary-root assertion in the new calendar concurrency regression. No business data, migration, rate, setting or service was changed by the aborted preflight. The corrected head must pass both CI lanes before installation proceeds.

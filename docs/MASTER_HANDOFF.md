@@ -6,9 +6,9 @@
 
 | Field | Value |
 |---|---|
-| Version | v4.83 |
+| Version | v4.84 |
 | Last updated | 2026-11-18 |
-| Updated by | Codex (approved Pro Basic fee engine built; final validation/deployment pending, 2026-11-18) |
+| Updated by | Codex (fee engine CI green; test-media isolation hardening before deployment, 2026-11-18) |
 | Project status | ✅ Original roadmap COMPLETE. ✅ PROFIT-ENGINE CHAPTER COMPLETE (D-128…D-131). Sprints 18–22 CLOSED + LIVE; Sprints 23R2 + 24 deployed but UNCLOSED (Sprint 24 round 2 + the closure evidence for 23R2 and 24R1 still owed). **Sprint 25 (v3.4 LOCKED, “eBay listing, end to end”): Gate 0 CLOSED and Phase 0 PASSED, 2026-11-13** (Phase 0 staged GOLD-00002 as unpublished offer `356038014011`; evidence `SPRINT25_EVIDENCE.md` @ `6bd6cae9`). **Phase 1 ACCEPTED. Phase 2 (canonical draft) COMPLETE: Migration A run, Migration B (partial unique constraint) installed, service restarted on the Phase 2 code. Phase 3 (the canonical draft editor) COMPLETE, including a fix round and owner phone check on 2026-11-15. Phase 4 (per-category listing defaults) COMPLETE and owner-checked on 2026-11-15. Phase 5 (review and publish) COMPLETE: deployed with migration `0007`, plus a preview fix round (`e0f35e46`). First live listing through the new pipeline published on 2026-11-17 in a supervised session (GOLD-00002, eBay item `128199443689`). Phase 6 (findability) COMPLETE + LIVE and owner-accepted on phone, 2026-11-17 (implementation `e2030ad31`; restart proof `23dcb334`). Phase 7 COMPLETE + LIVE (2026-11-17): Regan restarted, proved Not yet checked/no automatic call, then completed the explicit phone Check connection; all five read probes and both normal OAuth renewals HTTP200, no failures, Media/EPS honestly unchecked. Approved additive storage and populated-health backup/restore verified with B. Phase 8 COMPLETE + LIVE, owner phone-accepted 2026-11-18; actual served-build/backend checks PASS. The six-table Pro Basic fee engine and four exact legacy-only snapshot copies are approved and built; final dual-lane validation and backed-up installation are pending. Regan confirmed Coins/Stamps Tier4 and non-GST-registration. No live period or rate is seeded; owner entry and phone acceptance remain required.** Runtime on `D:\Magpie\app` (D-138); serving the Phase 8 build verified on port 8000 after Regan's restart (implementation `754a231d`, deployment evidence `ff4a45ab`). Canonical handoff: `docs/MASTER_HANDOFF.md` on GitHub (D-141). |
 | Owner / decision-maker | Regan (final say on all decisions) |
 
@@ -396,6 +396,8 @@ These need Regan’s call (or AI consensus + Regan). Resolve → move to the Dec
 *(…earlier decision-log entries archived in* `MASTER_HANDOFF_LOG.md` *.)*
 
 ## 9. Session / handoff log (append-only) — recent; full history in `MASTER_HANDOFF_LOG.md`
+
+**2026-11-18 — Codex —** HEAD 479887ca6799a28ed07159aecb2f3c32e11ce29e: fee-engine Validation44206728696 both lanes green. Strict preflight stopped before writes on a test-only media artifact; verified zero live references and all51 baseline table digests unchanged, removed only our fixture file, and isolated concurrency-test media under tmp_path with a regression assertion. Revalidation required before backed-up installation. No live database/rate/service change; sections3/8 untouched; Sprint25 OPEN.
 
 **2026-11-18 — Codex —** HEAD f616b1629d931fdfe0f59e068156f347ad8b65c1 at edit: built the owner-approved six-table Pro Basic fee engine and exact legacy-copy path; recorded Coins/Stamps Tier4 and non-GST-registration. No rates seeded; final validation/deployment pending. Sections3/8 untouched. Evidence SPRINT25_EVIDENCE.md; Sprint25 OPEN.
 

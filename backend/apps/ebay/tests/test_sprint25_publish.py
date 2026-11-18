@@ -473,6 +473,7 @@ def test_real_publish_adapter_caps_socket_timeout_without_sending(monkeypatch):
 @pytest.fixture
 def concurrent_draft(tmp_path, django_db_blocker, monkeypatch, settings):
     """Real file-backed SQLite on its lane; real PostgreSQL on its lane."""
+    settings.MEDIA_ROOT = tmp_path / "media"
     alias = "default"
     if connections[alias].vendor == "sqlite":
         alias = "publish_file"
