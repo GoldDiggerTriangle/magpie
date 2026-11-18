@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-18",
+  "timezone": "Australia/Sydney",
+  "validated_closure_head": "3cda0affbdabed11881a61f8692c543efdae60e3",
+  "closure_validation_run": 44274090443,
+  "closure_validation_lanes": {
+    "sqlite": "success",
+    "postgres": "success"
+  },
+  "implementation_head": "3f4fcc2f5ab05da4ed09538e753393e9e3e44e12",
+  "implementation_validation_run": 44271878958,
+  "service": {
+    "state": "Running",
+    "service_pid": 5128,
+    "waitress_child_pid": 18916,
+    "started_utc": "2026-11-18T09:16:31.4763220Z",
+    "started_sydney": "2026-11-18T20:16:31.476322+11:00"
+  },
+  "live_gets": [
+    {
+      "path": "/",
+      "status": 200,
+      "matches_build": true
+    },
+    {
+      "path": "/api/health/",
+      "status": 200,
+      "matches_build": null
+    },
+    {
+      "path": "/assets/index-B1uKzbQb.js",
+      "status": 200,
+      "matches_build": true
+    },
+    {
+      "path": "/assets/index-J2nf8C7H.css",
+      "status": 200,
+      "matches_build": true
+    }
+  ],
+  "ready": true,
+  "preservation": {
+    "allUnchanged": true,
+    "databaseUnchanged": true,
+    "environmentUnchanged": true,
+    "mediaFiles": 64
+  },
+  "owner_confirmation": {
+    "answer": "good",
+    "screenshot": "owner-phone-after-restart.jpg",
+    "clock_shown": "8:17",
+    "save_label": "intact",
+    "read_only_status": "wraps cleanly",
+    "bar_above_navigation": true,
+    "published_history": true
+  },
+  "scope": {
+    "authenticated_session_created": false,
+    "live_business_save": false,
+    "ebay_or_provider_call": false,
+    "codex_restart": false,
+    "new_migration": false
+  },
+  "closure_status": "pending independent review"
+}

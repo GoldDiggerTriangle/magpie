@@ -1,6 +1,6 @@
 # Sprint 25 Evidence - Quick Publish to eBay
 
-Status: final implementation validated; closure record filed as pending independent review (18 November 2026). The supervised real listing is already proven. The latest Save-bar fix's Administrator restart/current-assets and owner phone check are still pending at this checkpoint; no unconditional live-close claim. Final implementation head3f4fcc2f5ab05da4ed09538e753393e9e3e44e12, Validation44271878958, both lanes success. See the final closure record and explicit remaining sign-offs.
+Status: implementation and final live/phone acceptance PASS; Sprint25 closure pending independent review (18 November 2026). Regan confirmed the restarted Save-bar layout with a real-phone photo and "good"; actual8000 health/new assets match the tested build. Validated closure head3cda0affbdabed11881a61f8692c543efdae60e3 / Validation44274090443, both lanes success; implementation3f4fcc2f5ab05da4ed09538e753393e9e3e44e12 /44271878958 also green. All24 spec13 criteria have an evidence mapping below. No independent acceptance is inferred; older pending checkpoints remain historical.
 
 ## Prerequisites
 
@@ -3167,3 +3167,19 @@ The table splits the six canonical-draft sub-bullets into separate rows; all24 l
 3. **Codex:** record only received results; do not promote earlier owner confirmations to a new latest-fix phone check. No next feature/sprint or live eBay action starts from this closing record.
 
 **STOP: pending independent review; latest-fix restart/phone gate explicitly pending.** No outstanding screenshot category is re-requested, and no further listing write is authorised. Earlier OPEN notes are historical checkpoints, superseded only within the evidence actually supplied here.
+
+## 18 November 2026: Final Restart And Owner Phone Acceptance PASS
+
+Regan supplied the current real-iPhone image (attachment `077D09FF-753A-4A7C-93C0-BDB22C8B872D/1-Photo-1.jpg`, clock8:17) and answered **"good"** to the explicit Administrator-restart/hard-refresh/Save-bar phone-check request. Archived unchanged, source/copy SHA256 matched: [Owner phone after restart](docs/evidence/sprint25/save-bar-fix/owner-phone-after-restart.jpg). It visibly shows the published AUD375 gold history, four retained archived rows, the disabled **Save** label intact on one line, Read-only history wrapping cleanly, and the bar clear of bottom navigation. It is owner phone proof, not an automated fixture. It does not claim a new editable-draft Save or marketplace action.
+
+**Actual NSSM/Waitress service:** Running, service PID5128, child18916 started **20:16:31 Sydney /09:16:31 UTC** on18Nov. Unauthenticated read-only GETs against **port8000**, not a temporary server: `/`, `/api/health/`, `/assets/index-B1uKzbQb.js`, `/assets/index-J2nf8C7H.css` all **200**. Index and both asset bodies exactly match the tested/collected local build. The prior pre-restart404 condition is resolved; this is not merely a claimed hard refresh. The probe allowed only the local service connection and created no auth session or eBay/provider call.
+
+**Preservation:** live database file, environment file and all64 media hashes still equal the pre-deployment in-memory baseline after restart/phone/probe. No live business save, token/configuration change, migration or service restart by Codex. Metadata-only [live/owner acceptance proof](docs/evidence/sprint25/save-bar-fix/live-owner-acceptance.json); the earlier `deployment.json` remains the honest pre-restart checkpoint.
+
+**Final validated closure head:** `3cda0affbdabed11881a61f8692c543efdae60e3`. **GitHub Validation:** [44274090443](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44274090443), completed success on SQLite and PostgreSQL, metadata rechecked at this filing. Final implementation remains `3f4fcc2f5ab05da4ed09538e753393e9e3e44e12` / Validation`44271878958` (SQLite526/1 existing skip, PostgreSQL514/13 existing skips, frontend224, browser22, typecheck/build/static/deployment guards PASS). This final acceptance filing changes docs/photo evidence only; no new local test/build was run or claimed.
+
+### Final Section13 Disposition Delta
+
+The full24-row closure matrix above remains the canonical criterion-by-criterion evidence. Its formerly open newest-cosmetic qualifiers are now resolved: **item6** editor/live proof, **item16** latest restart/current assets, and **item18** latest owner confirmation are **PASS**, backed by the current photo, owner's "good" and actual8000 body matching. **Item19** has the validated closure head/run quoted above. All other criterion evidence and its explicit limits are unchanged; no historical phone/partial-stock/drawer claim is upgraded beyond what was actually observed or reported.
+
+**Sprint25: pending independent review. Implementation, deployment and owner acceptance are complete; independent review is the sole remaining sign-off.** The Save-label defect is resolved and owner-accepted, not waived. No more screenshot, restart, live save, stage or publish is required for this fix. Independent review has not been performed or approved by this confirmation. **STOP:** no next feature, migration, eBay operation or live-data change is authorised. Earlier pending-restart/phone entries are retained as historical checkpoints, superseded by this received evidence.
