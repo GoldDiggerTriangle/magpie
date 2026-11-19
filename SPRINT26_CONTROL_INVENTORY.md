@@ -136,3 +136,92 @@ A20 is an old grouped row spanning source links and reference research; its comp
 - Sales: actual sales form/history only, not valuation. Use history disclosure only if long; keep unsaved sale/correction state mounted.
 
 All proposals await Phase0 review. No existing reachability assertion, original row, backend guard or price-source rule changes here.
++
+## 2026-11-19: Approved v1.1 Implementation Homes
+
+This section supersedes the historical "await review" proposals above. Regan/Claude confirmed the six-tab mapping and Pricing destination for #sales-valuations. The original76-row table and its Sprint25 cells remain unchanged; no row is removed or renumbered. Names below describe the implemented destination, not a claim of live phone acceptance.
+
+| Original ID | Implemented home | Current tap path / guard |
+|---|---|---|
+| A01 | Header | Header -> More actions -> Delete item -> confirmation naming title/SKU -> Cancel or existing Delete; no destructive action from navigation. |
+| A02 | Shell / sign-in | Existing full-page Sign in -> /admin/login/; do not put authentication recovery behind a tab. |
+| A03 | Tab navigation | Item -> Details/Photos/Research/Pricing/eBay/Sales; replace page-wide expand/collapse with destination selection, never save. |
+| A04 | Tab navigation / deep links | Desktop tab row or existing hash/query -> owning tab -> scroll/focus; explicit link beats remembered valid tab, then Details. |
+| A05 | Photos | Photos -> thumbnail/full-size viewer; Photos -> Arrange -> Set main / earlier/later / Delete -> existing confirmation. |
+| A06 | Photos | Photos -> Take photo / Choose from library -> Upload selected; retain library/camera choice and pending files. |
+| A07 | Photos | Photos -> Local photo fix-up -> Generate review / Fix up all photos (explicit only). |
+| A08 | Photos | Photos -> existing own-photo review -> Tweak / Approve / Reject / Revert; keep versions and pending tweaks. |
+| A09 | Details | Details -> Core details -> same fields -> field-scoped Save. |
+| A10 | Details | Details -> Category specifics -> schema pickers/custom values/catalogue repeater. |
+| A11 | Details | Details -> Category specifics -> costs/estimated value/notes -> field-scoped Save; no price inference. |
+| A12 | Details | Details -> Category specifics -> lot/source/disposition/scrap date; retain inherited-source locks. |
+| A13 | Research | Research -> AI research -> saved status/provider/model/usage/cap and credential controls; navigation makes no AI call. |
+| A14 | Research | Research -> Identify & fill / Price-assist / view-only reference links; only explicit action invokes existing path. |
+| A15 | Research | Completion Review N staged suggestions -> Research selected first -> #ai-review focus. |
+| A16 | Research | Research -> Suggested fields -> Run OCR / Scan duplicates; no call on tab open. |
+| A17 | Research | Research -> suggestion -> Approve / Edit / Reject; preserve draft edit state and review-only candidates. |
+| A18 | Research | Research -> rendered suggestion list -> Approve all shown; explicit visible-list sign-off only. |
+| A19 | Research | Research -> formatted candidate -> Raw payload details and quiet audit metadata; retain truth, not primary JSON. |
+| A20 | Pricing + Research (grouped row) | Pricing -> own-sales/source links and SoldSearchPanel; Research -> ResearchLinks/Assisted research. Each underlying component has one home below. |
+| A21 | Pricing | Pricing -> Item descriptor evidence -> stats / rows / Fast capture comp. |
+| A22 | Pricing -> external Buy | Pricing -> Item descriptor evidence -> Use this -> existing Buy calculator with owned record ID/context; no navigation price. |
+| A23 | Pricing | Pricing -> Capture verified comp / Comparables edit/delete / pricing grids; preserve inputs. |
+| A24 | Pricing | Pricing -> Fill capture form from screenshot/link -> existing local OCR/Live Text helper; no page fetch. |
+| A25 | Research | Research -> Research log -> save/edit/delete; pending note/link state stays mounted. |
+| A26 | Pricing | Pricing -> Valuation method/inputs/report/current selection; legacy #sales-valuations selects Pricing first. |
+| A27 | Pricing | Pricing -> valuation-based Profit breakdown -> Save costs / manual Calculate; keep separate from realised sales. |
+| A28 | Sales | Sales -> Record sale / Correct -> actual sales/remaining-stock/history; no automatic restock. |
+| B01 | eBay (header link where noted) | Header List on eBay -> canonical eBay editor for positive remaining stock; Sold out at zero; separate known live link, retained history accessible via eBay tab. |
+| B02 | eBay (header link where noted) | eBay -> autosave / bottom Save / resume; Archive -> existing confirmation; read-only/in-flight/staged-offer guards retained. |
+| B03 | eBay (header link where noted) | eBay -> Title/Subtitle/80-char counter -> Regenerate title with existing overwrite confirmation. |
+| B04 | eBay (header link where noted) | eBay -> Description Edit/Preview / regenerate / template/standard text / SKU footer; preserve editable content and provenance. |
+| B05 | eBay (header link where noted) | eBay -> Format -> Fixed/Auction -> same draft/review. |
+| B06 | eBay (header link where noted) | eBay -> explicit own asking price or owned evidence / Currency -> source shown in preview; no generated/valuation-price bypass. |
+| B07 | eBay (header link where noted) | eBay -> Quantity -> remaining-stock source and allocation/availability validation. |
+| B08 | eBay (header link where noted) | eBay -> Photos -> select own photos / Move up/down -> saved order -> ordered preview. |
+| B09 | eBay (header link where noted) | eBay -> required specifics first -> Recommended disclosure -> native picker/custom / add-remove / regenerate. |
+| B10 | eBay (header link where noted) | eBay -> Shipping note and Postage policy -> same reviewed terms, not separate quick boxes. |
+| B11 | eBay (header link where noted) | eBay -> Listing readiness -> named blocker -> owning tab/field selected before focus; explicit Refresh from eBay. |
+| B12 | eBay (header link where noted) | eBay -> Export -> Copy title/description/specifics/standard text / Download zip, including read-only history. |
+| B13 | eBay (header link where noted) | eBay -> eBay category -> Search/Browse -> leaf selection; chosen ID/name and manual fallback remain inspectable. |
+| B14 | eBay (header link where noted) | eBay -> category-valid Condition; conditionless category states not used; unknown is not guessed. |
+| B15 | eBay (header link where noted) | eBay -> Payment/Postage/Return -> named picker + readable real selected terms -> same preview. |
+| B16 | eBay (header link where noted) | eBay -> Merchant location -> existing key / Create location -> review+confirmation; never auto-select. |
+| B17 | eBay (header link where noted) | eBay -> required specifics/readiness -> explicit metadata refresh; no override-required-aspects bypass. |
+| B18 | eBay (header link where noted) | eBay -> Review listing -> Stage reviewed listing / Update staged offer; exact explicit existing pipeline. |
+| B19 | eBay (header link where noted) | eBay -> staged review -> values/sources/photo order/policy terms/eBay ListingFee. |
+| B20 | eBay (header link where noted) | eBay -> Remove unpublished offer -> Confirm removal; never in-flight or published; ambiguous result remains fenced. |
+| B21 | eBay (header link where noted) | eBay -> full staged review -> type exact SKU -> Confirm publish to eBay; backend review gates unchanged. |
+| B22 | eBay (header link where noted) | Header View on eBay; eBay -> retained published history -> Open live listing; no publish/remove on history. |
+| B23 | eBay (header link where noted) | eBay -> format-valid Duration; retain stored/effective GTC. |
+| B24 | eBay (header link where noted) | eBay -> chosen-category Condition, not unrelated global item condition. |
+| B25 | eBay (header link where noted) | eBay -> named policy choices/headline price and full terms; do not replace with raw IDs. |
+| B26 | eBay (header link where noted) | eBay -> staged review -> ListingFee total / nonzero components / Show all fees / listing-fees-only note. |
+| Q01 | eBay / owning tab for blocker | Header List on eBay -> eBay -> Quick publish preview (same canonical draft and review). |
+| Q02 | eBay / owning tab for blocker | Preview category blocker -> eBay selected first -> category field focus -> same Search/Browse/confirm. |
+| Q03 | eBay / owning tab for blocker | eBay -> explicit human/evidence price -> persisted source and same preview. |
+| Q04 | eBay / owning tab for blocker | Preview postage blocker -> eBay -> Shipping note/Postage policy field focus. |
+| Q05 | eBay / owning tab for blocker | Preview condition/photo blocker -> eBay field; no own photos -> Photos tab -> upload control focus. |
+| Q06 | eBay / owning tab for blocker | Preview Reconnect eBay -> existing /settings/ebay; no new route or metadata refresh on navigation. |
+| Q07 | eBay / owning tab for blocker | Header/hub/history/deep link -> exact canonical eBay draft; active wins over published history. |
+| Q08 | eBay / owning tab for blocker | eBay -> quick preview -> Post live for reviewed revision; full path keeps typed SKU; drift requires explicit update/review. |
+| D01 | eBay | eBay -> canonical editor first -> Copy packs for other channels (available offline/without eBay connection). |
+| D02 | eBay | eBay -> Copy packs for other channels -> section Copy / Copy whole ad / own Photo zip. |
+| D03 | Unchanged external board | Existing hub -> Open channel listings board -> manual add; board layout out of scope. |
+| D04 | Unchanged external board | Existing hub -> board -> Seed local eBay rows; preserve explicit local-only action. |
+| D05 | Unchanged external board | Existing board groups/days/item links/Mark ended; no automatic market ending. |
+| D06 | eBay; urgent header shortcut | Header urgent sold-out/quantity warning -> eBay selected first -> TakeDownChecklist; actual checklist only in eBay. |
+| S01 | Unchanged Settings / hub | Existing /settings/ebay Connect/paste-back/Complete/confirmed Disconnect; unchanged outside item tabs. |
+| S02 | Unchanged Settings / hub | Existing Settings health/account/environment/scope/expiry/error; hub saved-health summary unchanged. |
+| S03 | Unchanged Settings / hub | Settings Policy Readiness -> counts/Fetched/Refresh; editor's explicit metadata refresh remains in eBay tab. |
+| S04 | Unchanged Settings / hub | Settings Audit Log -> prefix/read-only rows; unchanged, no tab-local duplication. |
+| S05 | Unchanged Settings / hub | Existing Settings Order Sync -> manual sync/resolution; unchanged and not exercised. |
+| S06 | Unchanged Settings / hub | Existing hub -> Open eBay orders -> /ebay/orders; unchanged. |
+| S07 | Unchanged Settings / hub | Existing Settings AI Provider / fee engine forms; no other-screen wording or behaviour changes. |
+| S08 | Unchanged Settings / hub | Existing nav /ebay owned-record hub -> item draft link selects eBay; hub layout stays unchanged. |
+
+Supplemental N01-N08 are implemented at their approved homes: defaults change/clear review in eBay; quantity/unknown result/take-down in eBay with urgent header shortcut; immutable history and explicit relist; named diagnostics and blocker focus; measured Save bar; category browse/manual key fallback; Photos Arrange/fix-up and Research suggestion buffers. Copy packs are labelled for other channels and do not require an eBay connection.
+
+Evidence: full248 frontend tests; ItemDetail real-panel31-test state/navigation gate; 76-row raw-document CI integrity test; original editor/workflow/copy/download/take-down assertions;29 Playwright tests, including photo endpoint/order resume and deep-link focus. Obsolete Expand/Collapse/desktop-index assertions now assert the expressly authorised tabs; business assertions are retained (including all four original EbayListingEntry tests). No skip was added.
+
+All11 listing/stock states remain covered. New320/390 normal/larger-text gates keep intentional tab-strip scrolling separate from document overflow. Header Sold out is frontend only: the unchanged backend still accepts a zero-stock draft (isolated201 test), backlogged separately. Independent review and Regan's phone acceptance remain open.

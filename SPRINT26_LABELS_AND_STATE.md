@@ -98,3 +98,22 @@ Today's outer accordions use `hidden={!open}`, not conditional mounting: [ItemDe
 3. Do not restore expired reviews/typed-SKU approval as valid merely because the tab was remembered. Revision, stock, freshness and uncertainty gates stay authoritative.
 4. Existing deliberate draft/item changes can reset item-specific buffers, but must not silently drop failed saves. Selection priority remains explicit link, valid remembered tab, Details.
 5. These are Phase0 findings. No persistence behaviour or backend contract has been altered and no Phase1-5 implementation is authorised by this report.
++
+## 2026-11-19: Implementation Disposition
+
+The catalogue above is the Phase0 source inventory, not a list of values rewritten in live records. v1.1 now implements the approved plain-language/state work:
+
+| Families | Disposition |
+|---|---|
+| L01-L03 | Tabs replace overlapping navigation; core/category forms remain named and scoped. Domain fields and inherited-source/disposition constraints remain, not silently relabelled as a different meaning. |
+| L04-L10 | Single-unit unrecorded allocation label hidden; multi-unit wording plain. Quantity pairs/uncertainty retained. Draft states readable; publishing/unknown say editing locked and never claim unpublished/local edits. Named readiness requirements/recommendations kept. |
+| L11-L16 | Source unknown preserved; entered/chosen by you, asking/evidence source and allowed-item/template source made readable. Standard text/Copy standard text replace boilerplate labels; existing owner/template names and PLACEHOLDER safety gate unchanged. Include SKU at the end is visible wording. |
+| L17-L25 | Readable local metadata dates and saved-choice age; provenance in details, category/manual IDs and existing location keys inspectable, names/paths/real policy terms primary. Duration review readable. Blocker links name category/description/postage/location rather than raw field keys; their destinations remain exact. Reconcile/explicit update semantics unchanged. |
+| L26-L27 | Sales/comparable/descriptor/pricing-row dates now local plain dates, reviewed time unchanged; literal API datetime/native date inputs and optional diagnostics retain machine values. Authoritative eBay ListingFee total/breakdown unchanged and still listing-fees-only. |
+| L28-L34 | Valuation method, live/manual gold price, fee rates and replacement labels readable. History strategy enums mapped to names. Calculation breakdown uses full fee/postage/cost labels and explicitly remains a calculated valuation estimate. Fineness/Karat/confidence are necessary domain terms; no valuation/pricing formula or historical snapshot rewritten. |
+| L35-L40 | Matching item evidence, record counts, explicit days/date labels, Title and item details search label and evidence price you chose. Source/match rationale and uncertainty retained; copies/downloads/payloads unchanged. Copy-pack prose uses normal type. Raw suggestion payload remains optional/auditable, not primary content. |
+| L41-L46 | Provider/model/usage remain truthful metadata without key values. Photo adjustment/original/revert actions retained. Sales cost replacement/country-code/profit-loss labels and date/money type readable. Optional sanitised diagnostics retain operation/IDs. Missing archived price says Price not set, not zero. Per-field provenance is never dropped. |
+
+State implementation: U01/U08/U11/U12/U14/U20 have direct dirty-refresh or navigation tests; shared refresh-merge tests cover per-field/nested merges, late save acknowledgement and identity changes. AI settings and valuation-method selection use the same protection; comparable, sale and cost refresh tests exercise the actual components. U02/U05-U07/U09/U13/U15-U19/U21 remain mounted while tabs hide them. Native optional disclosures retain their intentional pre-existing semantics. Quantity/stock/review confirmations revalidate on fresh data; stale approval is not treated as durable state.
+
+No credential buffer is serialised into preferences or evidence; only the selected tab is remembered. No tab click saves/stages/publishes. A human edit still triggers the existing listing debounce, but switching tabs does not unmount/flush it. Field-scoped Saves, unknown money, evidence gates, immutable history, photo order and failure/unknown-result guards remain unchanged. No new rich-text editor, provider integration, backend validation guard or finance engine was introduced.

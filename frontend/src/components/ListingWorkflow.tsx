@@ -1,3 +1,5 @@
+import { sourceLabel, listingFieldLabel } from "./itemDisplay";
+import { focusItemField } from "./itemNavigation";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ExternalLink, Eye, RefreshCw, Send, ShieldCheck, Trash2, UploadCloud, X } from "lucide-react";
 import { publishListingDraft, stageListingDraft, withdrawListingDraft } from "../api/listing";
@@ -63,12 +65,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
     if (field !== "staging" || reviewMode === "quick") setOpen(false);
     window.location.hash = "listings-channels";
     window.dispatchEvent(new CustomEvent(`magpie:open-draft:${item.id}`, { detail: { draftId: draft.id } }));
-    window.setTimeout(() => {
-      const node = document.getElementById(`listing-${draft.id}-${field}`);
-      node?.scrollIntoView?.({ block: "center" });
-      const control = node?.matches("input,select,textarea,button") ? node : node?.querySelector("input,select,textarea,button");
-      ((control ?? node) as HTMLElement | null)?.focus();
-    }, 100);
+    window.setTimeout(() => focusItemField(`listing-${draft.id}-${field}`), 100);
   }
   if (terminal) return <div className="rounded border border-slate-400 p-4"><strong>{draft.status === "archived" ? "Archived history" : "Published listing"}</strong>{draft.channel_data.listing_id ? <a className="row-link mt-3" href={`https://www.ebay.com.au/itm/${encodeURIComponent(String(draft.channel_data.listing_id))}`} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" size={18} />Open live listing</a> : null}</div>;
   return <section className="min-w-0 space-y-3" aria-label={mode === "quick" ? "Quick eBay review" : "eBay review and publish"}>
@@ -90,13 +87,13 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
         <Row label="Price" value={`${review.listing.currency} ${review.price ?? "[price not set]"}`} source={review.sources.price} />
         <Row label="eBay category" value={`${review.mapping.category_name || "[category mapping not set]"} ${review.mapping.category_id}`} source={review.sources.category_id} />
         <Row label="Condition" value={review.metadata?.category_snapshot?.condition_policy.required === false && !review.metadata.category_snapshot.condition_policy.conditions.length ? "Not used by this category" : review.metadata?.category_snapshot?.condition_policy.conditions.find((r) => r.conditionId === review.mapping.condition_id)?.conditionDescription || "[condition not set]"} source={review.sources.condition_id} />
-        <Row label="Format / duration" value={`${review.listing.listing_format} / ${review.mapping.listing_duration || "[duration not set]"}`} />
+        <Row label="Format / duration" value={`${review.listing.listing_format === "fixed" ? "Fixed price" : "Auction"} / ${review.mapping.listing_duration === "GTC" ? "Good 'Til Cancelled" : review.mapping.listing_duration ? review.mapping.listing_duration.replace("DAYS_", "") + " days" : "Duration not set"}`} />
         <Row label="Quantity" value={String(review.listing.quantity)} source={review.sources.quantity} />
         <Row label="Merchant location" value={review.mapping.merchant_location_key || "[location not set]"} source={review.sources.merchant_location_key} />
       </dl>
       {(["payment", "fulfillment", "return"] as const).map((kind) => {
         const chosen = review.metadata?.policies[kind]?.find((p) => p.id === review.mapping[`${kind}_policy_id`]);
-        return <div key={kind}><h4 className="font-semibold">{kind === "fulfillment" ? "Postage" : kind === "return" ? "Returns" : "Payment"}</h4><p>{chosen?.name || "[policy not set]"}</p>{chosen?.terms.map((term, i) => <p className="break-words" key={i}>{term}</p>)}<small>{review.sources[`${kind}_policy_id`]}</small></div>;
+        return <div key={kind}><h4 className="font-semibold">{kind === "fulfillment" ? "Postage" : kind === "return" ? "Returns" : "Payment"}</h4><p>{chosen?.name || "[policy not set]"}</p>{chosen?.terms.map((term, i) => <p className="break-words" key={i}>{term}</p>)}<small>{sourceLabel(review.sources[`${kind}_policy_id`])}</small></div>;
       })}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{review.photos.map((p) => {
         const photo = item.photos.find((own) => own.id === p.id);
@@ -105,7 +102,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
       <dl aria-label="Item specifics">{review.specifics?.map((r, i) => <div className="min-w-0 break-words border-b border-slate-300 py-2" key={i}><dt className="inline font-semibold">{r.name}:</dt>{" "}<dd className="inline">{r.value}</dd></div>)}</dl>
       <div><h4 className="font-semibold">Description</h4><ListingDescription html={review.listing.description_html} /><small>{review.sources.description_html}</small></div>
       {review.fees.length ? <ListingFees fees={review.fees} /> : null}
-      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p>{b.diagnostic ? <EbayDiagnostics value={b.diagnostic} onField={fix} /> : null}{b.key === "live_metadata" ? <a className="font-semibold text-blue-800 underline" href="/settings/ebay">Check eBay connection</a> : <button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : b.field.replace(/_/g, " ")}</button>}</div>)}</div> : null}
+      {[...review.checks, ...review.publish_checks].length ? <div role="status" className="space-y-2 border-l-4 border-amber-700 pl-3"><strong>Before publishing</strong>{groupedBlockers([...review.checks, ...review.publish_checks]).map((b, i) => <div key={`${b.key}-${i}`}><p>{b.message}</p>{b.diagnostic ? <EbayDiagnostics value={b.diagnostic} onField={fix} /> : null}{b.key === "live_metadata" ? <a className="font-semibold text-blue-800 underline" href="/settings/ebay">Check eBay connection</a> : <button className="text-left font-semibold text-blue-800 underline" onClick={() => fix(b.field)} type="button">Go to {b.field === "staging" ? review.offer_id ? "Update staged offer" : "Stage reviewed listing" : listingFieldLabel(b.field)}</button>}</div>)}</div> : null}
       {reviewMode === "full" ? <div id={`listing-${draft.id}-staging`} tabIndex={-1} className="listing-field-anchor">{review.can_stage ? <button className="btn-secondary gap-2" disabled={busy || !sameRevision || expired} onClick={() => void stage()} type="button"><UploadCloud aria-hidden="true" size={18} />{review.offer_id ? "Update staged offer" : "Stage reviewed listing"}</button> : <p>Resolve the listing blockers above before {review.offer_id ? "Update staged offer" : "Stage reviewed listing"}.</p>}</div> : null}
       {reviewMode === "quick" && !review.can_publish ? <button className="btn-secondary" onClick={() => fix("title")} type="button">Open full editor to update and review</button> : null}
       {reviewMode === "full" && review.can_publish ? <label className="label">Type {review.sku} to confirm<input autoComplete="off" className="field" value={sku} onChange={(e) => setSku(e.target.value)} /></label> : null}
@@ -118,7 +115,7 @@ export function ListingWorkflow({ draft, item, mode, onUpdated, beforeReview, al
 }
 
 function Row({ label, value, source }: { label: string; value: string; source?: string }) {
-  return <div className="min-w-0 border-b border-slate-300 py-2"><dt className="font-semibold">{label}</dt><dd className="break-words">{value}</dd>{source ? <dd className="text-sm">Source: {source}</dd> : null}</div>;
+  return <div className="min-w-0 border-b border-slate-300 py-2"><dt className="font-semibold">{label}</dt><dd className="break-words">{value}</dd><dd className="text-sm">{sourceLabel(source) === "Source unknown" ? "Source unknown" : `Source: ${sourceLabel(source)}`}</dd></div>;
 }
 
 function sameTime(a: string, b: string) {

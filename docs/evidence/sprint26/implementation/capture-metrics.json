@@ -1,0 +1,7056 @@
+{
+  "at": "2026-11-19",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "baselineHead": "0dc7e622a40d5086b3f0c983aaca7571153ba9bc",
+  "implementation": "Sprint26 v1.1 working tree",
+  "snapshot": {
+    "tableCount": 58,
+    "tablesUnchanged": true,
+    "networkAttempts": 0,
+    "responseCount": 85,
+    "failed": {}
+  },
+  "states": [
+    {
+      "key": "gold-live",
+      "source": "guarded read-only owned-record GET replay",
+      "sku": "GOLD-00002",
+      "fixtureState": null,
+      "itemStatus": "listed",
+      "defaults": {
+        "height": 2798,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 2798,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Weight g",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fineness",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Karat",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Form",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 1016,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 3 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 4 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 5 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 6 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 5024,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "broad nugget search - General web referenceattributes with looser phrasing for variant listings",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "broad nugget search - Google Imagesattributes with looser phrasing for variant listings",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "ecommerce query - General web referencemarketplace lookup using title and weight",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "ecommerce query - Google Imagesmarketplace lookup using title and weight",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "auction site query - General web referencetitle emphasis for auction listings",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "auction site query - Google Imagestitle emphasis for auction listings",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "marketplace exact phrase - General web referencetitle + attributes normalized for search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "marketplace exact phrase - Google Imagestitle + attributes normalized for search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "web general - General web referencetitle + attributes: gold, 1.4g, 24 karat, nugget",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "web general - Google Imagestitle + attributes: gold, 1.4g, 24 karat, nugget",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Context match query - General web referencecurrent item context",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Context match query - Google Imagescurrent item context",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Form confirmation query - General web referencephoto",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Form confirmation query - Google Imagesphoto",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Visual match query - General web referencephoto + current item context",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Visual match query - Google Imagesphoto + current item context",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "A",
+              "label": "eBay activepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Terapeakmarketplace research",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Googlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Google Imagespublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact titlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Brand/model soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 7443,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Manual price",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Calculate",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay sold\"1.4g\" \"gold nugget\" Australia",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Facebook Marketplace",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction archive",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Price guide",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "General web",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Broad sold searchgold nugget 1.4 24ct",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact title sold searchAustralian Gold Nugget 1.4g Grams",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Grade or condition anglegold nugget 1.4 24ct",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction sold searchgold nugget 1.4 24ct",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Fixed-price sold searchgold nugget 1.4 24ct",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Price-bounded sold searchgold nugget 1.4 24ct",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Category-narrowed sold searchgold nugget 1.4 24ct Gold",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 8539,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Create relisting draft",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "1.4g gold nugget 24ctArchivedPrice not set",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "1.4g gold nugget 24ctArchivedPrice not set",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "1.4g gold nugget 24ctArchivedPrice not set",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "1.4gm Gram Natural Australian gold nugget Maryborough Golden TrianglePublishedAUD 375.00",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "1.4g gold nugget 24ctArchivedPrice not set",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Nugget",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Seeds & Bulbs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Rings",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Boiled & Hard Sweets",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Clothing",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Bath Salts",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Brooches & Pins",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "LEGO (R) Bricks, Pieces & Parts",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Cleaning, Waxing & Valeting",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Souvenirs",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (8)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo ee3f5d1b-b59f-4d5f-89ee-0de4368c3ef4",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo e1ad4aea-bd67-4dc1-bbf2-600775211104",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo ccc36da3-20fb-4d7d-97ee-91c6ce243b89",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 035bdfec-fdf5-483a-b0bc-95adbe6c8029",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 22f2df39-f698-4c0d-821a-4f85be62ce4e",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 4f104eb4-2aaf-4812-866a-cc06f8dc4975",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (13)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Open live listing",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1623,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/valuation-reports/e6e51b7c-0c81-41bb-bfc5-9404bd81cf44/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/pricing-evidence/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/copy-pack/",
+        "GET /api/items/4ab42c61-d9cb-428c-81bc-92278ad30f83/sales/",
+        "GET /api/categories/f0156f56-4586-4112-ab0e-d06994fd4035/schema/",
+        "GET /api/listing-drafts/af013dd9-0611-431c-be4a-223c44ec4e06/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "gsp-draft",
+      "source": "guarded read-only owned-record GET replay",
+      "sku": "GSP-00001",
+      "fixtureState": null,
+      "itemStatus": "ready_to_list",
+      "defaults": {
+        "height": 3028,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 3028,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Country",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Denomination",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Series/year",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Prefix/serial",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Signature/variety",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 1065,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 3 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 4 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 8520,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design match - General web referenceBack design and QEII portrait visible in photos.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design match - Google ImagesBack design and QEII portrait visible in photos.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix check - General web referenceVisible serial number and prefix on the note.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix check - Google ImagesVisible serial number and prefix on the note.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type verification - General web referenceVisible portrait style, denomination, and bilingual Bank of Canada text.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type verification - Google ImagesVisible portrait style, denomination, and bilingual Bank of Canada text.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Catalogue cross-check - General web referenceFor manual comparison against standard Canadian paper money references",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Catalogue cross-check - Google ImagesFor manual comparison against standard Canadian paper money references",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix check - General web referenceHelp confirm prefix format and note family from the visible serial area",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix check - Google ImagesHelp confirm prefix format and note family from the visible serial area",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type identification - General web referenceMatch the observed portrait/reverse design to Bank of Canada issue pages",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type identification - Google ImagesMatch the observed portrait/reverse design to Bank of Canada issue pages",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design comparison - General web referenceUse to compare the note against known $1 varieties by design and signatures.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design comparison - Google ImagesUse to compare the note against known $1 varieties by design and signatures.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Banknote type match - General web referenceUse to confirm the note design family and signature pair.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Banknote type match - Google ImagesUse to confirm the note design family and signature pair.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Compare older Canadian $1 note variants - General web referenceSignature area and note design from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Compare older Canadian $1 note variants - Google ImagesSignature area and note design from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Find similar serial/prefix examples - General web referenceVisible serial from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Find similar serial/prefix examples - Google ImagesVisible serial from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Identify exact note type by design - General web referenceDesign match from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Identify exact note type by design - Google ImagesDesign match from photos",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/style query - General web referenceUse to compare serial prefix and signature variety candidates.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/style query - Google ImagesUse to compare serial prefix and signature variety candidates.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Catalogue cross-check query - General web referenceUse to verify a candidate catalogue reference manually.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Catalogue cross-check query - Google ImagesUse to verify a candidate catalogue reference manually.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design match query - General web referenceUse to confirm the commemorative design and issue family.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Design match query - Google ImagesUse to confirm the commemorative design and issue family.",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Reverse design match - General web referenceReverse scenic layout visible in photo",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Reverse design match - Google ImagesReverse scenic layout visible in photo",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Signature variety identification - General web referenceNeed to confirm signer pair from note",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Signature variety identification - Google ImagesNeed to confirm signer pair from note",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix lookup - General web referenceVisible serial from photo",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Serial/prefix lookup - Google ImagesVisible serial from photo",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type match - General web referenceVisual design match for Canadian 1954 $1 note",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Type match - Google ImagesVisual design match for Canadian 1954 $1 note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "A",
+              "label": "eBay activepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Terapeakmarketplace research",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Googlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Google Imagespublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact titlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Brand/model soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Colnect banknotespublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Numista banknotespublic search",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 7522,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Manual price",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Calculate",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay soldBank of Canada one dollar 1954 QEII Beattie-Rasminsky",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Facebook Marketplace",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction archive",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Price guide",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "General web",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Colnect banknotes",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Numista banknotes",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Broad sold searchCanada $1 1954 F/9633861 Beattie-Rasminsky",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact title sold searchCanada 1 dollar 1954 Queen Elizabeth II Bank of Canada Beattie Rasminsky F9633861",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Grade or condition angleCanada $1 1954 F/9633861 Beattie-Rasminsky Acceptable",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction sold searchCanada $1 1954 F/9633861 Beattie-Rasminsky",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Fixed-price sold searchCanada $1 1954 F/9633861 Beattie-Rasminsky",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Category-narrowed sold searchCanada $1 1954 F/9633861 Beattie-Rasminsky Banknotes",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 7869,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Canada 1 dollar 1954 Queen Elizabeth II Bank of Canada Beattie RasminskyDraftAUD 8.00",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "eBay condition",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (0)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 58adfeb8-5939-4554-9bb2-c0578afd222d",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo ac4a4def-2f4d-43b7-a595-2d5b80108c4f",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 7d08985d-437a-4a79-880f-e5e4ff9f9849",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo 209238fe-aa8a-44cc-ad9a-60bc2fea4157",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (0)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Review listing",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Quick publish preview",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1693,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/valuation-reports/ffff16f4-7176-456f-8e12-35f739703cde/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/pricing-evidence/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/copy-pack/",
+        "GET /api/items/46df4992-d14a-443a-a4af-22cda0aa34b2/sales/",
+        "GET /api/categories/b2bac2da-1a9c-43d8-9952-0c8e265d4fab/schema/",
+        "GET /api/listing-drafts/d1e714f6-58b3-4640-b705-b185dbb083fb/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "stm-sold-out",
+      "source": "guarded read-only owned-record GET replay",
+      "sku": "STM-00002",
+      "fixtureState": null,
+      "itemStatus": "sold",
+      "defaults": {
+        "height": 3396,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 3396,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Country",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Year",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Denomination",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Face value currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Topic/theme",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Mint/used",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Perforation",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Watermark",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Variety",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Colour",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 866,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 3100,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "A",
+              "label": "eBay activepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Terapeakmarketplace research",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Googlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Google Imagespublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact titlepublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Brand/model soldpublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Colnect stampspublic search",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Stanley Gibbons Baldwin's shop/reference searchdealer asking (shop search) - not catalogue value",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 9047,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "eBay soldaustralia 2022 Letter Rate",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Facebook Marketplace",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction archive",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Price guide",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "General web",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Colnect stamps",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Broad sold searchaustralia 2022 Letter Rate",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Exact title sold searchFirst Flight Test Postage Stamp",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Grade or condition angleaustralia 2022 Letter Rate Very good",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Auction sold searchaustralia 2022 Letter Rate",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Fixed-price sold searchaustralia 2022 Letter Rate",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Price-bounded sold searchaustralia 2022 Letter Rate",
+              "disabled": false
+            },
+            {
+              "tag": "A",
+              "label": "Category-narrowed sold searchaustralia 2022 Letter Rate Stamps",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 2099,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Create draft",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 2460,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Correct",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Correct",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Correct",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/pricing-evidence/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/copy-pack/",
+        "GET /api/items/ac7a39b2-306a-47f4-8a26-21f03d2dc2c8/sales/",
+        "GET /api/categories/05bbb9c4-0d4a-4245-bcf2-458195661bf4/schema/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "fixture-staged",
+      "source": "synthetic existing Phase6 fixture",
+      "sku": "TEST-EDITOR",
+      "fixtureState": "staged",
+      "itemStatus": "ready_to_list",
+      "defaults": {
+        "height": 2331,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 2331,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 888,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 2621,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 6894,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Weight g",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fineness",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Karat",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Buy margin %",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fetch live spot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 6698,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Synthetic gold specimen - audit fixtureStagedAUD 360.00",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Offer details",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save these as Gold defaults",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal (required by eBay)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (1)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-a",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-b",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (0)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Review listing",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Quick publish preview",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Remove unpublished offer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1637,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/item-fixture/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/item-fixture/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/item-fixture/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/item-fixture/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/item-fixture/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/item-fixture/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/item-fixture/pricing-evidence/",
+        "GET /api/items/item-fixture/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/item-fixture/copy-pack/",
+        "GET /api/items/item-fixture/sales/",
+        "GET /api/categories/gold-fixture/schema/",
+        "GET /api/listing-drafts/editor-fixture/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "fixture-publishing",
+      "source": "synthetic existing Phase6 fixture",
+      "sku": "TEST-EDITOR",
+      "fixtureState": "publishing",
+      "itemStatus": "ready_to_list",
+      "defaults": {
+        "height": 2331,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 2331,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 888,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 2621,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 6894,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Weight g",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fineness",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Karat",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Buy margin %",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fetch live spot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 6924,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Synthetic gold specimen - audit fixturePublishingAUD 360.00",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Offer details",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save these as Gold defaults",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal (required by eBay)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (1)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-a",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-b",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (0)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Review listing",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Quick publish preview",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Reconcile offer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1637,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/item-fixture/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/item-fixture/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/item-fixture/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/item-fixture/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/item-fixture/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/item-fixture/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/item-fixture/pricing-evidence/",
+        "GET /api/items/item-fixture/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/item-fixture/copy-pack/",
+        "GET /api/items/item-fixture/sales/",
+        "GET /api/categories/gold-fixture/schema/",
+        "GET /api/listing-drafts/editor-fixture/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "fixture-publish-unknown",
+      "source": "synthetic existing Phase6 fixture",
+      "sku": "TEST-EDITOR",
+      "fixtureState": "publish_unknown",
+      "itemStatus": "ready_to_list",
+      "defaults": {
+        "height": 2331,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 2331,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 888,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 2621,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 6894,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Weight g",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fineness",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Karat",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Buy margin %",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fetch live spot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 6924,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Synthetic gold specimen - audit fixtureCheck publish resultAUD 360.00",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Offer details",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save these as Gold defaults",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal (required by eBay)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (1)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-a",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-b",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (0)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Review listing",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Quick publish preview",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Reconcile offer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1637,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/item-fixture/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/item-fixture/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/item-fixture/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/item-fixture/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/item-fixture/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/item-fixture/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/item-fixture/pricing-evidence/",
+        "GET /api/items/item-fixture/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/item-fixture/copy-pack/",
+        "GET /api/items/item-fixture/sales/",
+        "GET /api/categories/gold-fixture/schema/",
+        "GET /api/listing-drafts/editor-fixture/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "key": "fixture-partial-stock",
+      "source": "synthetic existing Phase6 fixture",
+      "sku": "TEST-EDITOR",
+      "fixtureState": "partially-sold",
+      "itemStatus": "partially_sold",
+      "defaults": {
+        "height": 2331,
+        "width": 390,
+        "scrollWidth": 390
+      },
+      "tabs": [
+        {
+          "tab": "Details",
+          "height": 2331,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Status",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Total quantity",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Category",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Lot",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Disposition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Scrapped date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb cost",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound shipping est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging est.",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Estimated value",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Photos",
+          "height": 888,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Take photo",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Choose from library",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Upload selected",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Arrange",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 1 full size",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "View photo 2 full size",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Photo adjustments",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Research",
+          "height": 2621,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Identify & fill",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Price-assist search terms",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Disconnect AI provider",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Run OCR",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Scan duplicates",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Approve all shown",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Link URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Note",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add note",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Pricing",
+          "height": 6894,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Sales",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Valuation method",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Fee rates",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Weight g",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fineness",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Karat",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Buy margin %",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fetch live spot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Confidence reason",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Fast sale",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Suggested",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Patient",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Minimum",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Create valuation report",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Acquisition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Refurb",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Inbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Outbound ship",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Packaging",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save costs",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Evidence lookupMatching item evidence",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence link",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold-result screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Text copied from screenshot",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Fill capture form",
+              "disabled": true
+            },
+            {
+              "tag": "SELECT",
+              "label": "Source tag",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source label",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sold price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Match",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Grade",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence URL",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Match reason",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add to grid",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Kind",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Price basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Source",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Condition",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Observed on",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "URL",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Add comparable",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "eBay",
+          "height": 6801,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "BUTTON",
+              "label": "Synthetic gold specimen - audit fixtureStagedAUD 360.00",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Offer details",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Archive",
+              "disabled": true
+            },
+            {
+              "tag": "INPUT",
+              "label": "Title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Regenerate specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Subtitle",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Format",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Price",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Currency",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "SKU footer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Confirm saved price as my asking price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Pick an evidence price (seller receives)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Where these choices came from",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Refresh from eBay",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Search eBay category",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Search eBay",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Browse categories",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Category ID and manual entry",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Duration",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Payment policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Postage policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Return policy",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Use another existing location key",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Create merchant location",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save these as Gold defaults",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping note",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Preview",
+              "disabled": false
+            },
+            {
+              "tag": "TEXTAREA",
+              "label": "Description",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Metal (required by eBay)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Recommended (1)",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Additional / custom specifics",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-a",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Select photo photo-b",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move up",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Move down",
+              "disabled": true
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Go to field",
+              "disabled": false
+            },
+            {
+              "tag": "SUMMARY",
+              "label": "Passed checks (0)",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy title",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy description",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy specifics",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy standard text",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Download zip",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Review listing",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Quick publish preview",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Remove unpublished offer",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Save",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Photo zip",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence price you chose",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Evidence label",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Copy whole ad",
+              "disabled": false
+            }
+          ]
+        },
+        {
+          "tab": "Sales",
+          "height": 1637,
+          "width": 390,
+          "scrollWidth": 390,
+          "controls": [
+            {
+              "tag": "INPUT",
+              "label": "Sale date",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Quantity",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Sale price",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Channel",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Actual recorded fees (optional)",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Shipping cost",
+              "disabled": false
+            },
+            {
+              "tag": "SELECT",
+              "label": "Listing",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Replace recorded cost basis",
+              "disabled": false
+            },
+            {
+              "tag": "INPUT",
+              "label": "Notes",
+              "disabled": false
+            },
+            {
+              "tag": "BUTTON",
+              "label": "Record sale",
+              "disabled": false
+            }
+          ]
+        }
+      ],
+      "calls": [
+        "GET /api/ebay/connection-health/",
+        "GET /api/items/item-fixture/",
+        "GET /api/categories/",
+        "GET /api/locations/",
+        "GET /api/lots/",
+        "GET /api/sources/",
+        "GET /api/items/item-fixture/listing-drafts/",
+        "GET /api/channel-listings/",
+        "GET /api/items/item-fixture/ebay-quantity/",
+        "GET /api/ai/status/",
+        "GET /api/items/item-fixture/ai/references/",
+        "GET /api/field-suggestions/",
+        "GET /api/items/item-fixture/research-links/",
+        "GET /api/research-records/",
+        "GET /api/comparables/",
+        "GET /api/items/item-fixture/valuation-reports/",
+        "GET /api/fee-schedules/",
+        "GET /api/evidence/lookup/",
+        "GET /api/items/item-fixture/pricing-evidence/",
+        "GET /api/items/item-fixture/sold-searches/",
+        "GET /api/listing-boilerplates/",
+        "GET /api/items/item-fixture/copy-pack/",
+        "GET /api/items/item-fixture/sales/",
+        "GET /api/categories/gold-fixture/schema/",
+        "GET /api/listing-drafts/editor-fixture/editor/"
+      ],
+      "blocked": [],
+      "errors": []
+    }
+  ]
+}

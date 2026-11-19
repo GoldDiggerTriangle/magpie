@@ -7,6 +7,17 @@ import { ValuationPanel } from "./ValuationPanel";
 import { ApiError } from "../api/client";
 import type { InventoryItemDetail } from "../types";
 
+test("refreshing the category default does not replace an edited valuation method or fetch a quote", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(<QueryClientProvider client={client}><ValuationPanel item={item} /></QueryClientProvider>);
+  const method = await screen.findByLabelText("Valuation method");
+  await userEvent.selectOptions(method, "commodity_manual");
+  view.rerender(<QueryClientProvider client={client}><ValuationPanel item={{ ...item, category_name: "Gold" }} /></QueryClientProvider>);
+  expect(method).toHaveValue("commodity_manual");
+  expect(mocks.getMetalSpot).not.toHaveBeenCalled();
+  expect(mocks.createValuationReport).not.toHaveBeenCalled();
+});
+
 const mocks = vi.hoisted(() => ({
   createValuationReport: vi.fn(),
   getMetalSpot: vi.fn(),
@@ -134,7 +145,7 @@ test("ValuationPanel requires override reason when overriding", async () => {
   renderPanel();
 
   await screen.findByText("Test comp");
-  await user.click(screen.getByLabelText("Manual override"));
+  await user.click(screen.getByLabelText("Replace suggested valuation"));
   await user.click(screen.getByRole("button", { name: "Create valuation report" }));
 
   expect(screen.getByText("Override reason is required when manual override is enabled.")).toBeInTheDocument();

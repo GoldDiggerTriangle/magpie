@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-19",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "baselineHead": "0dc7e622a40d5086b3f0c983aaca7571153ba9bc",
+  "implementation": "Sprint 26 v1.1 working tree",
+  "snapshot": {
+    "tableCount": 58,
+    "tablesUnchanged": true,
+    "networkAttempts": 0,
+    "responseCount": 85,
+    "failed": {}
+  },
+  "states": [
+    {
+      "state": "gsp-draft",
+      "task": "value",
+      "source": "read-only owned-record replay",
+      "taps": 3,
+      "scrollPx": 851,
+      "endScrollY": 851,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing test fixture for geometry only, not an item valuation"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    }
+  ]
+}

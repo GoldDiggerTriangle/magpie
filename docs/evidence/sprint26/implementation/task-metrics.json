@@ -1,0 +1,492 @@
+{
+  "at": "2026-11-19",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "baselineHead": "0dc7e622a40d5086b3f0c983aaca7571153ba9bc",
+  "implementation": "Sprint 26 v1.1 working tree",
+  "snapshot": {
+    "tableCount": 58,
+    "tablesUnchanged": true,
+    "networkAttempts": 0,
+    "responseCount": 85,
+    "failed": {}
+  },
+  "states": [
+    {
+      "state": "gold-live",
+      "task": "edit",
+      "source": "read-only owned-record replay",
+      "taps": 4,
+      "scrollPx": 1954,
+      "endScrollY": 1954,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "gold-live",
+      "task": "value",
+      "source": "read-only owned-record replay",
+      "taps": 3,
+      "scrollPx": 802,
+      "endScrollY": 802,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing item value"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "gold-live",
+      "task": "list",
+      "source": "read-only owned-record replay",
+      "taps": 1,
+      "scrollPx": 267,
+      "endScrollY": 267,
+      "outcome": "editor reached; preview unavailable on published/read-only history",
+      "actions": [
+        "List on eBay"
+      ],
+      "details": {
+        "editorReached": true,
+        "mockPreviews": 0
+      },
+      "mockedWrites": [],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "gsp-draft",
+      "task": "edit",
+      "source": "read-only owned-record replay",
+      "taps": 4,
+      "scrollPx": 2184,
+      "endScrollY": 2184,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "gsp-draft",
+      "task": "value",
+      "source": "read-only owned-record replay",
+      "taps": 1,
+      "scrollPx": 263,
+      "endScrollY": 263,
+      "outcome": "no existing figure available; no numeric value invented",
+      "actions": [
+        "Open Sales & valuations"
+      ],
+      "details": {
+        "mockRecords": 0,
+        "figureSource": "none"
+      },
+      "mockedWrites": [],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "gsp-draft",
+      "task": "list",
+      "source": "read-only owned-record replay",
+      "taps": 2,
+      "scrollPx": 5615,
+      "endScrollY": 5615,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "List on eBay",
+        "Review listing (offline cached-shape preview only)"
+      ],
+      "details": {
+        "editorReached": true,
+        "previewReached": true,
+        "mockPreviews": 1
+      },
+      "mockedWrites": [
+        "mock POST preview"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "stm-sold-out",
+      "task": "edit",
+      "source": "read-only owned-record replay",
+      "taps": 4,
+      "scrollPx": 2552,
+      "endScrollY": 2552,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "stm-sold-out",
+      "task": "value",
+      "source": "read-only owned-record replay",
+      "taps": 3,
+      "scrollPx": 774,
+      "endScrollY": 774,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing sale"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "stm-sold-out",
+      "task": "list",
+      "source": "read-only owned-record replay",
+      "taps": 0,
+      "scrollPx": 0,
+      "endScrollY": 0,
+      "outcome": "unavailable: no retained draft and sold-out header has no create action; not invoked",
+      "actions": [],
+      "details": {
+        "topEntryPresent": false,
+        "soldOut": true,
+        "noRetainedDraft": true,
+        "mockPreviews": 0
+      },
+      "mockedWrites": [],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-staged",
+      "task": "edit",
+      "source": "synthetic fixture",
+      "taps": 4,
+      "scrollPx": 1487,
+      "endScrollY": 1487,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-staged",
+      "task": "value",
+      "source": "synthetic fixture",
+      "taps": 5,
+      "scrollPx": 1094,
+      "endScrollY": 796,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Open Strategy and choose option (2 taps)",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing test fixture"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-staged",
+      "task": "list",
+      "source": "synthetic fixture",
+      "taps": 2,
+      "scrollPx": 4525,
+      "endScrollY": 4525,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "List on eBay",
+        "Review listing (offline cached-shape preview only)"
+      ],
+      "details": {
+        "editorReached": true,
+        "previewReached": true,
+        "mockPreviews": 1
+      },
+      "mockedWrites": [
+        "mock POST preview"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publishing",
+      "task": "edit",
+      "source": "synthetic fixture",
+      "taps": 4,
+      "scrollPx": 1487,
+      "endScrollY": 1487,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publishing",
+      "task": "value",
+      "source": "synthetic fixture",
+      "taps": 5,
+      "scrollPx": 1094,
+      "endScrollY": 796,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Open Strategy and choose option (2 taps)",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing test fixture"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publishing",
+      "task": "list",
+      "source": "synthetic fixture",
+      "taps": 1,
+      "scrollPx": 261,
+      "endScrollY": 261,
+      "outcome": "editor reached; preview blocked during publishing/unknown outcome",
+      "actions": [
+        "List on eBay"
+      ],
+      "details": {
+        "editorReached": true,
+        "mockPreviews": 0
+      },
+      "mockedWrites": [],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publish-unknown",
+      "task": "edit",
+      "source": "synthetic fixture",
+      "taps": 4,
+      "scrollPx": 1487,
+      "endScrollY": 1487,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publish-unknown",
+      "task": "value",
+      "source": "synthetic fixture",
+      "taps": 5,
+      "scrollPx": 1094,
+      "endScrollY": 796,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Open Strategy and choose option (2 taps)",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing test fixture"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-publish-unknown",
+      "task": "list",
+      "source": "synthetic fixture",
+      "taps": 1,
+      "scrollPx": 261,
+      "endScrollY": 261,
+      "outcome": "editor reached; preview blocked during publishing/unknown outcome",
+      "actions": [
+        "List on eBay"
+      ],
+      "details": {
+        "editorReached": true,
+        "mockPreviews": 0
+      },
+      "mockedWrites": [],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-partial-stock",
+      "task": "edit",
+      "source": "synthetic fixture",
+      "taps": 4,
+      "scrollPx": 1487,
+      "endScrollY": 1487,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Focus/edit Title",
+        "Save core (mock only)",
+        "Focus/edit first category-specific input",
+        "Save specifics (mock only)"
+      ],
+      "details": {
+        "mockSaves": 2
+      },
+      "mockedWrites": [
+        "mock PATCH item",
+        "mock PATCH item"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-partial-stock",
+      "task": "value",
+      "source": "synthetic fixture",
+      "taps": 5,
+      "scrollPx": 1094,
+      "endScrollY": 796,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "Open Sales & valuations",
+        "Open Strategy and choose option (2 taps)",
+        "Enter existing recorded/fixture figure",
+        "Create report (mock only)"
+      ],
+      "details": {
+        "mockRecords": 1,
+        "figureSource": "existing test fixture"
+      },
+      "mockedWrites": [
+        "mock POST valuation"
+      ],
+      "blocked": [],
+      "errors": []
+    },
+    {
+      "state": "fixture-partial-stock",
+      "task": "list",
+      "source": "synthetic fixture",
+      "taps": 2,
+      "scrollPx": 4567,
+      "endScrollY": 4567,
+      "outcome": "completed offline UI path",
+      "actions": [
+        "List on eBay",
+        "Review listing (offline cached-shape preview only)"
+      ],
+      "details": {
+        "editorReached": true,
+        "previewReached": true,
+        "mockPreviews": 1
+      },
+      "mockedWrites": [
+        "mock POST preview"
+      ],
+      "blocked": [],
+      "errors": []
+    }
+  ]
+}

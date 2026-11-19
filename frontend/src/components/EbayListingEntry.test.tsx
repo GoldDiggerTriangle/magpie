@@ -6,9 +6,9 @@ import fixture from "../fixtures/listingEditor.json";
 import type { InventoryItemDetail } from "../types";
 import { EbayListingEntry } from "./EbayListingEntry";
 
-const mocks = vi.hoisted(() => ({ list: vi.fn(), create: vi.fn() }));
-vi.mock("../api/listing", () => ({ listItemListingDrafts: (...a: unknown[]) => mocks.list(...a), createItemListingDraft: (...a: unknown[]) => mocks.create(...a) }));
-beforeEach(() => { vi.clearAllMocks(); mocks.list.mockResolvedValue({ results: [fixture.draft] }); mocks.create.mockResolvedValue(fixture.draft); });
+const mocks = vi.hoisted(() => ({ list: vi.fn(), create: vi.fn(), channels: vi.fn() }));
+vi.mock("../api/listing", () => ({ listChannelListings: (...a: unknown[]) => mocks.channels(...a), listItemListingDrafts: (...a: unknown[]) => mocks.list(...a), createItemListingDraft: (...a: unknown[]) => mocks.create(...a) }));
+beforeEach(() => { vi.clearAllMocks(); mocks.channels.mockResolvedValue({ results: [] }); mocks.list.mockResolvedValue({ results: [fixture.draft] }); mocks.create.mockResolvedValue(fixture.draft); });
 function open() { return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><EbayListingEntry item={fixture.item as unknown as InventoryItemDetail} /></QueryClientProvider>); }
 test("top entry reuses canonical draft without writes on mount or opening an existing one", async () => {
   const event = vi.fn(); window.addEventListener(`magpie:open-draft:${fixture.item.id}`, event);
@@ -35,5 +35,16 @@ test("unavailable draft status cannot be mistaken for no draft", async () => {
   mocks.list.mockRejectedValue(new Error("Session expired")); open();
   expect(await screen.findByRole("alert")).toHaveTextContent("could not load");
   expect(screen.getByRole("button", { name: "List on eBay" })).toBeDisabled();
+  expect(mocks.create).not.toHaveBeenCalled();
+});
+
+test("sold-out stock has no create action but retains its owned listing link without a retained draft", async () => {
+  mocks.list.mockResolvedValue({ results: [] });
+  mocks.channels.mockResolvedValue({ results: [{ channel: "ebay", active: true, url: "https://www.ebay.com.au/itm/owned-history" }] });
+  const item = { ...fixture.item, quantity_remaining: 0 } as unknown as InventoryItemDetail;
+  render(<QueryClientProvider client={new QueryClient()}><EbayListingEntry item={item} /></QueryClientProvider>);
+  expect(screen.getByText("Sold out")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "List on eBay" })).not.toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "View on eBay" })).toHaveAttribute("href", "https://www.ebay.com.au/itm/owned-history");
   expect(mocks.create).not.toHaveBeenCalled();
 });

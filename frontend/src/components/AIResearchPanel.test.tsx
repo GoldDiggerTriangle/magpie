@@ -1,11 +1,25 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { AIResearchPanel } from "./AIResearchPanel";
 import type { AIReferencesResult, AIResearchRunResult, AIStatus, FieldSuggestion } from "../types";
+
+test("background status refresh preserves an edited model and refreshes clean settings without saving", async () => {
+  mocks.getAIStatus.mockResolvedValue(disabledStatus);
+  mocks.getAIReferences.mockResolvedValue(emptyReferences);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><AIResearchPanel itemId="item-1" /></QueryClientProvider>);
+  const model = await screen.findByLabelText("Model");
+  await waitFor(() => expect(client.getQueryState(["ai-status"])?.fetchStatus).toBe("idle"));
+  fireEvent.change(model, { target: { value: "pending-model" } });
+  await act(async () => { client.setQueryData(["ai-status"], { ...disabledStatus, model_id: "remote-model", monthly_budget_cap_usd: "8.00" }); });
+  expect(model).toHaveValue("pending-model");
+  await waitFor(() => expect(screen.getByLabelText("Monthly cap USD")).toHaveValue("8.00"));
+  expect(mocks.configureAICredential).not.toHaveBeenCalled();
+});
 
 const mocks = vi.hoisted(() => ({
   configureAICredential: vi.fn(),

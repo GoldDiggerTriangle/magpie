@@ -29,7 +29,7 @@ test("full path reviews exact values, policy terms, price source and fees before
   expect(mocks.publish).not.toHaveBeenCalled();
   await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByText("Australia Post: $23.95")).toBeInTheDocument();
-  expect(screen.getByText("Source: Human asking price")).toBeInTheDocument();
+  expect(screen.getByText("Source: Your asking price")).toBeInTheDocument();
   expect(screen.getAllByText("Insertion Fee: $0.06")[0]).toBeVisible();
   const post = screen.getByRole("button", { name: "Confirm publish to eBay" });
   expect(post).toBeDisabled();
@@ -77,7 +77,7 @@ test("blocker jumps to and focuses the field using the existing editor entry poi
   const handler = vi.fn(); window.addEventListener(`magpie:open-draft:${item.id}`, handler);
   const field = document.createElement("input"); field.id = `listing-${draft.id}-category_id`; document.body.append(field);
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
-  await userEvent.click(await screen.findByRole("button", { name: "Go to category id" }));
+  await userEvent.click(await screen.findByRole("button", { name: "Go to eBay category" }));
   await waitFor(() => expect(field).toHaveFocus()); expect(handler).toHaveBeenCalled();
   field.remove(); window.removeEventListener(`magpie:open-draft:${item.id}`, handler);
 });
@@ -92,7 +92,7 @@ test("unavailable live validation links to the actual eBay settings route", asyn
   review.can_publish = false; review.checks = [{ key: "live_metadata", field: "category_id", message: "Live metadata unavailable" }];
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByRole("link", { name: "Check eBay connection" })).toHaveAttribute("href", "/settings/ebay");
-  expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Go to eBay category" })).not.toBeInTheDocument();
 });
 
 test("structured eBay validation opens the exact field but never grants a publish retry", async () => {
@@ -232,7 +232,7 @@ test("repeated photo blockers group once and drift jumps to Update staged offer 
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
   expect(await screen.findByText("6 photo freshness checks need attention: Photo upload date unknown")).toBeVisible();
   expect(screen.queryByText("Photo upload date unknown")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Go to category id" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Go to eBay category" })).not.toBeInTheDocument();
   await userEvent.click(screen.getAllByRole("button", { name: "Go to Update staged offer" })[1]);
   await waitFor(() => expect(screen.getByRole("button", { name: "Update staged offer" })).toHaveFocus());
   expect(screen.getByLabelText("Reviewed listing")).toBeVisible();
@@ -244,7 +244,8 @@ test.each(["title", "subtitle", "description_html", "est_shipping_note", "item_s
   review.checks = [{ key: `placeholder:${fieldName}`, field: fieldName, message: "Remove PLACEHOLDER text before staging or publishing." }];
   const field = document.createElement("textarea"); field.id = `listing-${draft.id}-${fieldName}`; document.body.append(field);
   open(); await userEvent.click(screen.getByRole("button", { name: "Review listing" }));
-  await userEvent.click(await screen.findByRole("button", { name: `Go to ${fieldName.replace(/_/g, " ")}` }));
+  const label = fieldName === "description_html" ? "description" : fieldName === "est_shipping_note" ? "shipping note" : fieldName.replace(/_/g, " ");
+  await userEvent.click(await screen.findByRole("button", { name: `Go to ${label}` }));
   await waitFor(() => expect(field).toHaveFocus());
   expect(mocks.stage).not.toHaveBeenCalled(); expect(mocks.publish).not.toHaveBeenCalled(); field.remove();
 });

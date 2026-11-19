@@ -6,10 +6,10 @@ Regan supplied the current Markdown documents in `C:\Users\Regan\Downloads\files
 | --- | --- | --- |
 | `SPRINT_25_SPEC.md` | v3.4 LOCKED: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_SPEC_v3.4.md` |
 | `SPRINT_25_KICKOFF.md` | v3.4: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_KICKOFF_v3.4.md` |
-| `SPRINT_26_SPEC.md` | v1.0 LOCKED: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_SPEC.md` |
-| `SPRINT_26_KICKOFF.md` | v1.0: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_KICKOFF.md` |
+| `SPRINT_26_SPEC.md` | v1.1 LOCKED: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_SPEC.md` |
+| `SPRINT_26_KICKOFF.md` | v1.1: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_KICKOFF.md` |
 
-The Sprint 26 sources were supplied on 2026-11-19, checked for known secrets and credential patterns, and copied byte-for-byte with matching SHA256 hashes. Only Phase 0 is authorised; importing the sources does not authorise layout implementation.
+The Sprint 26 v1.1 sources were supplied on 2026-11-19, checked for known secrets and credential patterns, and copied byte-for-byte. They replace v1.0 after Regan's Phase 0 review and authorise Phases 1-5, including the decisions in section 11.
 
 The initial D-141 commit `e1ae1059b1d4ed474215822a57edd720d51faf6e` contained clearly marked v2.0 PDF fallbacks because the Markdown sources were not yet available. Those historical PDFs are removed from this directory now that the actual v3.4 sources are present; they remain available in Git history. No PDF content was used to reconstruct these Markdown files.
 

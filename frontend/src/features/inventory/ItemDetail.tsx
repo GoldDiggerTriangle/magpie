@@ -1,8 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Save, Trash2 } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, MoreHorizontal, Save, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+import { itemTabs, tabAnchors, tabForAnchor, rememberedItemTab, focusItemField, type ItemTab } from "../../components/itemNavigation";
+import { useRefreshableForm } from "../../components/useRefreshableForm";
+import { EbayItemWarnings } from "../../components/EbayItemWarnings";
 
 import { listCategories } from "../../api/categories";
 import { deleteItem, getItem, reorderPhotos, updateItem, uploadItemPhoto } from "../../api/items";
@@ -61,39 +65,7 @@ const conditionOptions = [
   ["for_parts", "For parts"]
 ];
 
-const itemSections = [
-  { id: "photos", label: "Photos" },
-  { id: "core-details", label: "Core details" },
-  { id: "category-specifics", label: "Category specifics" },
-  { id: "ai-research", label: "AI research" },
-  { id: "pricing-evidence", label: "Pricing evidence & comps" },
-  { id: "listings-channels", label: "Listings / channels" },
-  { id: "sales-valuations", label: "Sales & valuations" }
-] as const;
-
-type ItemSectionId = typeof itemSections[number]["id"];
-type OpenSections = Record<ItemSectionId, boolean>;
-
-const defaultOpenSections: OpenSections = {
-  photos: true,
-  "core-details": true,
-  "category-specifics": false,
-  "ai-research": false,
-  "pricing-evidence": false,
-  "listings-channels": false,
-  "sales-valuations": false
-};
-
-const hashSectionMap: Record<string, ItemSectionId> = {
-  "#photos": "photos",
-  "#core-details": "core-details",
-  "#category-specifics": "category-specifics",
-  "#ai-research": "ai-research",
-  "#ai-review": "ai-research",
-  "#pricing-evidence": "pricing-evidence",
-  "#listings-channels": "listings-channels",
-  "#sales-valuations": "sales-valuations"
-};
+type ItemEditorForm = ItemFormPayload & { status: string };
 
 export function ItemDetail() {
   const { id } = useParams();
@@ -108,9 +80,32 @@ export function ItemDetail() {
   const sources = useQuery({ queryKey: ["sources", "item-detail"], queryFn: listSources });
   const [files, setFiles] = useState<File[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<PhotoAsset | "item" | null>(null);
-  const [openSections, setOpenSections] = useState<OpenSections>(() => readStoredSections(itemId));
+  const [activeTab, setActiveTab] = useState<ItemTab>(() => tabForAnchor(location.hash) ?? (new URLSearchParams(location.search).has("draft") ? "eBay" : rememberedItemTab(itemId)));
+  const [more, setMore] = useState(false);
+  const [tabOverflow, setTabOverflow] = useState({ left: false, right: true, any: true });
 
-  const [form, setForm] = useState<ItemFormPayload & { status: string }>({
+  const savedForm = useMemo<ItemEditorForm | null>(() => item.data ? {
+      title: item.data.title,
+      category: item.data.category,
+      status: item.data.status,
+      condition: item.data.condition,
+      quantity_total: item.data.quantity_total,
+      location: item.data.location,
+      lot: item.data.lot,
+      source: item.data.source,
+      disposition: item.data.disposition,
+      scrapped_at: item.data.scrapped_at,
+      acquisition_cost: item.data.acquisition_cost,
+      refurb_cost: item.data.refurb_cost,
+      inbound_shipping_cost: item.data.inbound_shipping_cost,
+      est_outbound_shipping: item.data.est_outbound_shipping,
+      est_packaging_cost: item.data.est_packaging_cost,
+      estimated_value: item.data.estimated_value,
+      notes: item.data.notes,
+      attributes: item.data.attributes
+
+  } : null, [item.data]);
+  const [form, setForm, acknowledge] = useRefreshableForm<ItemEditorForm>(itemId, savedForm, {
     title: "",
     category: null,
     status: "captured",
@@ -131,90 +126,76 @@ export function ItemDetail() {
     attributes: {}
   });
 
-  useEffect(() => {
-    if (!item.data) {
-      return;
-    }
-    setForm({
-      title: item.data.title,
-      category: item.data.category,
-      status: item.data.status,
-      condition: item.data.condition,
-      quantity_total: item.data.quantity_total,
-      location: item.data.location,
-      lot: item.data.lot,
-      source: item.data.source,
-      disposition: item.data.disposition,
-      scrapped_at: item.data.scrapped_at,
-      acquisition_cost: item.data.acquisition_cost,
-      refurb_cost: item.data.refurb_cost,
-      inbound_shipping_cost: item.data.inbound_shipping_cost,
-      est_outbound_shipping: item.data.est_outbound_shipping,
-      est_packaging_cost: item.data.est_packaging_cost,
-      estimated_value: item.data.estimated_value,
-      notes: item.data.notes,
-      attributes: item.data.attributes
-    });
-  }, [item.data]);
-
   const orderedPhotos = useMemo(
     () => [...(item.data?.photos ?? [])].sort((a, b) => a.order_index - b.order_index),
     [item.data?.photos]
   );
 
   useEffect(() => {
-    setOpenSections(readStoredSections(itemId));
-  }, [itemId]);
+    const strip = document.querySelector<HTMLElement>(".item-tabs");
+    if (!strip) return;
+    const update = () => setTabOverflow({ left: strip.scrollLeft > 1, right: strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1, any: strip.scrollWidth > strip.clientWidth + 1 });
+    update();
+    strip.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    observer?.observe(strip);
+    return () => { strip.removeEventListener("scroll", update); window.removeEventListener("resize", update); observer?.disconnect(); };
+  }, [itemId, item.isSuccess]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(sectionStorageKey(itemId), JSON.stringify(openSections));
-    } catch {
-      // Collapsed section state is a convenience only; failure should not block item editing.
+    const explicit = tabForAnchor(location.hash) ?? (new URLSearchParams(location.search).has("draft") ? "eBay" : undefined);
+    setActiveTab(explicit ?? rememberedItemTab(itemId));
+    if (location.hash && item.isSuccess) focusItemField(location.hash.slice(1));
+  }, [itemId, location.hash, location.search, location.key, item.isSuccess]);
+
+  useEffect(() => {
+    try { localStorage.setItem(`magpie:item-tab:v1:${itemId}`, activeTab); } catch { /* Optional preference. */ }
+    const tab = document.getElementById(`item-tab-${activeTab}`);
+    const strip = tab?.parentElement;
+    if (tab && strip) {
+      if (tab.offsetLeft < strip.scrollLeft) strip.scrollLeft = tab.offsetLeft;
+      else if (tab.offsetLeft + tab.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = tab.offsetLeft + tab.offsetWidth - strip.clientWidth;
     }
-  }, [itemId, openSections]);
+  }, [itemId, activeTab]);
 
   useEffect(() => {
-    const targetSection = hashSectionMap[location.hash] ?? (/^#(?:listing-|quick-ebay-)/.test(location.hash) ? "listings-channels" : undefined);
-    if (!targetSection) {
-      return;
-    }
-    setOpenSections((current) => ({ ...current, [targetSection]: true }));
-    window.setTimeout(() => {
-      const anchor = location.hash.replace(/^#/, "");
-      scrollToElement(document.getElementById(anchor) ? anchor : targetSection);
-    }, 0);
-  }, [location.hash]);
-
-  useEffect(() => {
+    const reveal = (event: Event) => {
+      const anchor = (event as CustomEvent<{ id: string }>).detail.id;
+      const panel = document.getElementById(anchor)?.closest<HTMLElement>("[data-item-tab]");
+      const tab = tabForAnchor(anchor) ?? panel?.dataset.itemTab as ItemTab | undefined;
+      if (tab) {
+        setActiveTab(tab);
+        if (location.hash !== `#${anchor}`) navigate({ search: location.search, hash: `#${anchor}` }, { replace: true });
+      }
+    };
     const open = (event: Event) => {
-      setOpenSections((current) => ({ ...current, "listings-channels": true }));
       const draftId = (event as CustomEvent<{ draftId?: string }>).detail?.draftId;
-      const url = new URL(window.location.href);
-      if (draftId) url.searchParams.set("draft", draftId);
-      url.hash = "listings-channels";
-      window.history.replaceState(window.history.state, "", url);
-      window.setTimeout(() => {
-        const entry = document.getElementById(`listing-entry-${itemId}`);
-        entry?.scrollIntoView?.({ block: "start" });
-        entry?.focus({ preventScroll: true });
-      }, 0);
+      const search = new URLSearchParams(location.search);
+      if (draftId) search.set("draft", draftId);
+      setActiveTab("eBay");
+      navigate({ search: search.toString(), hash: "#listings-channels" }, { replace: true });
+      focusItemField(`listing-entry-${itemId}`);
     };
-    window.addEventListener(`magpie:open-draft:${itemId}`, open);
     const openPhotos = () => {
-      setOpenSections((current) => ({ ...current, photos: true }));
-      window.history.replaceState(window.history.state, "", "#photos");
-      window.setTimeout(() => {
-        document.getElementById("photos")?.scrollIntoView?.({ block: "start" });
-        document.querySelector<HTMLInputElement>('#photos input[type="file"]')?.focus({ preventScroll: true });
-      }, 0);
+      setActiveTab("Photos");
+      navigate({ search: location.search, hash: "#photos" });
+      window.setTimeout(() => { document.querySelector<HTMLInputElement>('#photos input[type="file"]')?.focus({ preventScroll: true }); }, 0);
     };
+    window.addEventListener("magpie:reveal-item-field", reveal);
+    window.addEventListener(`magpie:open-draft:${itemId}`, open);
     window.addEventListener(`magpie:upload-photos:${itemId}`, openPhotos);
     return () => {
+      window.removeEventListener("magpie:reveal-item-field", reveal);
       window.removeEventListener(`magpie:open-draft:${itemId}`, open);
       window.removeEventListener(`magpie:upload-photos:${itemId}`, openPhotos);
     };
-  }, [itemId]);
+  }, [itemId, location.search, location.hash, navigate]);
+
+  function selectTab(tab: ItemTab) {
+    setActiveTab(tab);
+    navigate({ search: location.search, hash: `#${tabAnchors[tab]}` });
+  }
 
   const refresh = () => Promise.all([
     queryClient.invalidateQueries({ queryKey: ["item", itemId] }),
@@ -224,7 +205,7 @@ export function ItemDetail() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: Partial<ItemFormPayload>) => updateItem(itemId, payload),
-    onSuccess: refresh
+    onSuccess: (_result, payload) => { acknowledge(payload); return refresh(); }
   });
   const uploadMutation = useMutation({
     mutationFn: async () => {
@@ -266,22 +247,6 @@ export function ItemDetail() {
     reorderMutation.mutate(next.map((candidate) => candidate.id));
   }
 
-  function setSection(sectionId: ItemSectionId, open: boolean) {
-    setOpenSections((current) => ({ ...current, [sectionId]: open }));
-  }
-
-  function setAllSections(open: boolean) {
-    setOpenSections(Object.fromEntries(itemSections.map((section) => [section.id, open])) as OpenSections);
-  }
-
-  function jumpToSection(sectionId: ItemSectionId, anchorId: string = sectionId) {
-    setSection(sectionId, true);
-    window.history.replaceState(null, "", `#${anchorId}`);
-    window.setTimeout(() => {
-      scrollToElement(anchorId);
-    }, 0);
-  }
-
   function coreDetailsPayload(): Partial<ItemFormPayload> {
     return {
       title: form.title,
@@ -316,12 +281,12 @@ export function ItemDetail() {
   }
 
   if (item.error || !item.data) {
-    return <PageFrame><AuthRequiredState detail="Item details need a Magpie session. Open the admin login, sign in, then return to this item." /></PageFrame>;
+    return <PageFrame><AuthRequiredState detail="Sign in to see this item, then return here after signing in." /></PageFrame>;
   }
 
   return (
     <PageFrame>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="item-identity">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title listing-title min-w-0">{item.data.title || "Untitled item"}</h1>
@@ -329,49 +294,50 @@ export function ItemDetail() {
           </div>
           <p className="mt-1 text-sm text-slate-500">{item.data.sku}</p>
         </div>
-        <button className="btn-danger inline-flex items-center gap-2" onClick={() => setDeleteTarget("item")} type="button">
-          <Trash2 className="h-4 w-4" aria-hidden="true" />
-          Delete
-        </button>
+        <div className="item-more">
+          <button className="icon-button" aria-label="More actions" aria-expanded={more} title="More actions" onClick={() => setMore(!more)} type="button"><MoreHorizontal size={22} aria-hidden="true" /></button>
+          {more ? <div className="item-more-menu"><button className="btn-danger gap-2" onClick={() => { setMore(false); setDeleteTarget("item"); }} type="button"><Trash2 size={18} aria-hidden="true" />Delete item</button></div> : null}
+        </div>
       </div>
 
       <EbayListingEntry item={item.data} />
-      <EbayQuantityPanel itemId={itemId} />
-
-      <div className="item-detail-controls">
-        <button className="ledger-button" onClick={() => setAllSections(true)} type="button">Expand all</button>
-        <button className="ledger-button" onClick={() => setAllSections(false)} type="button">Collapse all</button>
+      <EbayItemWarnings item={item.data} />
+      <div className={`item-tabs-shell${tabOverflow.any ? " has-overflow" : ""}`}>
+        <div aria-label="Item tabs" role="tablist" className="item-tabs">
+          {itemTabs.map((tab, index) => <button key={tab} id={`item-tab-${tab}`} role="tab" aria-selected={activeTab === tab} aria-controls={`item-panel-${tab}`} tabIndex={activeTab === tab ? 0 : -1}
+            onClick={() => selectTab(tab)} onKeyDown={(event) => {
+              const next = event.key === "Home" ? 0 : event.key === "End" ? itemTabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % itemTabs.length : event.key === "ArrowLeft" ? (index + itemTabs.length - 1) % itemTabs.length : -1;
+              if (next >= 0) { event.preventDefault(); selectTab(itemTabs[next]); document.getElementById(`item-tab-${itemTabs[next]}`)?.focus(); }
+            }} type="button">{tab}</button>)}
+        </div>
+        {tabOverflow.any ? <button className="icon-button item-tabs-overflow" aria-label={tabOverflow.right ? "More item tabs" : "Previous item tabs"} title={tabOverflow.right ? "More item tabs" : "Previous item tabs"} onClick={() => {
+          const strip = document.querySelector<HTMLElement>(".item-tabs");
+          strip?.scrollBy({ left: (tabOverflow.right ? 1 : -1) * strip.clientWidth * 0.75, behavior: "smooth" });
+        }} type="button">{tabOverflow.right ? <ChevronRight size={20} aria-hidden="true" /> : <ChevronLeft size={20} aria-hidden="true" />}</button> : null}
       </div>
-
-      <div className="item-detail-layout">
-        <nav aria-label="Item sections" className="item-section-index">
-          {itemSections.map((section) => (
-            <button key={section.id} onClick={() => jumpToSection(section.id)} type="button">
-              {section.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="item-section-stack">
-          <ItemSection id="photos" label="Photos" open={openSections.photos} onToggle={() => setSection("photos", !openSections.photos)}>
-            <PhotoGallery
-              photos={orderedPhotos}
-              onSetMain={(photo) => setMainMutation.mutate(photo)}
-              onMove={movePhoto}
-              onDelete={(photo) => setDeleteTarget(photo)}
-            />
+      <div className="item-tab-panels" key={itemId}>
+        <TabPanel tab="Photos" active={activeTab}>
+          <ItemSection id="photos" label="Photos">
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <PhotoUploader files={files} onFiles={setFiles} compact />
               <button className="btn-primary" disabled={files.length === 0 || uploadMutation.isPending} onClick={() => uploadMutation.mutate()} type="button">
                 Upload selected
               </button>
             </div>
-            <div className="mt-4">
+            <PhotoGallery
+              photos={orderedPhotos}
+              onSetMain={(photo) => setMainMutation.mutate(photo)}
+              onMove={movePhoto}
+              onDelete={(photo) => setDeleteTarget(photo)}
+            />
+            <details className="mt-4"><summary className="min-h-11 cursor-pointer py-3 font-semibold">Photo adjustments</summary>
               <PhotoFixupPanel itemId={itemId} photos={orderedPhotos} onChanged={refresh} />
-            </div>
+            </details>
           </ItemSection>
 
-          <ItemSection id="core-details" label="Core details" open={openSections["core-details"]} onToggle={() => setSection("core-details", !openSections["core-details"])}>
+        </TabPanel>
+        <TabPanel tab="Details" active={activeTab}>
+          <ItemSection id="core-details" label="Core details">
             <form className="item-detail-form-grid" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(coreDetailsPayload()); }}>
               <label className="label">
                 <span>Title</span>
@@ -425,7 +391,7 @@ export function ItemDetail() {
             </form>
           </ItemSection>
 
-          <ItemSection id="category-specifics" label="Category specifics" open={openSections["category-specifics"]} onToggle={() => setSection("category-specifics", !openSections["category-specifics"])}>
+          <ItemSection id="category-specifics" label="Category specifics">
             <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); saveMutation.mutate(categorySpecificsPayload()); }}>
               <SchemaFieldsForm
                 categoryId={form.category}
@@ -496,23 +462,34 @@ export function ItemDetail() {
             </form>
           </ItemSection>
 
-          <ItemSection id="ai-research" label="AI research" open={openSections["ai-research"]} onToggle={() => setSection("ai-research", !openSections["ai-research"])}>
+        </TabPanel>
+        <TabPanel tab="Research" active={activeTab}>
+          <ItemSection id="ai-research" label="AI research">
             <div className="ai-review-stack">
-              <AIResearchPanel itemId={itemId} onReviewSuggestions={() => jumpToSection("ai-research", "ai-review")} />
+            <AIResearchPanel itemId={itemId} onReviewSuggestions={() => focusItemField("ai-review")} />
               <div id="ai-review">
                 <SuggestionReviewPanel itemId={itemId} />
               </div>
             </div>
           </ItemSection>
 
-          <ItemSection id="pricing-evidence" label="Pricing evidence & comps" open={openSections["pricing-evidence"]} onToggle={() => setSection("pricing-evidence", !openSections["pricing-evidence"])}>
+          <ResearchLinks itemId={itemId} />
+          <div id="research-log"><ResearchLog itemId={itemId} /></div>
+        </TabPanel>
+        <TabPanel tab="Pricing" active={activeTab}>
+          <section id="sales-valuations" tabIndex={-1} className="item-detail-section">
+            <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="section-title">Pricing</h2><button className="row-link gap-2" onClick={() => selectTab("Sales")} type="button">Sales<ArrowRight size={18} aria-hidden="true" /></button></div>
+            <ValuationPanel item={item.data} />
+            <ProfitBreakdown item={item.data} reportId={item.data.current_valuation?.id ?? null} />
+          </section>
+          <ItemSection id="pricing-evidence" label="Pricing evidence & comps">
             <div className="grid gap-6">
               <DescriptorEvidencePanel
                 attributes={item.data.attributes ?? {}}
                 categoryId={item.data.category ?? ""}
                 itemId={itemId}
                 terms={item.data.title || item.data.sku}
-                title="Item descriptor evidence"
+                title="Matching item evidence"
                 onUsePrice={(row) => navigate("/buy-calculator", { state: { ownedEvidence: {
                   rowId: row.id, itemId, category: item.data.category ?? "", terms: item.data.title || item.data.sku,
                   attributes: item.data.attributes ?? {}
@@ -520,35 +497,33 @@ export function ItemDetail() {
               />
               <PricingEvidencePanel itemId={itemId} />
               <SoldSearchPanel itemId={itemId} />
-              <ResearchLinks itemId={itemId} />
               <div className="grid gap-6 xl:grid-cols-2">
                 <ComparableList itemId={itemId} />
-                <ResearchLog itemId={itemId} />
               </div>
             </div>
           </ItemSection>
 
-          <ItemSection id="listings-channels" label="Listings / channels" open={openSections["listings-channels"]} onToggle={() => setSection("listings-channels", !openSections["listings-channels"])}>
+        </TabPanel>
+        <TabPanel tab="eBay" active={activeTab}>
+          <EbayQuantityPanel itemId={itemId} showAllocationUnknown={item.data.quantity_total > 1} />
+          <ItemSection id="listings-channels" label="Listings / channels">
             <div className="grid gap-6">
                 <ListingPanel key={itemId} item={item.data} initialDraftId={new URLSearchParams(location.search).get("draft")} />
-                <TakeDownChecklist item={item.data} />
+                <div id={`take-down-${itemId}`} tabIndex={-1}><TakeDownChecklist item={item.data} /></div>
                 <CopyPackPanel item={item.data} />
             </div>
           </ItemSection>
 
-          <ItemSection id="sales-valuations" label="Sales & valuations" open={openSections["sales-valuations"]} onToggle={() => setSection("sales-valuations", !openSections["sales-valuations"])}>
-            <div className="grid gap-6">
-              <ValuationPanel item={item.data} />
-              <ProfitBreakdown item={item.data} reportId={item.data.current_valuation?.id ?? null} />
-              <SalesPanel item={item.data} />
-            </div>
-          </ItemSection>
-        </div>
+        </TabPanel>
+        <TabPanel tab="Sales" active={activeTab}>
+          <section id="item-sales" tabIndex={-1}><SalesPanel item={item.data} /></section>
+        </TabPanel>
       </div>
 
       <ConfirmDialog
         open={deleteTarget !== null}
         title={deleteTarget === "item" ? "Delete item?" : "Delete photo?"}
+        detail={deleteTarget === "item" ? `${item.data.title || "Untitled item"} (${item.data.sku})` : `Photo from ${item.data.title || item.data.sku}`}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget === "item") {
@@ -567,60 +542,13 @@ function PageFrame({ children }: { children: ReactNode }) {
   return <div className="item-page-frame mx-auto w-full max-w-7xl">{children}</div>;
 }
 
-function ItemSection({
-  children,
-  id,
-  label,
-  onToggle,
-  open
-}: {
-  children: ReactNode;
-  id: ItemSectionId;
-  label: string;
-  onToggle: () => void;
-  open: boolean;
-}) {
-  return (
-    <section className="item-detail-section" id={id}>
-      <button
-        aria-controls={`${id}-panel`}
-        aria-expanded={open}
-        className="item-detail-section-header"
-        onClick={onToggle}
-        type="button"
-      >
-        <span>{label}</span>
-        {open ? <ChevronDown className="h-5 w-5" aria-hidden="true" /> : <ChevronRight className="h-5 w-5" aria-hidden="true" />}
-      </button>
-      <div className="item-detail-section-body" hidden={!open} id={`${id}-panel`}>
-        {children}
-      </div>
-    </section>
-  );
+function TabPanel({ tab, active, children }: { tab: ItemTab; active: ItemTab; children: ReactNode }) {
+  return <div className="item-tab-panel" id={`item-panel-${tab}`} role="tabpanel" aria-labelledby={`item-tab-${tab}`} data-item-tab={tab} hidden={active !== tab}>{children}</div>;
 }
 
-function sectionStorageKey(itemId: UUID) {
-  return `magpie:item-detail-sections:v1:${itemId}`;
-}
-
-function readStoredSections(itemId: UUID): OpenSections {
-  try {
-    const raw = localStorage.getItem(sectionStorageKey(itemId));
-    if (!raw) {
-      return { ...defaultOpenSections };
-    }
-    const parsed = JSON.parse(raw) as Partial<Record<ItemSectionId, boolean>>;
-    return Object.fromEntries(
-      itemSections.map((section) => [section.id, parsed[section.id] ?? defaultOpenSections[section.id]])
-    ) as OpenSections;
-  } catch {
-    return { ...defaultOpenSections };
-  }
-}
-
-function scrollToElement(id: string) {
-  const target = document.getElementById(id);
-  if (target && typeof target.scrollIntoView === "function") {
-    target.scrollIntoView({ block: "start" });
-  }
+function ItemSection({ children, id, label }: { children: ReactNode; id: string; label: string }) {
+  return <section className="item-detail-section" id={id} tabIndex={-1}>
+    <h2 className="section-title">{label}</h2>
+    <div className="item-detail-section-body" id={`${id}-panel`}>{children}</div>
+  </section>;
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, Send } from "lucide-react";
-import { createItemListingDraft, listItemListingDrafts } from "../api/listing";
+import { createItemListingDraft, listItemListingDrafts, listChannelListings } from "../api/listing";
 import type { InventoryItemDetail, ListingDraft, UUID } from "../types";
 
 export const itemDraftKey = (id: UUID) => ["listing-drafts", id];
@@ -35,9 +35,12 @@ export function openItemDraft(itemId: UUID, draftId: UUID) {
 export function EbayListingEntry({ item }: { item: InventoryItemDetail }) {
   const client = useQueryClient();
   const drafts = useItemDrafts(item.id);
+  const channels = useQuery({ queryKey: ["item-channel-listings", item.id], queryFn: () => listChannelListings({ item: item.id, active: true }) });
   const rows = drafts.data?.results ?? [];
   const canonical = canonicalEbayDraft(rows);
   const live = rows.find((row) => row.channel === "ebay_au" && row.channel_data.listing_id);
+  const liveUrl = live ? `https://www.ebay.com.au/itm/${encodeURIComponent(String(live.channel_data.listing_id))}`
+    : channels.data?.results.find((row) => row.channel === "ebay" && row.active && row.url)?.url;
   const create = useMutation({
     mutationFn: () => createItemListingDraft(item.id),
     onSuccess: (draft) => {
@@ -48,10 +51,10 @@ export function EbayListingEntry({ item }: { item: InventoryItemDetail }) {
   });
   return <div className="ebay-listing-entry min-w-0 space-y-2" aria-label="eBay listing entry">
     <div className="flex min-w-0 flex-wrap items-center gap-3">
-      <button className="btn-primary gap-2" disabled={drafts.isPending || drafts.isError || create.isPending} type="button"
+      {item.quantity_remaining === 0 ? <strong role="status">Sold out</strong> : <><button className="btn-primary gap-2" disabled={drafts.isPending || drafts.isError || create.isPending} type="button"
         onClick={() => canonical ? openItemDraft(item.id, canonical.id) : create.mutate()}><Send size={18} aria-hidden="true" />List on eBay</button>
-      <span role="status">{drafts.isPending ? "Loading draft status" : drafts.isError ? "Draft status unavailable" : ebayDraftStatus(canonical)}</span>
-      {live ? <a className="row-link gap-2" href={`https://www.ebay.com.au/itm/${encodeURIComponent(String(live.channel_data.listing_id))}`} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden="true" />View on eBay</a> : null}
+      <span role="status">{drafts.isPending ? "Loading draft status" : drafts.isError ? "Draft status unavailable" : ebayDraftStatus(canonical)}</span></>}
+      {liveUrl ? <a className="row-link gap-2" href={liveUrl} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden="true" />View on eBay</a> : null}
     </div>
     {drafts.isError ? <p role="alert">Drafts could not load. Check your session and <button className="underline" onClick={() => void drafts.refetch()} type="button">retry</button>.</p> : null}
     {create.error ? <p role="alert">{create.error instanceof Error ? create.error.message : "Draft could not open."}</p> : null}

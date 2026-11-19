@@ -1,6 +1,6 @@
-# Sprint 26 kickoff (v1.0): Item page — tabs and decluttering (phone-first)
+# Sprint 26 kickoff (v1.1): Item page — tabs and decluttering (phone-first)
 
-**To Codex. Reasoning: High.** The controlling document is `SPRINT_26_SPEC.md` **v1.0 (LOCKED 2026-11-19)**. Read it in full before touching anything. **Only Phase 0 is authorised now.**
+**To Codex. Reasoning: High.** The controlling document is `SPRINT_26_SPEC.md` **v1.1 (LOCKED 2026-11-19)**. Read it in full before touching anything. **v1.1 (same day): Phase 0 reviewed; Phases 1–5 authorised under spec §11** (compact photo grid with Arrange mode; “Sold out” header status; state-specific eBay notices; dirty-field protection).
 
 ## What it is
 Regan uses Magpie mostly on his iPhone. On the item page his problems are **clutter / confusing controls** and **too much scrolling**. This sprint replaces the seven accordions, the Expand/Collapse buttons and the section index with **tabs** (D-134: Details · Photos · Research · Pricing · eBay · Sales), compacts the header, moves Delete into “More actions”, and replaces developer-style labels with plain ones.

@@ -39,7 +39,7 @@ export function SoldSearchPanel({ itemId }: { itemId: UUID }) {
             target="_blank"
           >
             <span>
-              <strong>{link.label}</strong>
+              <strong>{link.label.replace(/title \+ attributes/gi, "Title and item details")}</strong>
               <small>{link.query}</small>
             </span>
             <ExternalLink className="h-4 w-4" aria-hidden="true" />

@@ -1,10 +1,24 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 import type { EbayQuantityState } from "../api/ebayQuantity";
 import { EbayQuantityPanel } from "./EbayQuantityPanel";
+
+test("stock refresh keeps a dirty target but invalidates its confirmation and blocks an invalid increase", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(<QueryClientProvider client={client}><MemoryRouter><EbayQuantityPanel itemId="item" /></MemoryRouter></QueryClientProvider>);
+  const input = await screen.findByRole("spinbutton", { name: "Intended eBay quantity" });
+  fireEvent.change(input, { target: { value: "2" } });
+  await userEvent.click(screen.getByRole("checkbox"));
+  await act(async () => { client.setQueryData(["ebay-quantity", "item"], { ...state, target: 1, remaining: 1, stock_revision: 3 }); });
+  expect(input).toHaveValue(2);
+  await waitFor(() => expect(screen.getByRole("checkbox")).not.toBeChecked());
+  expect(screen.getByText(/1 known remaining/)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Update quantity on eBay" })).toBeDisabled();
+  expect(mocks.update).not.toHaveBeenCalled();
+});
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), check: vi.fn(), update: vi.fn() }));
 vi.mock("../api/ebayQuantity", () => ({ getEbayQuantity: (...a: unknown[]) => mocks.get(...a), checkEbayQuantity: (...a: unknown[]) => mocks.check(...a), updateEbayQuantity: (...a: unknown[]) => mocks.update(...a) }));
@@ -16,7 +30,7 @@ function open() { return render(<QueryClientProvider client={new QueryClient({ d
 
 test("legacy allocation not recorded has no warning or write controls and no check on mount", async () => {
   mocks.get.mockResolvedValue({ item_id: "item", sku: "GOLD-00002", state: "allocation_not_recorded", label: "Allocation not recorded", urgent: false, can_write: false });
-  open(); expect(await screen.findByText("eBay: Allocation not recorded")).toBeVisible();
+  open(); expect(await screen.findByText("eBay listing quantity was not recorded")).toBeVisible();
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
   expect(mocks.check).not.toHaveBeenCalled(); expect(mocks.update).not.toHaveBeenCalled();
 });

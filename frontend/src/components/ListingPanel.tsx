@@ -36,6 +36,7 @@ import { ListingWorkflow } from "./ListingWorkflow";
 import { activeEbayDraft, canonicalEbayDraft, itemDraftKey, useItemDrafts } from "./EbayListingEntry";
 import { EditorReadiness, FieldSource, ListingMetadataFields, listingFieldId } from "./ListingMetadataFields";
 import { useDraftAutosave } from "./useDraftAutosave";
+import { draftStateLabel, sourceLabel } from "./itemDisplay";
 import { ListingSpecifics } from "./ListingSpecifics";
 import { ListingSaveBar } from "./ListingSaveBar";
 import { SaveListingDefaults } from "./ListingDefaultsPanel";
@@ -133,7 +134,7 @@ export function ListingPanel({ item, initialDraftId }: { item: InventoryItemDeta
                   <span className="listing-title min-w-0 flex-1 font-semibold">{draft.title || "Untitled draft"}</span>
                   <StatusPill status={draft.status} />
                 </span>
-                <span className="mt-1 block text-xs text-slate-500">{draft.currency} {draft.price ?? "-"}</span>
+                <span className="mt-1 block text-xs text-slate-500">{draft.price == null ? "Price not set" : `${draft.currency} ${draft.price}`}</span>
               </button>
             ))}
           </div>
@@ -238,14 +239,18 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
 
   return (
     <div className="listing-editor min-w-0 space-y-5" id={`listing-editor-${item.id}`}>
-      {readOnly ? <p className="font-semibold">Read-only history</p> : null}
+      {readOnly ? <p className="font-semibold">{["publishing", "publish_unknown"].includes(local.status) ? "Editing locked while the publish result is unresolved" : "Read-only history"}</p> : null}
       {editor.error ? <p role="alert">Saved metadata could not load. Check your session and retry. Your draft is not staged or published by saving.</p> : null}
-      {local.channel_data.offer_id && !["published", "archived"].includes(local.status) && !local.channel_data.listing_id ? <div className="listing-staged-notice" role="status"><strong>Unpublished staged offer {String(local.channel_data.offer_id)}</strong><p>{editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p></div> : null}
+      {local.channel_data.offer_id && !["published", "archived"].includes(local.status) && !local.channel_data.listing_id ? <div className="listing-staged-notice" role="status">
+        <strong>{local.status === "publishing" ? "Publishing in progress" : local.status === "publish_unknown" ? "Publish result is not yet known" : "Staged offer"}</strong>
+        <p>{["publishing", "publish_unknown"].includes(local.status) ? "Editing is locked. Check the publish result before doing anything else; do not send again." : editor.data?.staged_local_changes || autosave.state !== "Saved locally" ? "Local changes are not yet on eBay. Nothing is re-staged by this editor." : "Saved staging snapshot. Editing here stays local; nothing is re-staged automatically."}</p>
+        <details><summary>Offer details</summary><p>Offer ID: {String(local.channel_data.offer_id)}</p></details>
+      </div> : null}
       <fieldset disabled={readOnly} className="min-w-0 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={local.status} />
-          {local.readiness_summary.fail_count > 0 ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Unready</span> : null}
+          {local.readiness_summary.fail_count > 0 ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Not ready</span> : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="btn-secondary gap-2" disabled={Boolean(local.channel_data.offer_id)} title={local.channel_data.offer_id ? "Withdraw the staged offer before archiving (Phase 5)" : "Archive draft"} onClick={() => { void persistLocal().then(onDelete).catch(() => undefined); }} type="button">
@@ -299,7 +304,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         <label className="label">
           <span>Price</span>
           <input aria-label="Price" id={listingFieldId(local.id, "price")} className="field" inputMode="decimal" value={local.price ?? ""} onChange={(event) => setLocal({ ...local, price: event.target.value || null }, { kind: "human_asking" })} />
-          <small className="listing-source">Source: {autosave.pendingPriceChoice ? `${autosave.pendingPriceChoice.kind === "human_asking" ? "Human asking price" : "Human-picked owned evidence"} (pending save)` : ["human_asking", "owned_evidence"].includes(editor.data?.price_source?.kind || "") ? editor.data?.price_source?.label : "Unconfirmed saved price; confirm it or pick evidence"}</small>
+          <small className="listing-source">Source: {autosave.pendingPriceChoice ? `${autosave.pendingPriceChoice.kind === "human_asking" ? "Your asking price" : "Evidence you chose"} (pending save)` : ["human_asking", "owned_evidence"].includes(editor.data?.price_source?.kind || "") ? sourceLabel(editor.data?.price_source?.label) : "Unconfirmed saved price; confirm it or pick evidence"}</small>
         </label>
         <label className="label">
           <span>Currency</span>
@@ -310,11 +315,11 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
           <span>Quantity</span>
           <input aria-label="Quantity" id={listingFieldId(local.id, "quantity")} className="field" inputMode="numeric" value={local.quantity} onChange={(event) => setLocal({ ...local, quantity: Number(event.target.value) || 0 })} />
           <FieldSource context={editor.data} field="quantity" />
-          <span className="text-sm text-slate-700">Listing allocation · {item.quantity_remaining} remaining in owned stock</span>
+          <span className="text-sm text-slate-700">{item.quantity_remaining} remaining in your stock</span>
         </label>
         <label className="flex items-end gap-2 text-sm font-medium text-slate-300">
           <input aria-label="SKU footer" checked={local.include_sku_footer} type="checkbox" onChange={(event) => setLocal({ ...local, include_sku_footer: event.target.checked })} />
-          SKU footer
+          Include SKU at the end
           <FieldSource context={editor.data} field="include_sku_footer" />
         </label>
       </div>
@@ -334,8 +339,8 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
       </label>
 
       <label className="label">
-        <span>Boilerplate</span>
-        <select aria-label="Boilerplate" className="field" value={local.boilerplate ?? ""} onChange={(event) => setLocal({ ...local, boilerplate: event.target.value || null })}>
+        <span>Standard text</span>
+        <select aria-label="Standard text" className="field" value={local.boilerplate ?? ""} onChange={(event) => setLocal({ ...local, boilerplate: event.target.value || null })}>
           <option value="">None</option>
           {boilerplates.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
         </select>
@@ -353,7 +358,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         {preview ? (
           <div className="prose prose-invert max-w-none rounded border border-slate-800 bg-slate-900 p-3 text-sm" dangerouslySetInnerHTML={{ __html: local.description_html }} />
         ) : (
-          <textarea aria-label="Description" className="field min-h-48 font-mono" value={local.description_html} onChange={(event) => setLocal({ ...local, description_html: event.target.value })} />
+          <textarea aria-label="Description" className="field min-h-48" value={local.description_html} onChange={(event) => setLocal({ ...local, description_html: event.target.value })} />
         )}
         <FieldSource context={editor.data} field="description_html" />
       </div>
@@ -380,7 +385,7 @@ function DraftEditor({ boilerplates, draft, item, onDelete, onSaved }: DraftEdit
         }}
         beforeReview={persistLocal}
       />
-      <ListingSaveBar state={readOnly ? "Read-only history" : autosave.state} disabled={saveMutation.isPending || readOnly} onSave={() => {
+      <ListingSaveBar state={readOnly ? (["publishing", "publish_unknown"].includes(local.status) ? "Editing locked" : "Read-only history") : autosave.state} disabled={saveMutation.isPending || readOnly} onSave={() => {
         if (!local.channel_data.listing_duration && editor.data?.effective_duration && local.listing_format === "fixed") {
           setLocal({ ...local, channel_data: { ...local.channel_data, listing_duration: editor.data.effective_duration } });
         }
@@ -509,13 +514,13 @@ function ExportButtons({ boilerplate, draft, onExported, beforeExport }: { boile
     <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-slate-200">Export</h3>
-        {unready ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Unready export</span> : null}
+        {unready ? <span className="rounded border border-rose-400/40 bg-rose-500/10 px-2 py-1 text-xs font-semibold text-rose-100">Export is not ready to list</span> : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <CopyButton label="Copy title" text={draft.title} />
         <CopyButton label="Copy description" text={draft.description_html} />
         <CopyButton label="Copy specifics" text={draft.item_specifics.map((row) => `${row.name}\t${row.value}`).join("\n")} />
-        <CopyButton label="Copy boilerplate" text={boilerplate?.body_html ?? ""} />
+        <CopyButton label="Copy standard text" text={boilerplate?.body_html ?? ""} />
         <button className="btn-primary gap-2" disabled={downloadMutation.isPending} onClick={() => downloadMutation.mutate()} type="button">
           <Download className="h-4 w-4" aria-hidden="true" />
           Download zip
@@ -551,5 +556,5 @@ function StatusPill({ status }: { status: ListingDraft["status"] }) {
       : status === "publish_failed"
         ? "border-rose-400/40 bg-rose-500/10 text-rose-100"
         : "border-slate-600 bg-slate-800 text-slate-200";
-  return <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{status}</span>;
+  return <span className={`shrink-0 rounded border px-2 py-0.5 text-xs font-semibold ${classes}`}>{draftStateLabel(status)}</span>;
 }

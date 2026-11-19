@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ExternalLink, Plus, Search } from "lucide-react";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
+import { plainDate } from "./itemDisplay";
 
 import { captureDescriptorComparable, getDescriptorEvidence } from "../api/evidence";
 import type { DescriptorCapturePayload, DescriptorEvidenceRow, PriceBasis, ProductCategory, UUID } from "../types";
@@ -151,8 +152,8 @@ export function DescriptorEvidencePanel({
             <div className="descriptor-stats" title={strength?.tooltip}>
               <div>
                 <span>{strength?.label ?? "THIN"}</span>
-                <strong>n = {stats.count}</strong>
-                <small>{stats.newest_age_days === null ? "newest age unknown" : `newest ${stats.newest_age_days}d ago`}</small>
+                <strong>{stats.count} records</strong>
+                <small>{stats.newest_age_days === null ? "Newest date unknown" : `Newest ${stats.newest_age_days} days ago`}</small>
               </div>
               <div>
                 <span>Low</span>
@@ -176,7 +177,7 @@ export function DescriptorEvidencePanel({
                 <div>
                   <strong>{row.label}</strong>
                   <small>{row.source_label} · {row.match_reason}</small>
-                  <small>{row.own_sale ? "own sale" : "approved comp"} · {row.date ?? "undated"}</small>
+                  <small>{row.own_sale ? "Your sale" : "Approved comparable"} · {plainDate(row.date)}</small>
                 </div>
                 <div className="descriptor-row-actions">
                   <span>{row.seller_receives ? money(row.seller_receives) : "basis-uncertain"}</span>

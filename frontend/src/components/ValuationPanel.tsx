@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, RefreshCw, Wifi } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useRefreshableForm } from "./useRefreshableForm";
+import { plainDate } from "./itemDisplay";
 
 import { listComparables } from "../api/comparables";
 import { ApiError } from "../api/client";
@@ -32,7 +34,10 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
   const comparables = useQuery({ queryKey: ["comparables", item.id], queryFn: () => listComparables({ item: item.id }) });
   const reports = useQuery({ queryKey: ["valuation-reports", item.id], queryFn: () => listItemValuationReports(item.id) });
   const schedules = useQuery({ queryKey: ["fee-schedules"], queryFn: listFeeSchedules });
-  const [strategy, setStrategy] = useState<Strategy>(defaultStrategy);
+  const strategySource = useMemo<{ strategy: Strategy }>(() => ({ strategy: defaultStrategy }), [defaultStrategy]);
+  const [strategyForm, setStrategyForm] = useRefreshableForm(item.id, strategySource, strategySource);
+  const strategy = strategyForm.strategy;
+  const setStrategy = (strategy: Strategy) => setStrategyForm({ strategy });
   const [selection, setSelection] = useState<Record<UUID, Selection>>({});
   const [commodityInputs, setCommodityInputs] = useState<Record<string, string>>(commodityDefaults);
   const [liveQuote, setLiveQuote] = useState<MetalSpotQuote | null>(null);
@@ -51,7 +56,6 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
   });
   const [error, setError] = useState("");
 
-  useEffect(() => setStrategy(defaultStrategy), [defaultStrategy, item.id]);
   useEffect(() => {
     setLiveQuote(null);
     setLiveFallback(false);
@@ -59,11 +63,8 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
   }, [item.id]);
 
   useEffect(() => {
-    const next: Record<UUID, Selection> = {};
-    for (const comp of comparables.data?.results ?? []) {
-      next[comp.id] = selection[comp.id] ?? { included: true, exclude_reason: "" };
-    }
-    setSelection(next);
+    if (!comparables.data) return;
+    setSelection((current) => Object.fromEntries(comparables.data.results.map((comp) => [comp.id, current[comp.id] ?? { included: true, exclude_reason: "" }])));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comparables.data?.results]);
 
@@ -193,17 +194,17 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
       <div className="mt-4 grid gap-4">
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="label">
-            <span>Strategy</span>
+            <span>Valuation method</span>
             <select className="field" value={strategy} onChange={(event) => setStrategy(event.target.value as Strategy)}>
               <option value="comp_based">Comparable-based</option>
-              <option value="commodity_live">Commodity live</option>
-              <option value="commodity_manual">Commodity manual</option>
+              <option value="commodity_live">Live gold price</option>
+              <option value="commodity_manual">Manual gold price</option>
             </select>
           </label>
           <label className="label">
-            <span>Fee schedule</span>
+            <span>Fee rates</span>
             <select className="field" value={feeSchedule} onChange={(event) => setFeeSchedule(event.target.value as UUID)}>
-              <option value="">Active schedule</option>
+              <option value="">Current fee rates</option>
               {(schedules.data?.results ?? []).map((schedule) => <option key={schedule.id} value={schedule.id}>{schedule.name} (legacy / unverified)</option>)}
             </select>
           </label>
@@ -333,11 +334,11 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
 
         <label className="flex items-center gap-2 text-sm font-medium text-slate-300">
           <input checked={isOverridden} type="checkbox" onChange={(event) => setIsOverridden(event.target.checked)} />
-          Manual override
+          Replace suggested valuation
         </label>
         {isOverridden ? (
           <label className="label">
-            <span>Override reason</span>
+            <span>Reason for replacement</span>
             <textarea className="field min-h-20" value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} />
           </label>
         ) : null}
@@ -353,7 +354,7 @@ export function ValuationPanel({ item }: { item: InventoryItemDetail }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-slate-100">{report.strategy}</p>
+                  <p className="text-sm font-semibold text-slate-100">{{ comp_based: "Comparable-based", commodity_live: "Live gold price", commodity_manual: "Manual gold price" }[report.strategy] ?? report.strategy.replace(/_/g, " ")}</p>
                   {report.is_current ? <CheckCircle2 className="h-4 w-4 text-cyan-200" aria-label="Current valuation" /> : null}
                 </div>
                 <p className="mt-1 text-xs text-slate-400">
@@ -415,7 +416,7 @@ function formatTimestamp(value: string) {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString();
+  return plainDate(value, true);
 }
 
 function isManualSpotFallback(error: unknown) {

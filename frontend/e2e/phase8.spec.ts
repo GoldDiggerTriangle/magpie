@@ -31,7 +31,7 @@ for (const width of [390, 1440]) test(`Phase 8 ${width}px explicit reduction, un
   });
   await page.goto("/e2e/phase8.html");
   await expect(page.getByRole("heading", { name: "Update eBay: 5 -> 3" })).toBeVisible();
-  await expect(page.getByText("eBay: Allocation not recorded")).toBeVisible();
+    await expect(page.getByText("eBay listing quantity was not recorded")).toBeVisible();
   expect(calls.every((c) => c.startsWith("GET "))).toBe(true);
   await fits(page); await page.screenshot({ path: info.outputPath(`phase8-quantity-warning-${width}.png`) });
   const update = page.getByRole("button", { name: "Update quantity on eBay" });

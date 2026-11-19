@@ -105,8 +105,8 @@ test("CopyPackPanel sends human-picked evidence price without persisting it", as
   renderPanel();
 
   await screen.findByText(/Price:/);
-  await user.clear(screen.getByLabelText("Human evidence price"));
-  await user.type(screen.getByLabelText("Human evidence price"), "123.45");
+  await user.clear(screen.getByLabelText("Evidence price you chose"));
+  await user.type(screen.getByLabelText("Evidence price you chose"), "123.45");
 
   await waitFor(() => {
     expect(vi.mocked(listingApi.getItemCopyPack)).toHaveBeenLastCalledWith("item-1", expect.objectContaining({ evidence_price: "123.45" }));

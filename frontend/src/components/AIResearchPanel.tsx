@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BrainCircuit, ExternalLink, KeyRound, Search, ShieldCheck, Sparkles, Unplug } from "lucide-react";
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   configureAICredential,
@@ -13,6 +13,7 @@ import {
 } from "../api/intelligence";
 import type { AIResearchRunResult, UUID } from "../types";
 import { formatUsd } from "../utils/currency";
+import { useRefreshableForm } from "./useRefreshableForm";
 import { EmptyState } from "./EmptyState";
 
 export function AIResearchPanel({
@@ -29,18 +30,12 @@ export function AIResearchPanel({
     queryFn: () => getAIReferences(itemId)
   });
   const [apiKey, setApiKey] = useState("");
-  const [provider, setProvider] = useState("openai");
-  const [modelId, setModelId] = useState("gpt-5.4-mini");
-  const [monthlyCap, setMonthlyCap] = useState("5.00");
-
-  useEffect(() => {
-    if (!status.data) {
-      return;
-    }
-    setProvider(status.data.provider);
-    setModelId(status.data.model_id);
-    setMonthlyCap(status.data.monthly_budget_cap_usd);
-  }, [status.data]);
+  const savedSettings = useMemo(() => status.data ? { provider: status.data.provider, modelId: status.data.model_id, monthlyCap: status.data.monthly_budget_cap_usd } : null, [status.data]);
+  const [settings, setSettings, acknowledge] = useRefreshableForm("ai-settings", savedSettings, { provider: "openai", modelId: "gpt-5.4-mini", monthlyCap: "5.00" });
+  const { provider, modelId, monthlyCap } = settings;
+  const setProvider = (provider: string) => setSettings((current) => ({ ...current, provider }));
+  const setModelId = (modelId: string) => setSettings((current) => ({ ...current, modelId }));
+  const setMonthlyCap = (monthlyCap: string) => setSettings((current) => ({ ...current, monthlyCap }));
 
   function refreshAfterRun() {
     queryClient.invalidateQueries({ queryKey: ["field-suggestions", itemId] });
@@ -58,13 +53,14 @@ export function AIResearchPanel({
     onSuccess: refreshAfterRun
   });
   const configure = useMutation({
-    mutationFn: () => configureAICredential({
-      provider,
-      model_id: modelId,
-      monthly_budget_cap_usd: monthlyCap,
-      api_key: apiKey
+    mutationFn: (sent: typeof settings & { apiKey: string }) => configureAICredential({
+      provider: sent.provider,
+      model_id: sent.modelId,
+      monthly_budget_cap_usd: sent.monthlyCap,
+      api_key: sent.apiKey
     }),
-    onSuccess: () => {
+    onSuccess: (_response, sent) => {
+      acknowledge({ provider: sent.provider, modelId: sent.modelId, monthlyCap: sent.monthlyCap });
       setApiKey("");
       queryClient.invalidateQueries({ queryKey: ["ai-status"] });
     }
@@ -98,7 +94,7 @@ export function AIResearchPanel({
 
   function submitConfig(event: FormEvent) {
     event.preventDefault();
-    configure.mutate();
+    configure.mutate({ ...settings, apiKey });
   }
 
   return (

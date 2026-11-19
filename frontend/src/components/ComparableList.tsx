@@ -1,3 +1,4 @@
+import { plainDate } from "./itemDisplay";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -52,7 +53,7 @@ export function ComparableList({ itemId }: { itemId: UUID }) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-100">{comp.title || comp.source || comp.kind}</p>
-                <p className="mt-1 text-xs text-slate-400">{comp.kind} · {comp.price ?? "-"} {comp.currency} · {comp.observed_on ?? "no date"}</p>
+                <p className="mt-1 text-xs text-slate-400">{comp.kind.replace(/_/g, " ")} · {comp.price == null ? "Price not set" : `${comp.price} ${comp.currency}`} · {plainDate(comp.observed_on)}</p>
                 {comp.notes ? <p className="mt-2 text-sm text-slate-300">{comp.notes}</p> : null}
               </div>
               <div className="flex gap-2">

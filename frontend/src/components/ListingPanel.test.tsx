@@ -216,7 +216,7 @@ test("ListingPanel flags titles over 80 characters and unready exports", async (
   await screen.findByDisplayValue(longTitle);
 
   expect(screen.getByText("81/80")).toHaveClass("text-rose-300");
-  expect(screen.getByText("Unready export")).toBeInTheDocument();
+  expect(screen.getByText("Export is not ready to list")).toBeInTheDocument();
 });
 
 test("ListingPanel asks before regenerating edited title only", async () => {

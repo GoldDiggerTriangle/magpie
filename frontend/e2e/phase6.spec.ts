@@ -21,7 +21,7 @@ async function fits(page: Page) {
   const dimensions = await page.evaluate(() => ({
     client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth,
     overflow: [...document.querySelectorAll("body *")].filter((el) => {
-      if (!(el instanceof HTMLElement) || !el.checkVisibility()) return false;
+      if (!(el instanceof HTMLElement) || !el.checkVisibility() || el.closest(".item-tabs")) return false;
       const rect = el.getBoundingClientRect(); return rect.width > 0 && (rect.right > innerWidth + 1 || rect.left < -1);
     }).slice(0, 8).map((el) => ({ tag: el.tagName, class: el.className })),
   }));
@@ -33,7 +33,7 @@ for (const [kind, title] of Object.entries({ spaced: "Australian gold nugget wit
   test(`Phase 6 ${kind} 80-character title: item, editor, preview, staged review and hub fit 390px`, async ({ page }, info) => {
     const data = await isolate(page, "staged", title);
     await expect(page.getByRole("heading", { name: title, level: 1 })).toBeVisible();
-    await page.getByRole("button", { name: "Collapse all", exact: true }).click();
+    await page.getByRole("tab", { name: "Details", exact: true }).click();
     await expect(page.getByRole("button", { name: "List on eBay", exact: true })).toBeVisible();
     await fits(page);
     await page.screenshot({ path: info.outputPath(`phase6-item-${kind}-390.png`) });
@@ -64,12 +64,12 @@ for (const [kind, title] of Object.entries({ spaced: "Australian gold nugget wit
   });
 }
 
-test("Phase 6 desktop section index is unchanged and eBay hub is in navigation", async ({ page }, info) => {
+test("Inherited Phase 6 desktop destinations remain usable through tabs and eBay navigation", async ({ page }, info) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const data = await isolate(page, "published", "Synthetic own gold specimen");
   await expect(page.getByRole("button", { name: "List on eBay", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View on eBay", exact: true })).toHaveAttribute("href", "https://www.ebay.com.au/itm/test-listing");
-  await expect(page.getByRole("navigation", { name: "Item sections" })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Item tabs" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("phase6-item-desktop.png") });
   await page.getByRole("link", { name: "eBay", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Live listings", exact: true })).toBeVisible();
@@ -80,7 +80,7 @@ test("Phase 6 desktop section index is unchanged and eBay hub is in navigation",
 
 test("Phase 6 published phone item keeps the top action and separate live link outside collapsed sections", async ({ page }, info) => {
   const data = await isolate(page, "published", "Synthetic own gold specimen");
-  await page.getByRole("button", { name: "Collapse all" }).click();
+  await page.getByRole("tab", { name: "Details" }).click();
   await expect(page.getByRole("button", { name: "List on eBay", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "View on eBay", exact: true })).toBeVisible();
   await fits(page);

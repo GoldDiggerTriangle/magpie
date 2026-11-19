@@ -48,9 +48,9 @@ export function CopyPackPanel({ item }: { item: InventoryItemDetail }) {
     <section className="intelligence-panel copy-pack-panel">
       <div className="intelligence-panel-header">
         <div>
-          <p className="intelligence-kicker">Channel copy packs</p>
+          <p className="intelligence-kicker">Copy packs for other channels</p>
           <h2>Ready-to-paste ad copy</h2>
-          <p>Local deterministic templates only. Gaps stay visible; prices come only from an item asking/listed price or a human-picked evidence figure.</p>
+          <p>Saved item details and standard text. Gaps stay visible; prices come only from an item asking/listed price or a human-picked evidence figure.</p>
         </div>
         <button className="btn-secondary gap-2 whitespace-nowrap shrink-0" disabled={photoExport.isPending} onClick={() => photoExport.mutate()} type="button">
           <Download className="h-4 w-4" aria-hidden="true" />
@@ -68,7 +68,7 @@ export function CopyPackPanel({ item }: { item: InventoryItemDetail }) {
           </select>
         </label>
         <label className="label">
-          <span>Human evidence price</span>
+          <span>Evidence price you chose</span>
           <input className="field" inputMode="decimal" placeholder="Optional" value={evidencePrice} onChange={(event) => setEvidencePrice(event.target.value)} />
         </label>
         <label className="label">
@@ -114,9 +114,9 @@ function CopySection({ label, value, onCopy, large = false }: { label: string; v
           Copy
         </button>
       </div>
-      <pre className={large ? "mt-3 min-h-32 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm" : "mt-3 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm"}>
+      <div className={large ? "mt-3 min-h-32 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm" : "mt-3 whitespace-pre-wrap break-words rounded bg-slate-50 p-3 text-sm"}>
         {value || "[blank]"}
-      </pre>
+      </div>
     </article>
   );
 }

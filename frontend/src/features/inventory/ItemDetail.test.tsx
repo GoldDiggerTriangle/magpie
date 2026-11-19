@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, vi } from "vitest";
 
 import { ItemDetail } from "./ItemDetail";
@@ -115,6 +115,8 @@ beforeEach(() => {
   mocks.updateItem.mockResolvedValue(item);
 });
 
+function CurrentRoute() { const location = useLocation(); return <output data-testid="current-route">{location.hash}</output>; }
+
 function renderItemDetail(initialEntry = "/inventory/item-1") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
@@ -124,7 +126,7 @@ function renderItemDetail(initialEntry = "/inventory/item-1") {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
-          <Route path="/inventory/:id" element={<ItemDetail />} />
+          <Route path="/inventory/:id" element={<><ItemDetail /><CurrentRoute /></>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -134,6 +136,7 @@ function renderItemDetail(initialEntry = "/inventory/item-1") {
 test("ItemDetail edit exposes separate camera and library photo inputs", async () => {
   renderItemDetail();
 
+  await userEvent.click(await screen.findByRole("tab", { name: "Photos" }));
   const takePhoto = await screen.findByLabelText(/take photo/i);
   const library = screen.getByLabelText(/choose from library/i);
 
@@ -187,10 +190,8 @@ test("ItemDetail edit saves banknote picker selections and custom country values
   const user = userEvent.setup();
   renderItemDetail();
 
-  const categoryHeader = (await screen.findAllByRole("button", { name: "Category specifics" }))
-    .find((button) => button.getAttribute("aria-controls") === "category-specifics-panel");
-  expect(categoryHeader).toBeDefined();
-  await user.click(categoryHeader as HTMLElement);
+  expect(await screen.findByRole("heading", { name: "Category specifics" })).toBeVisible();
+  await user.click(screen.getByRole("tab", { name: "Details" }));
 
   await user.selectOptions(await screen.findByLabelText("Denomination"), "$20");
   await user.selectOptions(screen.getByLabelText("Country"), "__custom__");
@@ -221,7 +222,7 @@ test("ItemDetail core save preserves and reloads a full approved title string", 
 
   const title = await screen.findByLabelText("Title");
   fireEvent.change(title, { target: { value: fullTitle } });
-  await user.click(screen.getByRole("button", { name: /^save$/i }));
+  await user.click(within(document.getElementById("core-details-panel")!).getByRole("button", { name: /^save$/i }));
 
   await waitFor(() => {
     expect(mocks.updateItem).toHaveBeenCalledWith("item-1", expect.objectContaining({ title: fullTitle }));
@@ -238,10 +239,8 @@ test("ItemDetail category-specific save does not send stale core text fields", a
   const user = userEvent.setup();
   renderItemDetail();
 
-  const categoryHeader = (await screen.findAllByRole("button", { name: "Category specifics" }))
-    .find((button) => button.getAttribute("aria-controls") === "category-specifics-panel");
-  expect(categoryHeader).toBeDefined();
-  await user.click(categoryHeader as HTMLElement);
+  expect(await screen.findByRole("heading", { name: "Category specifics" })).toBeVisible();
+  await user.click(screen.getByRole("tab", { name: "Details" }));
 
   const panel = document.getElementById("category-specifics-panel");
   expect(panel).not.toBeNull();
@@ -254,40 +253,30 @@ test("ItemDetail category-specific save does not send stale core text fields", a
   expect(mocks.updateItem).toHaveBeenCalledWith("item-1", expect.not.objectContaining({ title: expect.anything() }));
 });
 
-test("ItemDetail sections default open state, expand all, collapse all, and persisted state", async () => {
+test("ItemDetail tabs default to Details, keep inactive panels mounted and remember the selected tab", async () => {
   const user = userEvent.setup();
   const view = renderItemDetail();
-
-  expect(await screen.findByTestId("photo-gallery")).toBeVisible();
-  expect(screen.getByLabelText("Title")).toBeVisible();
-  expect(screen.getByLabelText("Lot")).not.toBeVisible();
-
-  const categoryHeader = screen.getAllByRole("button", { name: "Category specifics" })
-    .find((button) => button.getAttribute("aria-controls") === "category-specifics-panel");
-  expect(categoryHeader).toBeDefined();
-  await user.click(categoryHeader as HTMLElement);
+  expect(await screen.findByLabelText("Title")).toBeVisible();
   expect(screen.getByLabelText("Lot")).toBeVisible();
-  view.unmount();
-
-  renderItemDetail();
-  expect(await screen.findByLabelText("Lot")).toBeVisible();
-
-  await user.click(screen.getByRole("button", { name: "Collapse all" }));
   expect(screen.getByTestId("photo-gallery")).not.toBeVisible();
-  await user.click(screen.getByRole("button", { name: "Expand all" }));
-  expect(await screen.findByTestId("suggestion-review-panel")).toBeVisible();
+  await user.click(screen.getByRole("tab", { name: "Photos" }));
+  expect(screen.getByTestId("photo-gallery")).toBeVisible();
+  expect(screen.getByLabelText("Title")).not.toBeVisible();
+  view.unmount();
+  renderItemDetail();
+  expect(await screen.findByTestId("photo-gallery")).toBeVisible();
+  await user.click(screen.getByRole("tab", { name: "Research" }));
+  expect(screen.getByTestId("photo-gallery")).not.toBeVisible();
+  expect(screen.getByTestId("suggestion-review-panel")).toBeVisible();
 });
 
-test("ItemDetail desktop section index jumps and expands the AI review section", async () => {
+test("ItemDetail tab navigation and the AI completion jump reveal the review destination", async () => {
   const user = userEvent.setup();
   renderItemDetail();
-
-  const aiButtons = await screen.findAllByRole("button", { name: "AI research" });
-  await user.click(aiButtons[0]);
+  await user.click(await screen.findByRole("tab", { name: "Research" }));
   expect(screen.getByTestId("suggestion-review-panel")).toBeVisible();
-
   await user.click(screen.getByRole("button", { name: "Review staged suggestions mock" }));
-  expect(window.location.hash).toBe("#ai-review");
+  await waitFor(() => expect(screen.getByTestId("current-route")).toHaveTextContent("#ai-review"));
   expect(screen.getByTestId("suggestion-review-panel")).toBeVisible();
 });
 

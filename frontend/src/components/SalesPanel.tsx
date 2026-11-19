@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ReceiptText, RotateCcw, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { listItemListingDrafts } from "../api/listing";
 import { correctSaleRecord, createItemSale, listItemSales } from "../api/sales";
 import type { InventoryItemDetail, SaleRecord, SaleRecordPayload } from "../types";
+import { useRefreshableForm } from "./useRefreshableForm";
+import { plainDate, draftStateLabel } from "./itemDisplay";
 import { EmptyState } from "./EmptyState";
 
 interface SaleFormState {
@@ -74,23 +76,18 @@ function saleToForm(sale: SaleRecord): SaleFormState {
 
 export function SalesPanel({ item }: { item: InventoryItemDetail }) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<SaleFormState>(() => emptyForm(item));
+  const [correctionTarget, setCorrectionTarget] = useState<SaleRecord | null>(null);
+  const sourceForm = useMemo(() => correctionTarget ? saleToForm(correctionTarget) : emptyForm(item), [item, correctionTarget]);
+  const [form, setForm, , resetForm] = useRefreshableForm(item.id + (correctionTarget?.id ?? "new"), sourceForm, sourceForm);
   const [buyerPostage, setBuyerPostage] = useState("0.00");
   const [deliveryCountry, setDeliveryCountry] = useState("AU");
   const [handling, setHandling] = useState("0.00");
   const [marketplaceTax, setMarketplaceTax] = useState("0.00");
   const [sellerDiscount, setSellerDiscount] = useState("0.00");
   const [promoted, setPromoted] = useState("0.00");
-  const [correctionTarget, setCorrectionTarget] = useState<SaleRecord | null>(null);
 
   const sales = useQuery({ queryKey: ["item-sales", item.id], queryFn: () => listItemSales(item.id) });
   const listingDrafts = useQuery({ queryKey: ["item-listing-drafts", item.id], queryFn: () => listItemListingDrafts(item.id) });
-
-  useEffect(() => {
-    if (!correctionTarget) {
-      setForm(emptyForm(item));
-    }
-  }, [item.id, item.quantity_remaining, correctionTarget]);
 
   const quantity = Math.max(0, Number(form.quantity) || 0);
   const activeSales = sales.data?.results.filter((sale) => !sale.is_superseded) ?? [];
@@ -118,7 +115,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
     },
     onSuccess: () => {
       setCorrectionTarget(null);
-      setForm(emptyForm(item));
+      resetForm(emptyForm(item));
       queryClient.invalidateQueries({ queryKey: ["item", item.id] });
       queryClient.invalidateQueries({ queryKey: ["item-sales", item.id] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
@@ -129,12 +126,12 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
 
   function startCorrection(sale: SaleRecord) {
     setCorrectionTarget(sale);
-    setForm(saleToForm(sale));
+    resetForm(saleToForm(sale));
   }
 
   function cancelCorrection() {
     setCorrectionTarget(null);
-    setForm(emptyForm(item));
+    resetForm(emptyForm(item));
   }
 
   return (
@@ -218,13 +215,13 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
             <option value="">None</option>
             {(listingDrafts.data?.results ?? []).map((draft) => (
               <option key={draft.id} value={draft.id}>
-                {draft.title || draft.channel} ({draft.status})
+                {draft.title || draft.channel} ({draftStateLabel(draft.status)})
               </option>
             ))}
           </select>
         </label>
         <label className="label lg:col-span-2">
-          <span>Cost basis override</span>
+          <span>Replace recorded cost basis</span>
           <input className="field" inputMode="decimal" value={form.cost_basis_override} onChange={(event) => setForm({ ...form, cost_basis_override: event.target.value })} />
         </label>
         <label className="label lg:col-span-2">
@@ -234,7 +231,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
 
         <p className="text-sm lg:col-span-4">{form.actual_fees_total ? "Recorded fees will be frozen with the sale and its full cost basis." : "Fees calculated on save if a confirmed schedule applies; otherwise unknown."}</p>
         {form.channel === "ebay_au" ? <details className="lg:col-span-6"><summary>Fee calculation inputs</summary><div className="fee-form-grid mt-3">
-          <label className="label">Delivery country (ISO)<input className="field" maxLength={2} value={deliveryCountry} onChange={(e) => setDeliveryCountry(e.target.value.toUpperCase())} /></label>
+          <label className="label">Delivery country (two-letter code)<input className="field" maxLength={2} value={deliveryCountry} onChange={(e) => setDeliveryCountry(e.target.value.toUpperCase())} /></label>
           {([["Buyer-paid postage", buyerPostage, setBuyerPostage], ["Buyer-paid handling", handling, setHandling], ["Marketplace-collected tax", marketplaceTax, setMarketplaceTax], ["Seller-funded discount", sellerDiscount, setSellerDiscount], ["Recorded promoted fee", promoted, setPromoted]] as const).map(([name, value, setter]) => <label className="label" key={name}>{name}<input className="field" inputMode="decimal" value={value} onChange={(e) => setter(e.target.value)} /></label>)}
         </div></details> : null}
         <button className="btn-primary lg:col-span-2" disabled={submit.isPending || quantity < 1 || quantity > maxQuantity} type="submit">
@@ -261,7 +258,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
           <tbody className="divide-y divide-slate-800">
             {(sales.data?.results ?? []).map((sale) => (
               <tr key={sale.id} className={sale.is_superseded ? "text-slate-500" : "text-slate-200"}>
-                <td className="py-2 pr-3">{sale.sale_date}</td>
+                <td className="py-2 pr-3">{plainDate(sale.sale_date)}</td>
                 <td className="py-2 pr-3">{sale.quantity}</td>
                 <td className="py-2 pr-3">${sale.effective_revenue ?? sale.sale_price}</td>
                 <td className="py-2 pr-3">{recordedMoney(sale.net_proceeds)}<p className="text-xs">{sale.fee_label}</p></td>
@@ -289,7 +286,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
           <article key={sale.id} className={`rounded border border-slate-800 bg-slate-950/70 p-3 ${sale.is_superseded ? "text-slate-500" : "text-slate-200"}`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-mono text-sm text-slate-100">{sale.sale_date}</p>
+                <p className="font-sans text-sm text-slate-100">{plainDate(sale.sale_date)}</p>
                 <p className="mt-1 text-xs text-slate-500">Qty {sale.quantity}</p>
               </div>
               <span className="shrink-0 rounded border border-slate-700 px-2 py-1 text-xs text-slate-300">
@@ -300,7 +297,7 @@ export function SalesPanel({ item }: { item: InventoryItemDetail }) {
               <MobileSaleMetric label="Gross" value={`$${sale.effective_revenue ?? sale.sale_price}`} />
               <MobileSaleMetric label="Net" value={recordedMoney(sale.net_proceeds)} />
               <MobileSaleMetric label="Cost" value={recordedMoney(sale.allocated_cost_basis)} />
-              <MobileSaleMetric label="P&L" value={recordedMoney(sale.realised_profit)} />
+              <MobileSaleMetric label="Profit / loss" value={recordedMoney(sale.realised_profit)} />
             </dl>
             <p className="mt-2 text-sm">{sale.fee_label}</p>
             <button
@@ -325,7 +322,7 @@ function MobileSaleMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded border border-slate-800 bg-slate-900 px-2 py-2">
       <dt className="text-xs uppercase tracking-normal text-slate-500">{label}</dt>
-      <dd className="mt-1 break-words font-mono text-slate-100">{value}</dd>
+      <dd className="mt-1 break-words font-sans text-slate-100">{value}</dd>
     </div>
   );
 }

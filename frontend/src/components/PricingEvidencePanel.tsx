@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ExternalLink, FileImage, Plus, Scale, Star } from "lucide-react";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { plainDate } from "./itemDisplay";
 
 import { createComparable } from "../api/comparables";
 import { getPricingEvidence, parsePricingEvidenceCaptureDraft } from "../api/pricingEvidence";
@@ -316,7 +317,7 @@ function EvidenceRows({ rows }: { rows: PricingEvidenceRow[] }) {
                 <small>{row.match_reason}</small>
               </td>
               <td data-label="Format">{label(row.sale_format)}</td>
-              <td data-label="Date">{row.date ?? "undated"}</td>
+              <td data-label="Date">{plainDate(row.date)}</td>
               <td data-label="Price" className="numeric">{row.price ? `${money(row.price)} ${row.currency}` : "-"}</td>
               <td data-label="Basis">
                 <span className={row.basis_uncertain ? "match-pill" : "match-pill exact"}>{row.basis_label}</span>

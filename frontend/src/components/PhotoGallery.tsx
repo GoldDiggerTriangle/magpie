@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Star, Trash2 } from "lucide-react";
-
+import { ArrowDown, ArrowUp, Star, Trash2, X, ArrowUpDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { PhotoAsset } from "../types";
 import { EmptyState } from "./EmptyState";
 
@@ -11,68 +11,35 @@ interface PhotoGalleryProps {
 }
 
 export function PhotoGallery({ photos, onSetMain, onMove, onDelete }: PhotoGalleryProps) {
-  if (photos.length === 0) {
-    return <EmptyState title="No photos yet" />;
-  }
-
-  const main = photos.find((photo) => photo.is_main) ?? photos[0];
-
-  return (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded border border-slate-800 bg-slate-900">
-        <img
-          className="max-h-[60vh] w-full object-contain"
-          src={main.processed_url ?? main.original_url ?? ""}
-          alt="Main item"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-        {photos.map((photo, index) => (
-          <div key={photo.id} className="overflow-hidden rounded border border-slate-800 bg-slate-900">
-            <img
-              className="aspect-[4/3] w-full object-cover"
-              src={photo.thumb_url ?? photo.processed_url ?? ""}
-              alt={`${photo.role} photo`}
-            />
-            <div className="flex items-center justify-between gap-1 p-2">
-              <button
-                className={photo.is_main ? "icon-button-active" : "icon-button"}
-                title="Set main"
-                type="button"
-                onClick={() => onSetMain?.(photo)}
-              >
-                <Star className="h-4 w-4" aria-hidden="true" />
-              </button>
-              <button
-                className="icon-button"
-                disabled={index === 0}
-                title="Move earlier"
-                type="button"
-                onClick={() => onMove?.(photo, -1)}
-              >
-                <ArrowUp className="h-4 w-4" aria-hidden="true" />
-              </button>
-              <button
-                className="icon-button"
-                disabled={index === photos.length - 1}
-                title="Move later"
-                type="button"
-                onClick={() => onMove?.(photo, 1)}
-              >
-                <ArrowDown className="h-4 w-4" aria-hidden="true" />
-              </button>
-              <button
-                className="icon-button-danger"
-                title="Delete photo"
-                type="button"
-                onClick={() => onDelete?.(photo)}
-              >
-                <Trash2 className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+  const [arranging, setArranging] = useState(false);
+  const [viewed, setViewed] = useState<PhotoAsset | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (viewed && dialog.current && !dialog.current.open) dialog.current.showModal();
+    else if (!viewed && dialog.current?.open) dialog.current.close();
+  }, [viewed]);
+  if (!photos.length) return <EmptyState title="No photos yet" />;
+  return <div className="space-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-3"><p>{photos.length} photos</p>
+      <button className="btn-secondary gap-2" type="button" aria-pressed={arranging} onClick={() => setArranging(!arranging)}><ArrowUpDown size={18} aria-hidden="true" />{arranging ? "Done arranging" : "Arrange"}</button>
     </div>
-  );
+    <div className={`photo-grid${arranging ? " arranging" : ""}`}>
+      {photos.map((photo, index) => <div key={photo.id} className="photo-tile">
+        <button className="photo-open" type="button" aria-label={`View photo ${index + 1} full size`} onClick={() => setViewed(photo)}>
+          <img src={photo.thumb_url ?? photo.processed_url ?? photo.original_url ?? ""} alt={`Photo ${index + 1}: ${photo.role.replace(/_/g, " ")}`} />
+          {photo.is_main ? <span className="photo-main">Main</span> : null}
+        </button>
+        {arranging ? <div className="photo-actions">
+          <button className={photo.is_main ? "icon-button-active" : "icon-button"} title="Set main" aria-label={`Set photo ${index + 1} as main`} type="button" onClick={() => onSetMain?.(photo)}><Star size={18} aria-hidden="true" /></button>
+          <button className="icon-button" title="Move earlier" aria-label={`Move photo ${index + 1} earlier`} disabled={index === 0} type="button" onClick={() => onMove?.(photo, -1)}><ArrowUp size={18} aria-hidden="true" /></button>
+          <button className="icon-button" title="Move later" aria-label={`Move photo ${index + 1} later`} disabled={index === photos.length - 1} type="button" onClick={() => onMove?.(photo, 1)}><ArrowDown size={18} aria-hidden="true" /></button>
+          <button className="icon-button-danger" title="Delete photo" aria-label={`Delete photo ${index + 1}`} type="button" onClick={() => onDelete?.(photo)}><Trash2 size={18} aria-hidden="true" /></button>
+        </div> : null}
+      </div>)}
+    </div>
+    <dialog ref={dialog} className="photo-viewer" aria-label="Full size photo" onClose={() => setViewed(null)} onCancel={() => setViewed(null)}>
+      <button className="icon-button" aria-label="Close full size photo" title="Close photo" onClick={() => setViewed(null)} type="button"><X size={22} aria-hidden="true" /></button>
+      {viewed ? <img src={viewed.processed_url ?? viewed.original_url ?? viewed.thumb_url ?? ""} alt="Full size own photo" /> : null}
+    </dialog>
+  </div>;
 }

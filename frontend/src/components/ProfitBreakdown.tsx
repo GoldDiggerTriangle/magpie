@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calculator, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { useRefreshableForm } from "./useRefreshableForm";
 import { updateItem } from "../api/items";
 import { getReportProfit, getValuationReport } from "../api/valuation";
 import type { InventoryItemDetail, ProfitBreakdown as ProfitBreakdownType, UUID } from "../types";
@@ -23,9 +24,10 @@ function ProjectionRow({ row }: { row: ProfitBreakdownType }) {
           {row.net_profit} ({margin(row.margin_pct)})
         </p>
       </div>
-      <p className="mt-2 text-xs text-slate-400">
-        Fees {row.final_value_fee} + {row.per_order_fee} + {row.promoted_fee}; GST {row.gst_on_fees}; ship {row.outbound_shipping}; pack {row.packaging}; cost {row.true_cost}
-      </p>
+      <p className="mt-2 text-sm">Calculated valuation estimate, not recorded sale profit.</p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        {[["Final value fee", row.final_value_fee], ["Per-order fee", row.per_order_fee], ["Promoted fee", row.promoted_fee], ["GST on fees", row.gst_on_fees], ["Outgoing postage", row.outbound_shipping], ["Packaging", row.packaging], ["Item cost", row.true_cost]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value == null || value === "" ? "Not set" : value}</dd></div>)}
+      </dl>
     </div>
   );
 }
@@ -37,13 +39,14 @@ export function ProfitBreakdown({ item, reportId }: { item: InventoryItemDetail;
     queryFn: () => getValuationReport(reportId!),
     enabled: Boolean(reportId)
   });
-  const [costs, setCosts] = useState({
+  const savedCosts = useMemo(() => ({
     acquisition_cost: item.acquisition_cost ?? "",
     refurb_cost: item.refurb_cost ?? "",
     inbound_shipping_cost: item.inbound_shipping_cost ?? "",
     est_outbound_shipping: item.est_outbound_shipping ?? "",
     est_packaging_cost: item.est_packaging_cost ?? ""
-  });
+  }), [item]);
+  const [costs, setCosts, acknowledge] = useRefreshableForm(item.id, savedCosts, savedCosts);
   const [manualPrice, setManualPrice] = useState("");
   const manualProfit = useQuery({
     queryKey: ["valuation-profit", reportId, manualPrice],
@@ -51,25 +54,16 @@ export function ProfitBreakdown({ item, reportId }: { item: InventoryItemDetail;
     enabled: false
   });
 
-  useEffect(() => {
-    setCosts({
-      acquisition_cost: item.acquisition_cost ?? "",
-      refurb_cost: item.refurb_cost ?? "",
-      inbound_shipping_cost: item.inbound_shipping_cost ?? "",
-      est_outbound_shipping: item.est_outbound_shipping ?? "",
-      est_packaging_cost: item.est_packaging_cost ?? ""
-    });
-  }, [item]);
-
   const saveCosts = useMutation({
-    mutationFn: () => updateItem(item.id, {
-      acquisition_cost: costs.acquisition_cost || null,
-      refurb_cost: costs.refurb_cost || null,
-      inbound_shipping_cost: costs.inbound_shipping_cost || null,
-      est_outbound_shipping: costs.est_outbound_shipping || null,
-      est_packaging_cost: costs.est_packaging_cost || null
+    mutationFn: (sent: typeof costs) => updateItem(item.id, {
+      acquisition_cost: sent.acquisition_cost || null,
+      refurb_cost: sent.refurb_cost || null,
+      inbound_shipping_cost: sent.inbound_shipping_cost || null,
+      est_outbound_shipping: sent.est_outbound_shipping || null,
+      est_packaging_cost: sent.est_packaging_cost || null
     }),
-    onSuccess: () => {
+    onSuccess: (_result, sent) => {
+      acknowledge(Object.fromEntries(Object.entries(sent).map(([key, value]) => [key, value ?? ""])));
       queryClient.invalidateQueries({ queryKey: ["item", item.id] });
       queryClient.invalidateQueries({ queryKey: ["valuation-report", reportId] });
     }
@@ -92,7 +86,7 @@ export function ProfitBreakdown({ item, reportId }: { item: InventoryItemDetail;
           </label>
         ))}
       </div>
-      <button className="btn-secondary mt-3 gap-2" disabled={saveCosts.isPending} type="button" onClick={() => saveCosts.mutate()}>
+      <button className="btn-secondary mt-3 gap-2" disabled={saveCosts.isPending} type="button" onClick={() => saveCosts.mutate(costs)}>
         <Save className="h-4 w-4" aria-hidden="true" />
         Save costs
       </button>

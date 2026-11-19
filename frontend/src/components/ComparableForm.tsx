@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { useRefreshableForm } from "./useRefreshableForm";
 import type { Comparable, ComparableKind, ComparablePayload, UUID } from "../types";
 
 export const comparableKindOptions: Array<[ComparableKind, string]> = [
@@ -35,28 +36,13 @@ const blankForm = {
 };
 
 export function ComparableForm({ itemId, initial, onSubmit, submitLabel = "Save comparable", disabled }: ComparableFormProps) {
-  const [form, setForm] = useState(blankForm);
+  const source = useMemo(() => initial ? {
+    kind: initial.kind, source: initial.source, title: initial.title, price: initial.price ?? "",
+    price_basis: initial.price_basis, shipping: initial.shipping ?? "", currency: initial.currency,
+    condition: initial.condition, url: initial.url, observed_on: initial.observed_on ?? "", notes: initial.notes
+  } : blankForm, [initial]);
+  const [form, setForm] = useRefreshableForm(itemId + (initial?.id ?? "new"), source, blankForm);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!initial) {
-      setForm(blankForm);
-      return;
-    }
-    setForm({
-      kind: initial.kind,
-      source: initial.source,
-      title: initial.title,
-      price: initial.price ?? "",
-      price_basis: initial.price_basis,
-      shipping: initial.shipping ?? "",
-      currency: initial.currency,
-      condition: initial.condition,
-      url: initial.url,
-      observed_on: initial.observed_on ?? "",
-      notes: initial.notes
-    });
-  }, [initial]);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();

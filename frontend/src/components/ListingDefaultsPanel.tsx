@@ -1,3 +1,4 @@
+import { plainDate } from "./itemDisplay";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronDown, RotateCcw, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -55,7 +56,7 @@ function DefaultsEditor({ categoryId, categoryName }: { categoryId: string; cate
       refresh: async (options) => { const result = await refreshListingDefaultsMetadata(categoryId, options); setSnapshot(result); return result.editor; },
       browse: (id) => browseListingDefaultsCategory(categoryId, id)
     }} />
-    {snapshot.validation.map((row) => <p key={row.field} className="listing-source">{row.message} Snapshot: {row.fetched_at ? new Date(row.fetched_at).toLocaleString() : "unavailable"}.</p>)}
+    {snapshot.validation.map((row) => <p key={row.field} className="listing-source">{row.message} Saved choices updated: {row.fetched_at ? plainDate(row.fetched_at, true) : "unavailable"}.</p>)}
     <SaveListingDefaults categoryId={categoryId} categoryName={categoryName} values={defaultValues(form)} onSaved={accepted} label="Review and save defaults" />
     <SaveListingDefaults categoryId={categoryId} categoryName={categoryName} values={{}} onSaved={accepted} label={`Clear ${categoryName} defaults`} reset />
   </div>;
