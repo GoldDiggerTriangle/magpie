@@ -236,3 +236,64 @@ Actual port8000 after collection: `/api/health/`200; `/`200 and references the n
 **STOP: Phases1-5 built and automated gates PASS; Sprint26 remains OPEN pending Regan's restart and phone acceptance, then independent review.** Regan: run `Restart-Service -Name Magpie` in Administrator PowerShell, hard-refresh, and check GOLD-00002, GSP-00001 and STM-00002. Confirm all six tabs/header, off-screen-tab cue, More actions -> named Delete confirmation -> Cancel, Photos grid/full-size/Arrange controls, readable Save/nav clearance, retained history/copy packs and GOLD's separate View on eBay. STM must show Sold out, with no top create action. Do not stage, publish, reconcile or change live values for this layout acceptance. Capture each tab/header per spec9; real Safari keyboard/safe-area/larger-text checks remain owner proof, not inferred from Chromium.
 
 Remaining recorded limitations: actual GSP valuation has no selected admissible figure (fixture geometry rehearsal only); GOLD is published/read-only and in-flight previews stay disabled; STM listing task is N/A without a retained draft. Backend zero-stock draft-create currently accepts quantity0 (isolated201 test), separately deferred guard. Drawer/PRODUCTION-badge backlog unchanged. No live save, eBay/provider call, service restart by Codex, or new sprint authorised.
+
+## 2026-11-20: Sprint 26 Closure Note - Pending Independent Review
+
+**Status: pending independent review. Implementation, deployment and Regan's phone acceptance PASS; not CLOSED.** This dated note supersedes the earlier restart/phone-pending statements without rewriting them. Final implementation head: **d34ddabcc946a4666d5660350247a92d4f100e94**. [Validation44477593759](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44477593759) is green on both lanes. Documentation baseline before this filing: `19f8dd4b4708dcd716b08fa704721727fb94c398`; no runtime code changed afterwards.
+
+### Owner Acceptance And Original Photos
+
+Regan reports **Phone acceptance: PASS** after his restart: header, all six tabs, Photos grid/Arrange and STM-00002 Sold out checked on his iPhone. Keyboard-open checks: GOLD-00002 Details Save reachable above the keyboard; Pricing Add comparable reachable by scrolling with the keyboard open. Accepted as owner testimony, not an invented agent interaction.
+
+All three original JPEGs are filed unchanged in [phone-acceptance/README.md](docs/evidence/sprint26/phone-acceptance/README.md), with source/destination SHA256 equality and an image-by-image coverage statement. Photo1 shows Notes focus/Add comparable above the keyboard; photo2 shows the Gold title focused; photo3 shows Details Save above the keyboard. No Save/Add comparable click, new comparable or data mutation is inferred. The bottom nav is visibly still present; hiding it is deferred below, not falsely marked fixed.
+
+Read-only post-restart verification on **2026-11-20 during this filing**: NSSM Magpie Running; actual port8000 health, root, `index-CuPKGVAS.js` and `index-BOiqsqO7.css` all HTTP200. Served index and both assets match the tested build byte-for-byte. The earlier404 asset-map condition is resolved after Regan's restart. Only four local unauthenticated GETs; no eBay/provider request, live save or Codex restart.
+
+### Every Spec Section 9 Criterion
+
+| Spec9 Item | Status | Evidence And Limits |
+|---|---|---|
+| 1. Phase0 delivered/reviewed before layout code | PASS | Audit commit `0dc7e622`;63-image index and Phase0 sections above; v1.1 spec11 records Regan's review/decisions before implementation `d34ddab`. |
+| 2. Six tabs live;76 original controls plus additions reachable; assertions intact | PASS | `SPRINT26_CONTROL_INVENTORY.md` retains all76 original IDs/current-path cells plus eight supplemental controls and implemented tap paths. `reachabilityInventory.test.ts`, `ItemDetail.reachability.test.tsx`31-test gate/11 states, original individual workflow/copy/download/take-down tests and browser tests; Validation44477593759. Regan reports all six tabs/header/Photos/Arrange/Sold out passing after restart; actual build assets200/matching. |
+| 3. Unsaved work survives tabs; navigation never saves/stages/publishes | PASS | Mounted panels; `useRefreshableForm.test.tsx`, `ItemBuffers.test.tsx`, ItemDetail refresh/tab/upload/selection tests, real AI/valuation/quantity refresh tests; GET-only tab-navigation browser assertion. Existing autosave debounce unchanged, no unmount flush from switching. |
+| 4. Plain language preserves truth | PASS | `SPRINT26_LABELS_AND_STATE.md`46-family disposition; `itemDisplay.ts`, ListingPanel/Workflow/CopyPack tests; Source unknown and Price not set retained, calculated-vs-actual and policy terms remain explicit. Publishing/unknown notices respect locked/uncertain state. No financial calculation changed. |
+| 5. Same-protocol tasks: no more taps, less scrolling or accepted exceptions | PASS with stated N/A limits | Full21-row table below and raw phase0/implementation task metrics,390x844/fresh contexts/cumulative absolute scroll distance. Every comparable completed task improves scroll with equal/fewer taps. GSP's actual valuation remains form-only, with the approved fixture rehearsal separate; published/in-flight preview guards and STM no-draft N/A retained. |
+| 6. Suites/typecheck/build/static/dual CI; restart; phone acceptance and each-tab/header screenshots | PARTLY MET: functional gates PASS; literal screenshot coverage PARTIAL | Validation44477593759: SQLite527/1 existing skip, PostgreSQL515/13 existing skips, frontend248, browser29/0 skipped/flaky; typecheck/build/check/migration drift/CI backup-restore/static/smoke green. Local collectstatic7/155/425 with database/.env/64 media unchanged; served new assets200 after owner restart. Regan explicitly reports phone acceptance PASS. Three new originals prove keyboard-open reachability; they do not show every tab/header or a GSP-specific screen. Automated56 tab/header images are not real-phone substitutes. Independent reviewer decides whether owner testimony plus filed images suffices or asks Regan for the remaining literal phone captures. No additional phone test failure is alleged. |
+| 7. Closure note quotes final head/run; independent review before CLOSED | PARTLY MET: filing PASS; review PENDING | This note and handoff v4.98 quote final implementation `d34ddabcc946a4666d5660350247a92d4f100e94` /44477593759, the measurements, source/photo limits and backlog. Independent review per D-143 has not been supplied; no self-closure or new sprint. |
+
+### Before/After Task Table At Closure
+
+Each cell is **taps / cumulative scroll px**, using the unchanged Phase0 protocol. Writes/preview requests were intercepted in browser memory, not sent to production. This is an acceptance cross-reference, not a new measurement run or new valuation.
+
+| State | Task | Before | After | Qualification |
+|---|---|---:|---:|---|
+| GOLD-00002 | edit | 5 / 10492 | 4 / 1954 | Two scoped simulated saves. |
+| GOLD-00002 | value | 3 / 10036 | 3 / 802 | Existing figure; simulated report. |
+| GOLD-00002 | list | 1 / 9518 | 1 / 267 | Published editor only; preview N/A. |
+| GSP-00001 | edit | 5 / 6829 | 4 / 2184 | Two scoped simulated saves. |
+| GSP-00001 | value | 1 / 5056 | 1 / 263 | Form only; no admissible figure, no report. |
+| GSP-00001 | list | 2 / 11180 | 2 / 5615 | Editor and offline cached-shape preview. |
+| STM-00002 | edit | 5 / 5169 | 4 / 2552 | Two scoped simulated saves. |
+| STM-00002 | value | 3 / 4088 | 3 / 774 | Existing sale figure; simulated report. |
+| STM-00002 | list | N/A | N/A | No retained draft; not a zero-tap success. |
+| Fixture staged | edit | 5 / 4120 | 4 / 1487 | Two scoped simulated saves. |
+| Fixture staged | value | 5 / 4125 | 5 / 1094 | Existing fixture figure; simulated report. |
+| Fixture staged | list | 2 / 7952 | 2 / 4525 | Editor and offline cached-shape preview. |
+| Fixture publishing | edit | 5 / 4120 | 4 / 1487 | Two scoped simulated saves. |
+| Fixture publishing | value | 5 / 4125 | 5 / 1094 | Existing fixture figure; simulated report. |
+| Fixture publishing | list | 1 / 3606 | 1 / 261 | Editor only; preview safely disabled. |
+| Fixture publish_unknown | edit | 5 / 4120 | 4 / 1487 | Two scoped simulated saves. |
+| Fixture publish_unknown | value | 5 / 4125 | 5 / 1094 | Existing fixture figure; simulated report. |
+| Fixture publish_unknown | list | 1 / 3606 | 1 / 261 | Editor only; preview safely disabled. |
+| Fixture partial stock | edit | 5 / 4120 | 4 / 1487 | Two scoped simulated saves. |
+| Fixture partial stock | value | 5 / 4125 | 5 / 1094 | Existing fixture figure; simulated report. |
+| Fixture partial stock | list | 2 / 7952 | 2 / 4567 | Editor and offline cached-shape preview. |
+
+GSP complete geometry-only rehearsal using the same pre-existing test-fixture input: **3 /6193 ->3 /851**. It is not an actual GSP valuation. Raw records remain in [phase0](docs/evidence/sprint26/phase0/task-metrics.json) and [implementation](docs/evidence/sprint26/implementation/task-metrics.json), with supplementary rehearsal JSON in each folder. Default Gold page height9744 ->2798; old Photos section8091 vs entire new Photos-tab document1016, explicitly different measures. Other heights are in the earlier table, not replaced by task-scroll figures.
+
+### Two Deferred Backlog Items - Not This Sprint
+
+1. **Backend zero-stock draft-create guard.** Existing endpoint accepts HTTP201/quantity0, proved only in isolated `backend/apps/listing/tests/test_sprint26_audit.py` on both database lanes. Frontend Sold out suppression is live; stage/publish stock gates remain unchanged. A backend guard is separate work requiring Regan's instruction; nothing is fixed or retested by making a live draft here.
+2. **Hide bottom nav while the iPhone keyboard is open.** Current navigation remains visible in the supplied photos. Details Save and Add comparable remain reachable as Regan confirmed. Keyboard-aware nav hiding needs separate scope/instruction and real-iPhone checks; no CSS/JS fix or blanket keyboard-layout guarantee is claimed.
+
+The pre-existing drawer/PRODUCTION-badge note remains out of scope and unchanged, not a newly attributed/fixed issue. Docs/original-image filing only in this task: no code, dependency, migration, configuration, live-data, service or eBay change; no secret values recorded. **STOP at pending independent review.**
