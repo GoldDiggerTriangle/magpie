@@ -58,3 +58,9 @@ Read-only source check: AppShell renders a fixed **left** desktop sidebar (`hidd
 After both Validation lanes pass and static collection is ready, ask Regan to restart in Administrator PowerShell and hard-refresh. On iPhone, focus/switch writable fields; check nav hides only with the on-screen keyboard, Details Save/Add comparable/listing Save remain reachable by scrolling, and dismissing the keyboard restores nav without an extra jump. Do not stage/publish/reconcile or create a live sale/draft for these checks. Regan's own phone checks are the only authorised owner edits; none has been performed by Codex.
 
 Acceptance remains OPEN for dual-lane/deployment references below, owner restart/phone acceptance and independent review. Drawer remains unattributed; genuine multi-unit live proof and evidence tidying remain out of scope. No next sprint starts from this work.
+
+### CI Follow-Up: Isolated Admin Static Storage
+
+Initial implementation58133bc / Validation44694729755 failed the backend admin-Add test in clean CI: rendering the invalid form required a collected `admin/css/base.css` manifest entry. The live checkout already had that manifest, masking the test's local-artifact dependency. This was not a stock-guard failure, dependency-rate change or eBay error. The admin form test now uses scoped plain static storage and an explicitly uncollected temporary STATIC_ROOT; every refusal/form/no-row assertion remains. Production storage/configuration is unchanged, and production collectstatic/WhiteNoise smoke stay in CI.
+
+The bulk-create guard also preserves Django's positional arguments; a positional batch-size case was added to the existing refusal test. Focused stock20 tests passed before the static-isolation fix; final clean-storage/local and dual-lane results are filed below. No test is skipped or weakened and no migration is introduced.

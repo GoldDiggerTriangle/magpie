@@ -56,14 +56,14 @@ class ListingDraftQuerySet(models.QuerySet):
                     return super().update(**kwargs)
         return super().update(**kwargs)
 
-    def bulk_create(self, objs, **kwargs):
+    def bulk_create(self, objs, *args, **kwargs):
         from contextlib import ExitStack
         from apps.listing.creation_stock import claim_creation_stock
         objs = list(objs)
         with transaction.atomic(using=self.db), ExitStack() as stack:
             for item_id in sorted({obj.item_id for obj in objs if obj.channel == "ebay_au"}, key=str):
                 stack.enter_context(claim_creation_stock(item_id, self.db))
-            return super().bulk_create(objs, **kwargs)
+            return super().bulk_create(objs, *args, **kwargs)
 
     def bulk_update(self, objs, fields, batch_size=None):
         objs = tuple(objs)

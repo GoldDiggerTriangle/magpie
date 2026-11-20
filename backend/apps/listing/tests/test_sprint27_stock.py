@@ -133,6 +133,7 @@ def test_direct_and_bulk_paths_cannot_bypass(owned):
     sell(owned)
     for action in [lambda: ListingDraft.objects.create(item=owned),
                    lambda: ListingDraft.objects.bulk_create([ListingDraft(item=owned)]),
+                   lambda: ListingDraft.objects.bulk_create([ListingDraft(item=owned)], 1),
                    lambda: ListingDraft.objects.filter(pk=draft.pk).update(channel="ebay_au")]:
         with pytest.raises(SoldOut):
             action()
@@ -143,7 +144,11 @@ def test_direct_and_bulk_paths_cannot_bypass(owned):
 
 
 @pytest.mark.django_db
-def test_admin_add_reports_sold_out_in_form(client, django_user_model, owned):
+def test_admin_add_reports_sold_out_in_form(client, django_user_model, owned, settings, tmp_path):
+    # Admin form validation must not depend on a pre-existing production static manifest.
+    settings.STATIC_ROOT = tmp_path / "uncollected-static"
+    settings.STORAGES = {**settings.STORAGES, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+    assert not settings.STATIC_ROOT.exists()
     client.force_login(django_user_model.objects.create_superuser(username="guard-admin", password="test-only"))
     sell(owned)
     response = client.post(reverse("admin:listing_listingdraft_add"), {
