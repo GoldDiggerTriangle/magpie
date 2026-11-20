@@ -64,3 +64,30 @@ Acceptance remains OPEN for dual-lane/deployment references below, owner restart
 Initial implementation58133bc / Validation44694729755 failed the backend admin-Add test in clean CI: rendering the invalid form required a collected `admin/css/base.css` manifest entry. The live checkout already had that manifest, masking the test's local-artifact dependency. This was not a stock-guard failure, dependency-rate change or eBay error. The admin form test now uses scoped plain static storage and an explicitly uncollected temporary STATIC_ROOT; every refusal/form/no-row assertion remains. Production storage/configuration is unchanged, and production collectstatic/WhiteNoise smoke stay in CI.
 
 The bulk-create guard also preserves Django's positional arguments; a positional batch-size case was added to the existing refusal test. Focused stock20 tests passed before the static-isolation fix; final clean-storage/local and dual-lane results are filed below. No test is skipped or weakened and no migration is introduced.
+
+### Final Validation And Static Deployment: 2026-11-20
+
+Implementation head: `466b98d51e865bba1fe3acc69a4f1e9810a402b1` (initial implementation `58133bcdb019641f681efb3a2e5ccbeaaf88d754`, followed by the isolated-admin-test/positional-API correction). [Validation 44695261077](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44695261077) completed **SUCCESS on both lanes**, for this exact implementation head:
+
+| Gate | Final Result |
+|---|---|
+| CI SQLite, job136150392085 | 546 passed,1 existing skip; frontend252 passed; Playwright34 passed. |
+| CI PostgreSQL, job136150391717 | 534 passed,13 existing skips; both forced sale/create orders covered on this database lane. |
+| Final local backend after CI correction | 546 passed,1 existing skip,240.13s, exit0. |
+| Local frontend / browser / static checks | 252 frontend,34 browser plus5 final focused browser cases; typecheck/build/Django check PASS; no migration drift. |
+| Supplied documentation | Spec/kickoff byte equality retained; eight exact handoff replacements remain unchanged, with only this task's required section9 log added. |
+
+Collected static files only: **7 copied,155 unmodified,425 post-processed**. Collected index/JS/CSS match the tested build byte-for-byte (`index-LtFabXMF.js`, `index-pA-mnJas.css`). Database, protected configuration and all64 media files were compared before/after and are unchanged. The collection process was network-blocked:0 network attempts. No service restart or startup recovery was run by Codex.
+
+Actual NSSM/Waitress service on port8000 remains Running. Local read-only GETs after collection: `/api/health/`200; `/`200 and references the new assets; both new `/assets/` URLs404 in the still-running service's old static map. **Administrator restart and hard-refresh REQUIRED before acceptance**; the build is collected, not yet verified as served. No authenticated write, eBay/API metadata call or live save was used to obtain this proof.
+
+### Acceptance At Handoff
+
+| Spec Section5 Criterion | Status And Evidence |
+|---|---|
+| Fix A both database lanes, resolver order/admin/seed/race/old audit contract | PASS: final implementation and both Validation jobs above; full backend suites retain existing stage/publish/allocation/reconcile guards. |
+| Fix B automated320/390 checks | PASS:34 browser tests and12 simulated screenshots. **Real iPhone acceptance OPEN**, owned by Regan after restart: focus/switch fields, Details Save, Add comparable, listing Save, keyboard dismiss/nav restore without a jump. |
+| Drawer attribution | OPEN/unattributed, explicitly allowed by the spec; no positive external-toggle evidence supplied. Source absence is not attribution. |
+| Suites/typecheck/build/collectstatic/both CI lanes | PASS above. Administrator restart, served-new-assets verification and independent review remain OPEN. |
+
+**Sprint27 remains OPEN, not CLOSED.** Stop for Regan's Administrator restart/hard-refresh and iPhone check, followed by independent review. No migration, live save, eBay/provider call, service restart or new sprint was performed. No secret values are included. This documentation-only follow-up records the validated implementation head rather than claiming a second application build.
