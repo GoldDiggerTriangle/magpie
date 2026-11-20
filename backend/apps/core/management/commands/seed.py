@@ -1,7 +1,8 @@
 from decimal import Decimal
 from datetime import date
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -9,6 +10,7 @@ from apps.catalog.models import ProductCategory
 from apps.inventory.models import InventoryItem
 from apps.listing.models import ListingBoilerplate, ListingDraft
 from apps.listing.views import create_generated_draft
+from apps.listing.creation_stock import DraftStockError
 from apps.locations.models import StorageLocation
 from apps.research.models import Comparable
 from apps.valuation.models import (
@@ -24,6 +26,7 @@ from apps.valuation.strategies import get_strategy
 class Command(BaseCommand):
     help = "Seed Sprint 0 categories, locations, and sample inventory items."
 
+    @transaction.atomic
     def handle(self, *args, **options):
         categories = self.seed_categories()
         locations = self.seed_locations()
@@ -532,4 +535,7 @@ class Command(BaseCommand):
 
         phone = items["Seed/example phone - Samsung Galaxy S21"]
         if not ListingDraft.objects.filter(item=phone).exists():
-            create_generated_draft(phone)
+            try:
+                create_generated_draft(phone)
+            except DraftStockError as exc:
+                raise CommandError(exc.message) from None

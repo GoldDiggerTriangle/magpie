@@ -74,6 +74,11 @@ test("ApiError uses JSON detail when available", () => {
   expect(error.message).toBe("eBay taxonomy endpoint unavailable.");
 });
 
+test("every draft entry gets the sold-out message from its stable machine key", () => {
+  expect(new ApiError(409, { code: "sold_out" }).message).toBe("Sold out \u2014 nothing to list.");
+  expect(new ApiError(409, { code: "sold_out", detail: "alternate server text" }).message).toBe("Sold out \u2014 nothing to list.");
+});
+
 test("ApiError uses JSON field errors when detail is absent", () => {
   const error = new ApiError(400, { quantity: ["Quantity exceeds remaining available units (0)."] });
 

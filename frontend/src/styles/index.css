@@ -2713,6 +2713,11 @@
 
 .listing-save-bar > button svg { flex-shrink: 0; }
 
+.listing-save-bar { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+@media (max-width: 767px) {
+  html[data-mobile-keyboard="open"] .mobile-bottom-nav { visibility: hidden; pointer-events: none; }
+}
+
 .listing-save-slot { min-height: 96px; }
 
 /* Item tabs retain mounted forms; only their visibility changes. */

@@ -75,9 +75,13 @@ def test_api_allowlist_rejects_every_non_d135_field(api, listing, field):
     assert api.post(url(listing) + "preview/", {"values": {}, field: "10"}, format="json").status_code == 400
 
 
-def test_no_defaults_leaves_defaultable_fields_empty_and_remaining_zero_honest(api, listing):
-    row = create(api, new_item(listing, quantity_total=0))
-    assert row.quantity == 0 and row.price is None and row.listing_format == ""
+def test_no_defaults_leaves_fields_empty_and_sold_out_refuses(api, listing):
+    sold_out = new_item(listing, quantity_total=0)
+    refused = api.post(f"/api/items/{sold_out.pk}/listing-drafts/", {}, format="json")
+    assert refused.status_code == 409 and refused.data["code"] == "sold_out"
+    assert not ListingDraft.objects.filter(item=sold_out).exists()
+    row = create(api, new_item(listing, quantity_total=2))
+    assert row.quantity == 2 and row.price is None and row.listing_format == ""
     assert not {key: row.channel_data.get(key) for key in DEFAULT_FIELDS if row.channel_data.get(key)}
     assert any(check["field"] == "listing_format" and check["level"] == "fail" for check in editor_context(row)["checks"])
 

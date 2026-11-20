@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models, router, transaction
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -43,11 +43,36 @@ class ListingDraftQuerySet(models.QuerySet):
 
     def update(self, **kwargs):
         self.assert_mutable()
+        if "channel" in kwargs:
+            if not isinstance(kwargs["channel"], str):
+                raise ValidationError("Change draft channels with a saved draft, not an expression.")
+            if kwargs["channel"] == "ebay_au":
+                from contextlib import ExitStack
+                from apps.listing.creation_stock import claim_creation_stock
+                with transaction.atomic(using=self.db), ExitStack() as stack:
+                    ids = self.exclude(channel="ebay_au").order_by("item_id").values_list("item_id", flat=True).distinct()
+                    for item_id in ids:
+                        stack.enter_context(claim_creation_stock(item_id, self.db))
+                    return super().update(**kwargs)
         return super().update(**kwargs)
+
+    def bulk_create(self, objs, **kwargs):
+        from contextlib import ExitStack
+        from apps.listing.creation_stock import claim_creation_stock
+        objs = list(objs)
+        with transaction.atomic(using=self.db), ExitStack() as stack:
+            for item_id in sorted({obj.item_id for obj in objs if obj.channel == "ebay_au"}, key=str):
+                stack.enter_context(claim_creation_stock(item_id, self.db))
+            return super().bulk_create(objs, **kwargs)
 
     def bulk_update(self, objs, fields, batch_size=None):
         objs = tuple(objs)
         self.filter(pk__in=[obj.pk for obj in objs]).assert_mutable()
+        if "channel" in fields or "item" in fields:
+            with transaction.atomic(using=self.db):
+                for obj in objs:
+                    obj.save(using=self.db, update_fields=fields)
+            return len(objs)
         return super().bulk_update(objs, fields, batch_size=batch_size)
 
 
@@ -151,10 +176,15 @@ class ListingDraft(TimeStampedUUIDModel):
             raise ValidationError("Staging is in progress; wait before editing this draft.")
 
     def save(self, *args, **kwargs):
-        using = kwargs.get("using") or self._state.db
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
         if self._state.adding:
             if type(self).objects.using(using).filter(pk=self.pk).exists():
                 raise ValidationError("A draft ID cannot be reused or overwrite history.")
+            if self.channel == "ebay_au":
+                from apps.listing.creation_stock import claim_creation_stock
+                with claim_creation_stock(self.item_id, using) as fresh_item:
+                    self.item = fresh_item
+                    return super().save(*args, **kwargs)
             return super().save(*args, **kwargs)
         # PostgreSQL locks the row; SQLite rejects an obsolete read-to-write
         # upgrade. Neither may overwrite a publish claim that won the race.
@@ -165,7 +195,24 @@ class ListingDraft(TimeStampedUUIDModel):
                 raise ValidationError("Draft changed elsewhere; reload before saving.")
             if kwargs.get("update_fields"):
                 kwargs["update_fields"] = set(kwargs["update_fields"]) | {"updated_at"}
+            fields = kwargs.get("update_fields")
+            channel = self.channel if not fields or "channel" in fields else current.channel
+            item_id = self.item_id if not fields or "item" in fields else current.item_id
+            if channel == "ebay_au" and (current.channel != channel or current.item_id != item_id):
+                from apps.listing.creation_stock import claim_creation_stock
+                with claim_creation_stock(item_id, using):
+                    return super().save(*args, **kwargs)
             return super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        if self.item_id and self.channel == "ebay_au":
+            using = self._state.db or "default"
+            previous = type(self).objects.using(using).filter(pk=self.pk).values("channel", "item_id").first()
+            if self._state.adding or previous and (previous["channel"] != self.channel or previous["item_id"] != self.item_id):
+                from apps.inventory.models import InventoryItem
+                from apps.listing.creation_stock import require_remaining_stock
+                require_remaining_stock(InventoryItem.objects.using(using).get(pk=self.item_id))
 
 
 class PublishReview(TimeStampedUUIDModel):

@@ -28,6 +28,7 @@ from apps.listing.channel_listings import (
 )
 from apps.listing.copy_packs import render_copy_pack
 from apps.listing.canonical import get_or_create_canonical_draft, plan_group
+from apps.listing.creation_stock import DraftStockError
 from apps.listing.export import build_export_bundle
 from apps.listing.generators import generated_meta, generator_for
 from apps.listing.context import safe_context
@@ -201,6 +202,10 @@ class ItemListingDraftListCreateView(ListCreateAPIView):
                 item, channel=channel,
                 create_new=lambda: create_generated_draft(item, channel=channel),
             )
+        except DraftStockError as exc:
+            return Response(exc.payload(), status=status.HTTP_409_CONFLICT)
+        except OperationalError:
+            return Response({"code": "stock_changed", "detail": "Stock changed. Reload before creating a draft."}, status=409)
         except ValidationError as exc:
             return Response(_validation_payload(exc), status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(draft)
@@ -217,6 +222,8 @@ class ListingDraftViewSet(ModelViewSet):
     http_method_names = ["get", "patch", "delete", "post", "head", "options"]
 
     def handle_exception(self, exc):
+        if isinstance(exc, DraftStockError):
+            return Response(exc.payload(), status=409)
         if isinstance(exc, WorkflowError):
             return Response(exc.payload(), status=exc.status)
         if isinstance(exc, OperationalError):

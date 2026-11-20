@@ -21,6 +21,9 @@ export function formatApiErrorMessage(status: number, data: unknown): string {
   }
 
   if (data && typeof data === "object") {
+    if ((data as { code?: unknown }).code === "sold_out") {
+      return "Sold out \u2014 nothing to list.";
+    }
     const detail = (data as { detail?: unknown }).detail;
     if (typeof detail === "string" && detail.trim()) {
       return detail.trim();

@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from apps.listing.channel_listings import CHANNEL_LABELS, item_listing_state
 from apps.listing.models import ChannelListing, ListingBoilerplate, ListingDraft
+from apps.listing.creation_stock import DraftStockError
 from apps.listing.readiness import check_readiness, readiness_summary
 from apps.listing.editor import EDITABLE_CHANNEL_FIELDS, LISTING_FIELDS, apply_price_choice, signature, snapshot_signature
 
@@ -206,6 +207,8 @@ class ListingDraftSerializer(serializers.ModelSerializer):
             validated_data["description_edited"] = True
         try:
             return super().update(instance, validated_data)
+        except DraftStockError:
+            raise
         except DjangoValidationError as exc:
             raise serializers.ValidationError({"detail": exc.messages}) from None
 

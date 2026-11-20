@@ -119,8 +119,16 @@ for (const width of [320, 390]) for (const large of [false, true]) {
     await page.getByRole("textbox", { name: "Title", exact: true }).focus();
     await page.locator(".listing-save-bar button").scrollIntoViewIfNeeded();
     const save = await page.locator(".listing-save-bar button").boundingBox();
-    const nav = await page.locator(".mobile-bottom-nav").boundingBox();
-    expect(save!.y + save!.height).toBeLessThanOrEqual(nav!.y + 1);
+    const navigation = page.locator(".mobile-bottom-nav");
+    if (await navigation.isVisible()) {
+      const nav = await navigation.boundingBox();
+      expect(save!.y + save!.height).toBeLessThanOrEqual(nav!.y + 1);
+    } else {
+      // Sprint 27 replaces the nav offset with the actual visible edge while the keyboard is open.
+      expect(await page.evaluate(() => document.documentElement.dataset.mobileKeyboard)).toBe("open");
+      const bottom = await page.evaluate(() => visualViewport!.offsetTop + visualViewport!.height);
+      expect(save!.y + save!.height).toBeLessThanOrEqual(bottom + 1);
+    }
     await fit(page);
     expect(data.forbidden).toEqual([]);
     expect(data.calls.filter(x => !x.startsWith("GET "))).toEqual([

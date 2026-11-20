@@ -1,6 +1,7 @@
 import { Boxes, Calculator, DownloadCloud, LayoutDashboard, Megaphone, PackageSearch, PlusCircle, ReceiptText, Settings, TrendingUp } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { EbayConnectionBanner } from "./EbayConnectionHealth";
+import { useMobileKeyboard } from "./useMobileKeyboard";
 
 const navItems = [
   { to: "/", label: "Dashboard", shortLabel: "Home", icon: LayoutDashboard },
@@ -16,6 +17,7 @@ const navItems = [
 ];
 
 export function AppShell() {
+  useMobileKeyboard();
   return (
     <div className="app-shell min-h-screen bg-[#FFFFFF] text-[#0F172A]">
       <aside className="desktop-sidebar fixed left-0 top-0 hidden h-full w-64 border-r border-[#CBD5E1] bg-white p-5 md:block">

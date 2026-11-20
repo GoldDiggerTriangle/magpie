@@ -12,6 +12,7 @@ from apps.audit.services import record
 from apps.inventory.models import InventoryItem
 from apps.listing.draft_status import IN_FLIGHT_DRAFT_STATUSES, TERMINAL_DRAFT_STATUSES
 from apps.listing.models import ListingDraft
+from apps.listing.creation_stock import require_remaining_stock
 
 
 RELIST_CHANNEL_FIELDS = (
@@ -167,6 +168,10 @@ def get_or_create_canonical_draft(item, *, channel="ebay_au", create_new):
                 raise ValidationError("Resolve this item's staged offers/publish outcome before opening a canonical draft.")
             if group["keeper"]:
                 return next(draft for draft in drafts if str(draft.pk) == group["keeper"]["draft_id"]), False
+        # Reuse/reconciliation precede this check; the model fences the actual insert against sales.
+        item.refresh_from_db()
+        if channel == "ebay_au":
+            require_remaining_stock(item)
         published = [draft for draft in drafts if draft.status == "published"]
         if published:
             source = max(published, key=lambda draft: (draft.updated_at, draft.pk.int))
