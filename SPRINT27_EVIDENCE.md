@@ -91,3 +91,20 @@ Actual NSSM/Waitress service on port8000 remains Running. Local read-only GETs a
 | Suites/typecheck/build/collectstatic/both CI lanes | PASS above. Administrator restart, served-new-assets verification and independent review remain OPEN. |
 
 **Sprint27 remains OPEN, not CLOSED.** Stop for Regan's Administrator restart/hard-refresh and iPhone check, followed by independent review. No migration, live save, eBay/provider call, service restart or new sprint was performed. No secret values are included. This documentation-only follow-up records the validated implementation head rather than claiming a second application build.
+
+## 2026-11-20: Real iPhone Evidence And Served Assets
+
+Regan supplied four real iPhone screenshots following the restart/hard-refresh request. [Original phone evidence](docs/evidence/sprint27/phone-acceptance/README.md) filed unchanged with source/destination SHA256 equality (four JPEGs,100386/98199/99068/92986 bytes). The condition picker leaves navigation visible; the two title/keyboard images show it hidden while typing; the dismissed-keyboard image shows it restored. No saved change or full phone acceptance is inferred from the images.
+
+At19:12-19:15 Sydney, actual port8000 GETs returned200 for `/api/health/`, `/`, `/assets/index-LtFabXMF.js` and `/assets/index-pA-mnJas.css`. The index references both new assets; both asset bodies exactly match the tested implementation466b98d build. The former running-static-map404 is resolved. NSSM Magpie is Running; process creation time was unavailable to this read-only session, so no exact restart timestamp is claimed. Live database, protected configuration and64 media files are unchanged across these verification GETs; no request was made to any eBay/provider endpoint or authenticated write route.
+
+| Remaining Acceptance | Current Evidence / Owner |
+|---|---|
+| Select visible / text keyboard hidden / dismissed restored | Real iPhone photographs above support all three states. |
+| Switching writable fields; no dismissal jump | OPEN: Regan to confirm. Two cursor positions in the same title are not a field-switch test; still images cannot establish transition motion. |
+| Details Save / Pricing Add comparable / listing-editor Save reachable with keyboard | OPEN: Regan to confirm reachability by scrolling, without submitting anything. Not pictured in this set. |
+| New assets served | PASS: actual8000 GETs and exact body matches above. No further restart requested solely for the old404. |
+| Automated checks | Existing implementation466b98d / Validation44695261077 both lanes green; no application change or new suite claimed in this evidence filing. |
+| Drawer / independent review | Drawer OPEN/unattributed; independent review PENDING. No external-toggle demonstration or independent verdict supplied. |
+
+**Sprint27 remains OPEN.** Documentation/original-image filing and read-only local deployment verification only; no code, migration, live save, eBay/provider call, collectstatic or Codex restart. Await the remaining owner phone checks before presenting a complete closure note for independent review. Earlier pending deployment paragraphs are historical, not rewritten.
