@@ -1,0 +1,214 @@
+[
+  {
+    "phase": "after",
+    "width": 320,
+    "large": false,
+    "rows": [
+      {
+        "entry": "/",
+        "height": 1163,
+        "width": 320,
+        "scrollWidth": 320,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/analytics/summary/?range=this_month",
+          "/api/dashboard/preferences/"
+        ]
+      },
+      {
+        "entry": "/profit",
+        "height": 10742,
+        "width": 320,
+        "scrollWidth": 320,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/categories/?ordering=name",
+          "/api/analytics/summary/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/pnl/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/by-category/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/estimate-vs-actual/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/aging/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/listing-opportunities/?range=12m&channel=all&unknown=honest",
+          "/api/profit/ledger/?stale_days=90"
+        ]
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "width": 320,
+    "large": true,
+    "rows": [
+      {
+        "entry": "/",
+        "height": 1545,
+        "width": 320,
+        "scrollWidth": 320,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/analytics/summary/?range=this_month",
+          "/api/dashboard/preferences/"
+        ]
+      },
+      {
+        "entry": "/profit",
+        "height": 13778,
+        "width": 320,
+        "scrollWidth": 320,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/categories/?ordering=name",
+          "/api/analytics/summary/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/pnl/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/by-category/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/estimate-vs-actual/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/aging/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/listing-opportunities/?range=12m&channel=all&unknown=honest",
+          "/api/profit/ledger/?stale_days=90"
+        ]
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "large": false,
+    "rows": [
+      {
+        "entry": "/",
+        "height": 1126,
+        "width": 390,
+        "scrollWidth": 390,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/analytics/summary/?range=this_month",
+          "/api/dashboard/preferences/"
+        ]
+      },
+      {
+        "entry": "/profit",
+        "height": 10319,
+        "width": 390,
+        "scrollWidth": 390,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/categories/?ordering=name",
+          "/api/analytics/summary/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/pnl/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/by-category/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/estimate-vs-actual/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/aging/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/listing-opportunities/?range=12m&channel=all&unknown=honest",
+          "/api/profit/ledger/?stale_days=90"
+        ]
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "large": true,
+    "rows": [
+      {
+        "entry": "/",
+        "height": 1389,
+        "width": 390,
+        "scrollWidth": 390,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/analytics/summary/?range=this_month",
+          "/api/dashboard/preferences/"
+        ]
+      },
+      {
+        "entry": "/profit",
+        "height": 12891,
+        "width": 390,
+        "scrollWidth": 390,
+        "calls": [
+          "/api/ebay/connection-health/",
+          "/api/categories/?ordering=name",
+          "/api/analytics/summary/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/pnl/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/by-category/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/estimate-vs-actual/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/aging/?range=12m&channel=all&unknown=honest",
+          "/api/analytics/listing-opportunities/?range=12m&channel=all&unknown=honest",
+          "/api/profit/ledger/?stale_days=90"
+        ]
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "width": 320,
+    "rows": [
+      {
+        "task": "Add item",
+        "taps": 1,
+        "destination": "/add",
+        "scroll": 313
+      },
+      {
+        "task": "Find an item",
+        "taps": 2,
+        "destination": "/inventory",
+        "scroll": 0
+      },
+      {
+        "task": "Record a sale",
+        "taps": 2,
+        "destination": "/inventory/item-fixture#item-sales",
+        "scroll": 284
+      },
+      {
+        "task": "eBay orders",
+        "taps": 1,
+        "destination": "/ebay/orders",
+        "scroll": 216
+      },
+      {
+        "task": "profit figures",
+        "taps": 1,
+        "destination": "/profit",
+        "scroll": 0
+      }
+    ]
+  },
+  {
+    "phase": "after",
+    "width": 390,
+    "rows": [
+      {
+        "task": "Add item",
+        "taps": 1,
+        "destination": "/add",
+        "scroll": 0
+      },
+      {
+        "task": "Find an item",
+        "taps": 2,
+        "destination": "/inventory",
+        "scroll": 0
+      },
+      {
+        "task": "Record a sale",
+        "taps": 2,
+        "destination": "/inventory/item-fixture#item-sales",
+        "scroll": 208
+      },
+      {
+        "task": "eBay orders",
+        "taps": 1,
+        "destination": "/ebay/orders",
+        "scroll": 128
+      },
+      {
+        "task": "profit figures",
+        "taps": 1,
+        "destination": "/profit",
+        "scroll": 0
+      }
+    ]
+  }
+]

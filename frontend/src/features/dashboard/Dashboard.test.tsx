@@ -5,6 +5,8 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { Dashboard } from "./Dashboard";
+import { ApiError } from "../../api/client";
+import { ChartsAndTrends } from "./ChartsAndTrends";
 import type {
   AnalyticsAging,
   AnalyticsByCategory,
@@ -192,17 +194,21 @@ beforeEach(() => {
   vi.mocked(categoryApi.listCategories).mockResolvedValue(categories);
 });
 
-test("Dashboard renders the default command-centre KPI row and sections", async () => {
+test("Home preserves the KPI row while charts remain reachable on Profit", async () => {
   renderDashboard();
 
-  expect(await screen.findByRole("heading", { name: "Dealer's ledger" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Home" })).toBeInTheDocument();
   expect(await screen.findByText("Realised profit")).toBeInTheDocument();
   expect(screen.getAllByText("Net proceeds").length).toBeGreaterThan(0);
   expect(screen.getAllByText("Sell-through").length).toBeGreaterThan(0);
-  expect(screen.getByText("Estimate vs actual")).toBeInTheDocument();
-  expect(screen.getByLabelText("Estimate versus actual table")).toHaveTextContent("STM-00001");
+  expect(screen.queryByText("Estimate vs actual")).not.toBeInTheDocument();
+  expect(dashboardApi.getAnalyticsPnl).not.toHaveBeenCalled();
+  expect(dashboardApi.getAnalyticsEstimateVsActual).not.toHaveBeenCalled();
+  renderDashboard(true);
+  expect(await screen.findByText("Estimate vs actual")).toBeInTheDocument();
+  expect(await screen.findByLabelText("Estimate versus actual table")).toHaveTextContent("STM-00001");
   expect(screen.getByText("What's worth listing next")).toBeInTheDocument();
-  expect(screen.getByText("STM-00002")).toBeInTheDocument();
+  expect(await screen.findByText("STM-00002")).toBeInTheDocument();
 });
 
 test("Dashboard persists KPI preference ordering from the picker", async () => {
@@ -238,7 +244,7 @@ test("Dashboard empty states point to the next operational action", async () => 
     items: []
   });
 
-  renderDashboard();
+  renderDashboard(true);
 
   expect(await screen.findByText("No sales yet.")).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Review eBay orders" })).toHaveAttribute("href", "/ebay/orders");
@@ -247,29 +253,53 @@ test("Dashboard empty states point to the next operational action", async () => 
 });
 
 test("Dashboard auth state links to the real admin login route", async () => {
-  vi.mocked(dashboardApi.getAnalyticsSummary).mockRejectedValue(new Error("Authentication credentials were not provided."));
+  vi.mocked(dashboardApi.getAnalyticsSummary).mockRejectedValue(new ApiError(401, {detail:"Authentication credentials were not provided."}));
 
   renderDashboard();
 
   expect(await screen.findByText("Sign in required")).toBeInTheDocument();
   const link = screen.getByRole("link", { name: "Open admin login" });
   expect(link).toHaveAttribute("href", "/admin/login/?next=%2F");
+  for (const name of ["Add item", "Find an item", "eBay hub", "Buy calculator", "Record a sale", "eBay orders"]) expect(screen.getByRole("link", {name})).toBeInTheDocument();
+  expect(screen.getByRole("link", {name:"Record a sale"})).toHaveAttribute("href","/inventory?task=record-sale");
 });
 
-function renderDashboard() {
+test("Home routes every urgent queue without querying charts", async () => {
+  vi.mocked(dashboardApi.getAnalyticsSummary).mockResolvedValue({...summary, alerts:[
+    {id:"orders",count:2,label:"eBay order lines to resolve",href:"/ebay/orders"},
+    {id:"publish",count:1,label:"Publish results need checking",href:"/ebay#publish-results"},
+    {id:"allocation",count:1,label:"eBay stock needs attention",href:"/ebay#live-listings"},
+    {id:"take-down",count:1,label:"Sold-out listings to take down",href:"/listings"},
+  ]});
+  renderDashboard();
+  const alerts = await screen.findByRole("region", {name:"Needs attention"});
+  for (const href of ["/ebay/orders","/ebay#publish-results","/ebay#live-listings","/listings"]) expect(within(alerts).getAllByRole("link").some(link=>link.getAttribute("href")===href)).toBe(true);
+  for (const fn of [dashboardApi.getAnalyticsPnl,dashboardApi.getAnalyticsAging,dashboardApi.getAnalyticsByCategory,dashboardApi.getAnalyticsEstimateVsActual,dashboardApi.getAnalyticsListingOpportunities]) expect(fn).not.toHaveBeenCalled();
+  expect(dashboardApi.getAnalyticsSummary).toHaveBeenCalledWith({range:"this_month"});
+});
+
+test("temporary statistics failure does not pretend seller authorisation failed", async () => {
+  vi.mocked(dashboardApi.getAnalyticsSummary).mockRejectedValue(new ApiError(503,{detail:"Temporary failure"}));
+  renderDashboard();
+  expect(await screen.findByText("Quick stats are unavailable.")).toBeInTheDocument();
+  expect(screen.queryByText("Sign in required")).not.toBeInTheDocument();
+  expect(screen.getByRole("link",{name:"Record a sale"})).toHaveAttribute("href","/inventory?task=record-sale");
+});
+
+function renderDashboard(charts = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   });
   render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <Dashboard />
+        {charts ? <ChartsAndTrends /> : <Dashboard />}
       </MemoryRouter>
     </QueryClientProvider>
   );
 }
 
-function tile(id: AnalyticsSummary["tiles"][keyof AnalyticsSummary["tiles"]]["id"], label: string, format: AnalyticsSummary["tiles"][keyof AnalyticsSummary["tiles"]]["format"], value: string, secondary = "") {
+function tile(id: import("../../types").DashboardKpiId, label: string, format: import("../../types").DashboardKpiTile["format"], value: string, secondary = "") {
   return {
     id,
     label,

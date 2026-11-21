@@ -34,6 +34,7 @@ const conditionOptions = [
 
 export function InventoryGrid() {
   const [params, setParams] = useSearchParams();
+  const recordingSale = params.get("task") === "record-sale";
   const [page, setPage] = useState(Number(params.get("page") ?? "1"));
 
   const query = useMemo(
@@ -67,7 +68,7 @@ export function InventoryGrid() {
     <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="page-title">Inventory</h1>
+          <h1 className="page-title">{recordingSale ? "Record a sale: choose an item" : "Inventory"}</h1>
           <p className="mt-1 text-sm text-slate-500">{items.data?.count ?? 0} items</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -97,7 +98,7 @@ export function InventoryGrid() {
         {items.data && items.data.results.length === 0 ? <EmptyState title="No items found" /> : null}
         {items.data && items.data.results.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {items.data.results.map((item) => <ItemCard key={item.id} item={item} />)}
+            {items.data.results.map((item) => <ItemCard key={item.id} item={item} to={recordingSale ? `/inventory/${item.id}#item-sales` : undefined} />)}
           </div>
         ) : null}
       </div>

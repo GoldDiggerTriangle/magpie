@@ -47,10 +47,17 @@ class FeeChoice:
 def profit_ledger_payload(params) -> dict:
     setting = current_profit_setting()
     stale_days = parse_positive_int(params.get("stale_days"), DEFAULT_STALE_DAYS)
-    rows = ledger_rows(setting)
-    fy_options = financial_year_options(rows)
+    all_rows = ledger_rows(setting)
+    rows = all_rows
+    period = None
+    if any(params.get(key) for key in ("range", "start", "end", "category", "channel", "unknown")):
+        from apps.dashboard.analytics import parse_filters, serialize_filters
+        filters = parse_filters(params)
+        rows = rows_for_period(all_rows, filters)
+        period = serialize_filters(filters)
+    fy_options = financial_year_options(all_rows)
     fy = selected_financial_year(params.get("fy"), fy_options)
-    fy_rows = rows_for_fy(rows, fy)
+    fy_rows = rows_for_fy(all_rows, fy)
     return {
         "currency": "AUD",
         "not_tax_advice_label": NOT_TAX_ADVICE_LABEL,
@@ -64,6 +71,7 @@ def profit_ledger_payload(params) -> dict:
             "ranking_threshold": RANKING_THRESHOLD,
         },
         "summary": summary_for_rows(rows),
+        "period": period,
         "ledger": rows,
         "aggregates": {
             "by_category": aggregate_rows(rows, "category"),
@@ -214,6 +222,7 @@ def serialize_sale_row(sale: SaleRecord, setting: ProfitSetting) -> dict:
         "category_id": str(item.category_id) if item and item.category_id else None,
         "channel": sale.channel,
         "provenance": sale.provenance,
+        "is_external": sale.is_external,
         "lot_id": str(item.lot_id) if item and item.lot_id else None,
         "lot_label": item.lot.label if item and item.lot_id and item.lot else None,
         "source_id": str(source.id) if source else None,
@@ -631,6 +640,16 @@ def velocity_summary(rows: list[dict]) -> dict:
         "thin": len(values) < RANKING_THRESHOLD,
         "tooltip": PROFIT_DAY_TOOLTIP,
     }
+
+
+def rows_for_period(rows, filters):
+    """One date/category/channel window for Home and the ledger, not the FY export."""
+    return [row for row in rows
+            if (not filters.start or row["sold_date"] >= filters.start.isoformat())
+            and (not filters.end or row["sold_date"] <= filters.end.isoformat())
+            and (not filters.category_ids or row["category_id"] in filters.category_ids)
+            and (filters.channel == "all" or (filters.channel == "external" and row.get("is_external", False)) or row["channel"] == filters.channel)
+            and (filters.unknown_mode != "hide" or row["total_costs"] is not None)]
 
 
 def summary_for_rows(rows: list[dict]) -> dict:

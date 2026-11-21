@@ -1,0 +1,9 @@
+# Sprint 28: Isolated Browser Evidence
+
+Sixteen full-document screenshots: Home and Profit,320/390x844, normal16px and larger20px root text, [before](before/) and [after](after/). Every copy was source/destination SHA256-verified. These are Chromium fixtures, not real iPhone captures. Fixed navigation appears at its viewport position within the long full-document image; it has not been moved into the page flow.
+
+Source fixture: `frontend/e2e/sprint28.fixture.tsx`, actual AppShell/Home/Profit/Inventory/item/Orders components. Routes intercept every API call, abort external traffic and reject writes. Data are the pre-existing page-specific Dashboard and Profit unit fixtures, copied structurally with TypeScript's parser: **geometry/task rehearsal only, not evidence that those separate fixture profit figures agree**. Ledger parity, snapshots, all-in costs, dates, exclusions and cents are verified by real-model backend tests. No production item, valuation, rate, sale or preference is created/saved for screenshots.
+
+The same underlying synthetic records/task protocol are retained across before/after. The no-saved-preference API row changes from the old five defaults to the newly specified four; existing saved rows/order are separately regression-tested. New tile fields and month-specific labels reflect the new API contract. The charts and their data/empty-state/table assertions are retained, not replaced by a shorter empty Profit page.
+
+Final [raw after measurements and request traces](after-measurements.json); before measurements and the comparison tables are in [SPRINT28_EVIDENCE.md](../../../SPRINT28_EVIDENCE.md). Back is exercised through the router history; actual Safari Back/keyboard/larger-text acceptance remains Regan's phone gate. No on-screen keyboard bitmap is fabricated.

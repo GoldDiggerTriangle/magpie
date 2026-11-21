@@ -8,17 +8,26 @@ from apps.core.models import TimeStampedUUIDModel
 
 DEFAULT_KPI_TILES = [
     "realised_profit",
-    "net_proceeds",
-    "sell_through",
     "items_sold",
-    "avg_realised_margin",
+    "stock_on_hand",
+    "ebay_listings",
 ]
 
 KPI_TILE_CATALOG = {
+    "stock_on_hand": {
+        "label": "Stock on hand",
+        "format": "integer",
+        "description": "Saleable units remaining now; all-in known remaining cost and unknown-cost units are shown separately.",
+    },
+    "ebay_listings": {
+        "label": "eBay listings",
+        "format": "integer",
+        "description": "Marked active in Magpie; owned records, not a live eBay check.",
+    },
     "realised_profit": {
         "label": "Realised profit",
         "format": "currency",
-        "description": "Known-cost sales only.",
+        "description": "Ledger profit including scrap losses; unknown cost or fee rows are excluded.",
     },
     "gross_revenue": {
         "label": "Revenue",

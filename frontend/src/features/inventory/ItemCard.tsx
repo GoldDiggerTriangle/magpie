@@ -5,9 +5,9 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { ValueBadge } from "../../components/ValueBadge";
 import type { InventoryItemList } from "../../types";
 
-export function ItemCard({ item }: { item: InventoryItemList }) {
+export function ItemCard({ item, to }: { item: InventoryItemList; to?: string }) {
   return (
-    <Link className="item-card" to={`/inventory/${item.id}`}>
+    <Link className="item-card" to={to || `/inventory/${item.id}`}>
       <PhotoThumb src={item.main_thumb_url} alt={item.title || item.sku} />
       <div className="space-y-3 p-3">
         <div>

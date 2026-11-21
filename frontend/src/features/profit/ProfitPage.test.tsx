@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   getProfitLedger: vi.fn()
 }));
 
+// Chart integration is exercised by Dashboard/ChartsAndTrends and the real-page browser gate.
+vi.mock("../dashboard/ChartsAndTrends", () => ({ ChartsAndTrends: () => <section aria-label="Charts & trends">Charts &amp; trends</section> }));
+
 vi.mock("../../api/profit", () => ({
   getProfitLedger: (...args: unknown[]) => mocks.getProfitLedger(...args),
   profitLedgerCsvUrl: (query: { stale_days?: number; fy?: string } = {}) => {

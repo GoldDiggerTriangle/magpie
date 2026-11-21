@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+.home-header, .home-actions, .home-alerts { width: 100%; max-width: 80rem; margin: 0 auto; min-width: 0; }
+.home-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #cbd5e1; }
+.home-page .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-page .kpi-row-header { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; }
+.home-page .kpi-row-header .icon-button { flex: none; width: 44px; height: 44px; }
+.home-page .ledger-kpi-tile { min-width: 0; text-decoration: none; min-height: 180px; border-radius: 4px; overflow-wrap: anywhere; }
+.home-page .ledger-kpi-tile span { font-size: 1rem; text-transform: none; }
+.home-page .ledger-kpi-tile strong { font-size: 1.5rem; line-height: 1.25; font-family: inherit; }
+.home-page .ledger-kpi-tile small { font-size: 1rem; }
+.home-actions, .home-alerts { padding-top: 20px; }
+.home-action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.home-action-grid .btn-secondary { min-width: 0; min-height: 88px; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 8px; padding: 12px; }
+.home-action-grid .btn-secondary span { max-width: 100%; overflow-wrap: normal; word-break: normal; }
+.home-action-grid svg { flex-shrink: 0; }
+.home-alerts { border-top: 2px solid #b91c1c; margin-top: 20px; }
+.home-alerts .row-link { display: flex; flex-wrap: wrap; min-height: 44px; gap: 8px; padding: 8px 0; }
+.home-page .ledger-button, .home-header .row-link { min-height: 44px; }
+.charts-trends { min-width: 0; margin: 24px auto 0; max-width: 80rem; border-top: 1px solid #94a3b8; padding-top: 20px; scroll-margin-top: 16px; }
+.charts-trends .ledger-filter-bar { margin-top: 16px; }
+.charts-trends section, #profit-summary, #publish-results, #live-listings { scroll-margin-top: 16px; }
+
 .fee-engine-panel, .fee-period, .fee-rate, .fee-review { min-width: 0; overflow-wrap: anywhere; }
 .fee-engine-panel .field { width: 100%; min-width: 0; max-width: 100%; font-size: 16px; }
 .fee-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

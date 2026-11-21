@@ -6,7 +6,9 @@ from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from statistics import median
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -16,7 +18,9 @@ from apps.dashboard.models import KPI_TILE_CATALOG
 from apps.ebay.models import EbayOrderStaging
 from apps.inventory.models import InventoryItem
 from apps.listing.channel_listings import take_down_checklist_items
-from apps.listing.models import ListingDraft
+from apps.listing.models import ChannelListing, ListingDraft
+from apps.profit.ledger import cash_cost_for_item, ledger_rows, rows_for_period, summary_for_rows
+from apps.profit.models import current_profit_setting
 from apps.sales.models import SaleRecord, money
 
 
@@ -40,7 +44,7 @@ class AnalyticsFilters:
 
 
 def parse_filters(params) -> AnalyticsFilters:
-    today = timezone.localdate()
+    today = timezone.localdate(timezone=ZoneInfo("Australia/Sydney"))
     range_key = params.get("range") or params.get("time_range") or "12m"
     start = None
     end = today
@@ -107,8 +111,19 @@ def build_summary(filters: AnalyticsFilters) -> dict:
         status=EbayOrderStaging.Status.PENDING
     ).count()
     take_down_count = len(take_down_checklist_items())
+    ledger = summary_for_rows(rows_for_period(ledger_rows(current_profit_setting()), filters))
+    realised_profit = Decimal(ledger["realised_profit"])
+    excluded_profit_count = ledger["sale_count"] - ledger["known_profit_sale_count"]
+    stock = [item for item in inventory_queryset(filters).filter(disposition="for_sale").exclude(status="archived") if item.quantity_remaining > 0]
+    known_units = sum(item.quantity_remaining for item in stock if item.acquisition_cost is not None)
+    unknown_units = sum(item.quantity_remaining for item in stock if item.acquisition_cost is None)
+    known_cost = money(sum((cash_cost_for_item(item)[0] for item in stock if item.acquisition_cost is not None), ZERO))
+    active_listings = ChannelListing.objects.filter(channel="ebay", ended_at__isnull=True)
 
     tiles = {
+        "stock_on_hand": tile_value("stock_on_hand", known_units + unknown_units,
+                                    secondary=f"{known_units} known-cost units: ${known_cost}; {unknown_units} units with unknown cost."),
+        "ebay_listings": tile_value("ebay_listings", active_listings.count(), secondary="Marked active in Magpie; not live-verified."),
         "realised_profit": tile_value(
             "realised_profit",
             realised_profit,
@@ -138,10 +153,24 @@ def build_summary(filters: AnalyticsFilters) -> dict:
             unknown_count,
         ),
     }
+    profit_tile = tiles["realised_profit"]
+    profit_tile["state"] = "known" if ledger["known_profit_sale_count"] else "unknown" if ledger["sale_count"] else "no_sales"
+    if profit_tile["state"] == "unknown":
+        profit_tile["value"] = None
+    profit_tile["secondary"] = f"{excluded_profit_count} rows excluded from profit (unknown cost or fees)." if excluded_profit_count else "Includes scrap losses; sale-time fees and all-in direct costs."
+    profit_tile["excluded_count"] = excluded_profit_count
+    if filters.range_label == "this_month":
+        for key in ("realised_profit", "gross_revenue", "net_proceeds", "items_sold", "sell_through", "avg_realised_margin", "avg_time_to_sale", "cost_basis_unknown_sales_count"):
+            tiles[key]["description"] += f" By sale date, {filters.start} to {filters.end}, Australia/Sydney."
+        profit_tile["label"] = "Profit this month"
+        tiles["items_sold"]["label"] = "Units sold this month"
+        if not sold_quantity and ledger["sale_count"]:
+            profit_tile["secondary"] += " No sales this month; scrap entries included."
     return {
         "currency": "AUD",
         "filters": serialize_filters(filters),
         "tiles": tiles,
+        "alerts": urgent_alerts(staging_count, take_down_count, active_listings),
         "action_counts": {
             "unresolved_ebay_staging": staging_count,
             "cost_basis_unknown_sales": unknown_count,
@@ -154,6 +183,19 @@ def build_summary(filters: AnalyticsFilters) -> dict:
             "linked_sales": linked_sales.count(),
         },
     }
+
+
+def urgent_alerts(staging_count, take_down_count, active_listings):
+    from apps.ebay.quantity import item_quantity_state
+    stuck = ListingDraft.objects.filter(channel="ebay_au").filter(
+        Q(status="publish_unknown") | Q(status="publishing", publish_started_at__lte=timezone.now() - timedelta(minutes=10))).count()
+    allocation_count = sum(item_quantity_state(item, settings.EBAY_ENV).get("urgent", False)
+                           for item in InventoryItem.objects.filter(pk__in=active_listings.values("item_id")))
+    entries = [("orders", staging_count, "eBay order lines to resolve", "/ebay/orders"),
+               ("publish", stuck, "Publish results need checking", "/ebay#publish-results"),
+               ("allocation", allocation_count, "eBay stock needs attention", "/ebay#live-listings"),
+               ("take-down", take_down_count, "Sold-out listings to take down", "/listings")]
+    return [{"id": key, "count": count, "label": label, "href": href} for key, count, label, href in entries if count]
 
 
 def build_pnl(filters: AnalyticsFilters) -> dict:

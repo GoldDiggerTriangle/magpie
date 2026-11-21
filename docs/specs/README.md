@@ -4,12 +4,16 @@ Regan supplied the current Markdown documents in `C:\Users\Regan\Downloads\files
 
 | Canonical File | Version / Header | Source File |
 | --- | --- | --- |
+| `SPRINT_28_SPEC.md` | v1.0 LOCKED: Home - quick stats and quick buttons (phone-first) | `C:\Users\Regan\Downloads\SPRINT_28_SPEC.md` |
+| `SPRINT_28_KICKOFF.md` | v1.0: Home - quick stats and quick buttons | `C:\Users\Regan\Downloads\SPRINT_28_KICKOFF.md` |
 | `SPRINT_27_SPEC.md` | v1.0 LOCKED: Small fixes - sold-out draft guard and keyboard-aware nav | `C:\Users\Regan\Downloads\SPRINT_27_SPEC.md` |
 | `SPRINT_27_KICKOFF.md` | v1.0: Small fixes - sold-out draft guard and keyboard-aware nav | `C:\Users\Regan\Downloads\SPRINT_27_KICKOFF.md` |
 | `SPRINT_25_SPEC.md` | v3.4 LOCKED: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_SPEC_v3.4.md` |
 | `SPRINT_25_KICKOFF.md` | v3.4: eBay listing, end to end | `C:\Users\Regan\Downloads\SPRINT_25_KICKOFF_v3.4.md` |
 | `SPRINT_26_SPEC.md` | v1.1 LOCKED: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_SPEC.md` |
 | `SPRINT_26_KICKOFF.md` | v1.1: Item page - tabs and decluttering (phone-first) | `C:\Users\Regan\Downloads\SPRINT_26_KICKOFF.md` |
+
+The Sprint 28 v1.0 spec/kickoff were supplied on 2026-11-21, checked for known secrets and credential patterns, and copied byte-for-byte from Downloads. They control Home quick stats/buttons, ledger profit parity and moving charts to Profit (D-147).
 
 The Sprint 27 v1.0 spec/kickoff were supplied on 2026-11-20, checked for known secrets and credential patterns, and copied byte-for-byte from Downloads. They control the sold-out draft guard, keyboard-aware navigation and read-only drawer attribution check (D-146).
 

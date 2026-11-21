@@ -180,7 +180,9 @@ export type DashboardKpiId =
   | "estimated_inventory_value"
   | "aged_inventory_count"
   | "unresolved_ebay_staging_count"
-  | "cost_basis_unknown_sales_count";
+  | "cost_basis_unknown_sales_count"
+  | "stock_on_hand"
+  | "ebay_listings";
 
 export type DashboardKpiFormat = "currency" | "integer" | "percent" | "days";
 
@@ -202,7 +204,8 @@ export interface DashboardKpiTile {
   id: DashboardKpiId;
   label: string;
   format: DashboardKpiFormat;
-  value: string;
+  value: string | null;
+  state?: "known" | "unknown" | "no_sales";
   secondary: string;
   excluded_count: number;
   description: string;
@@ -220,7 +223,8 @@ export interface AnalyticsFilters {
 export interface AnalyticsSummary {
   currency: string;
   filters: AnalyticsFilters;
-  tiles: Record<DashboardKpiId, DashboardKpiTile>;
+  tiles: Partial<Record<DashboardKpiId, DashboardKpiTile>>;
+  alerts?: { id: string; count: number; label: string; href: string }[];
   action_counts: {
     unresolved_ebay_staging: number;
     cost_basis_unknown_sales: number;

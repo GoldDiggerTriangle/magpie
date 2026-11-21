@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Banknote, FileDown, Gauge, LockKeyhole, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { ChartsAndTrends } from "../dashboard/ChartsAndTrends";
 
 import { getProfitLedger, profitLedgerCsvUrl } from "../../api/profit";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
@@ -19,11 +20,13 @@ const currencyFormatter = new Intl.NumberFormat("en-AU", {
 const numberFormatter = new Intl.NumberFormat("en-AU");
 
 export function ProfitPage() {
+  const [params, setParams] = useSearchParams();
+  const range = params.get("range") || "all";
   const [staleDays, setStaleDays] = useState(90);
   const [fy, setFy] = useState("");
   const ledger = useQuery({
-    queryKey: ["profit-ledger", staleDays, fy],
-    queryFn: () => getProfitLedger({ stale_days: staleDays, fy: fy || undefined })
+    queryKey: ["profit-ledger", staleDays, fy, range],
+    queryFn: () => getProfitLedger({ stale_days: staleDays, fy: fy || undefined, range: range === "all" ? undefined : range })
   });
 
   if (ledger.error) {
@@ -48,6 +51,7 @@ export function ProfitPage() {
           </p>
         </div>
         <div className="profit-controls">
+          <label><span>Profit period</span><select value={range} onChange={event => { const next = new URLSearchParams(params); next.set("range", event.target.value); setParams(next); }}><option value="all">All time</option><option value="this_month">This month</option></select></label>
           <label>
             <span>Stale after</span>
             <input
@@ -75,7 +79,7 @@ export function ProfitPage() {
         <ProfitSkeleton />
       ) : (
         <>
-          <SummaryTiles summary={data.summary} velocity={data.velocity} cashLocked={data.cash_lock.total_known_cash_locked} />
+          <div id="profit-summary"><SummaryTiles summary={data.summary} velocity={data.velocity} cashLocked={data.cash_lock.total_known_cash_locked} /></div>
           {(data.summary.unknown_fee_sale_count ?? 0) > 0 ? <WarningLine>Unknown fees: those rows are excluded from profit totals. Totals include known fees only.</WarningLine> : null}
           <section className="profit-section">
             <div className="profit-section-header">
@@ -139,6 +143,7 @@ export function ProfitPage() {
           </section>
         </>
       )}
+      <ChartsAndTrends />
     </ProfitFrame>
   );
 }
@@ -150,7 +155,7 @@ function ProfitFrame({ children }: { children: ReactNode }) {
 function SummaryTiles({ summary, velocity, cashLocked }: { summary: ProfitSummary; velocity: ProfitLedger["velocity"]; cashLocked: string }) {
   return (
     <section className="profit-summary-grid" aria-label="Profit summary">
-      <ProfitTile icon={<Banknote />} label="Realised profit" value={formatCurrency(summary.realised_profit)} note={`${summary.known_profit_sale_count} known-cost sales`} tone={Number(summary.realised_profit) < 0 ? "loss" : "profit"} />
+      <ProfitTile icon={<Banknote />} label="Realised profit" value={summary.known_profit_sale_count ? formatCurrency(summary.realised_profit) : summary.sale_count ? "Profit unknown" : "No sales in this period"} note={`${summary.known_profit_sale_count} known-cost sales`} tone={Number(summary.realised_profit) < 0 ? "loss" : "profit"} />
       <ProfitTile icon={<TrendingUp />} label="Median profit/day" value={velocity.median_profit_per_day ? formatCurrency(velocity.median_profit_per_day) : "Thin"} note={`${velocity.sample_size} known-date rows`} />
       <ProfitTile icon={<LockKeyhole />} label="Cash locked" value={formatCurrency(cashLocked)} note="Known-cost unsold stock" />
       <ProfitTile icon={<Gauge />} label="Losses" value={String(summary.loss_sale_count)} note="Loss rows stay visible" tone={summary.loss_sale_count ? "loss" : "neutral"} />

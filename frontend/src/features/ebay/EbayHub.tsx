@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ExternalLink, RefreshCw } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { draftDestination, getEbayHub, type HubDraft } from "../../api/ebayHub";
 import { reconcileListing } from "../../api/listingWorkflow";
 import { AuthRequiredState } from "../../components/AuthRequiredState";
@@ -14,8 +15,14 @@ const staged = (row: HubDraft) => row.status === "staged" || Boolean(row.offer_i
 const date = (value: string | null) => value ? new Date(value).toLocaleString("en-AU") : "Unavailable";
 
 export function EbayHub() {
+  const location = useLocation();
   const hub = useQuery({ queryKey: ["ebay-hub"], queryFn: getEbayHub });
   const reconcile = useMutation({ mutationFn: reconcileListing, onSuccess: () => hub.refetch() });
+  useEffect(() => {
+    if (hub.data && ["#publish-results", "#live-listings"].includes(location.hash)) {
+      requestAnimationFrame(() => { const section = document.getElementById(location.hash.slice(1)); section?.scrollIntoView(); section?.focus({ preventScroll: true }); });
+    }
+  }, [hub.data, location.hash]);
   if (hub.isPending) return <div className="item-page-frame"><p>Loading eBay records...</p></div>;
   if (hub.error || !hub.data) return <div className="item-page-frame">{hub.error instanceof ApiError && [401, 403].includes(hub.error.status)
     ? <AuthRequiredState detail="Sign in to see your saved eBay records." />
@@ -41,7 +48,7 @@ export function EbayHub() {
       <Link className="row-link" to="/settings/ebay">{!connection.connected ? "Reconnect eBay" : "Manage connection and policies"}</Link>
     </section>
     {reconcile.error ? <p role="alert">{reconcile.error instanceof Error ? reconcile.error.message : "Reconciliation was not confirmed. Do not publish again."}</p> : null}
-    {groups.map((group) => <section key={group.name} aria-label={group.name} className="min-w-0 space-y-3">
+    {groups.map((group) => <section tabIndex={-1} id={group.name === "Check publish result" ? "publish-results" : undefined} key={group.name} aria-label={group.name} className="min-w-0 space-y-3">
       <h2 className="section-title">{group.name}</h2>
       {!group.rows.length ? <p>{group.name === "Check publish result" ? "No publish results need checking." : `No ${group.name.toLowerCase()}.`}</p> : <ul className="min-w-0 divide-y divide-slate-300">{group.rows.map((row) => <li key={row.id} className="min-w-0 space-y-2 py-3">
         <Link className="row-link listing-title" to={draftDestination(row)}>{row.sku} - {row.title || "Untitled draft"}</Link>
@@ -50,7 +57,7 @@ export function EbayHub() {
         {inflight(row) ? <><p>Started: {date(row.publish_started_at)}. Do not retry publishing until the outcome is known.</p><button className="btn-secondary gap-2" type="button" disabled={reconcile.isPending} onClick={() => reconcile.mutate(row.id)}><RefreshCw size={18} aria-hidden="true" />Reconcile {row.sku}</button></> : null}
       </li>)}</ul>}
     </section>)}
-    <section className="min-w-0 space-y-3" aria-label="Live listings"><h2 className="section-title">Live listings</h2>
+    <section tabIndex={-1} id="live-listings" className="min-w-0 space-y-3" aria-label="Live listings"><h2 className="section-title">Live listings</h2>
       <p>Active local listing records; current marketplace state is not fetched here.</p>
       {!data.listings.length ? <p>No active eBay listing records.</p> : <ul className="min-w-0 divide-y divide-slate-300">{data.listings.map((row) => <li key={row.id} className="min-w-0 space-y-2 py-3">
         <Link className="row-link listing-title" to={row.draft_id ? draftDestination({ item_id: row.item_id, id: row.draft_id }) : `/inventory/${row.item_id}#listings-channels`}>{row.sku} - {row.title}</Link>

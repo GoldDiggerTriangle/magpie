@@ -34,12 +34,14 @@ export function createBoughtItItem(payload: BoughtItPayload) {
 export interface ProfitLedgerQuery {
   stale_days?: number;
   fy?: string;
+  range?: string;
 }
 
 function profitQueryString(query: ProfitLedgerQuery = {}) {
   const params = new URLSearchParams();
   if (query.stale_days) params.set("stale_days", String(query.stale_days));
   if (query.fy) params.set("fy", query.fy);
+  if (query.range) params.set("range", query.range);
   const text = params.toString();
   return text ? `?${text}` : "";
 }
