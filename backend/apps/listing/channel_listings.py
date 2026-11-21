@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -117,8 +117,7 @@ def take_down_items_queryset():
     return (
         InventoryItem.objects.select_related("category")
         .prefetch_related("channel_listings", "sales")
-        .filter(channel_listings__ended_at__isnull=True)
-        .distinct()
+        .filter(Exists(ChannelListing.objects.filter(item=OuterRef("pk"), ended_at__isnull=True)))
     )
 
 

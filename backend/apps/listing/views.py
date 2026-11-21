@@ -1,5 +1,5 @@
 from django.db import OperationalError, transaction
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -148,8 +148,7 @@ class ChannelListingViewSet(ModelViewSet):
         partial_items = [
             _serialize_item_listing_state(item, context=self.get_serializer_context())
             for item in InventoryItem.objects.prefetch_related("channel_listings", "sales")
-            .filter(channel_listings__ended_at__isnull=True)
-            .distinct()
+            .filter(Exists(ChannelListing.objects.filter(item=OuterRef("pk"), ended_at__isnull=True)))
             if item.quantity_sold > 0 and item.quantity_remaining > 0
         ]
         return Response(
