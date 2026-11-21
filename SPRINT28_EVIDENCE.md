@@ -63,3 +63,27 @@ Before uses the existing navigation/flow; after prefers the new Home shortcuts. 
 Local backend intermediate full run554 PASS/1 existing skip, then expanded11 Sprint28 tests and21 focused dashboard/profit tests PASS; final whole-suite/CI references are appended when complete. Frontend257 PASS, typecheck/build/check PASS; migration drift reports No changes detected. Full44 Playwright cases PASS with no skip/flaky; final10 Sprint28 cases re-run after month-label/large-text refinements PASS. Prior tests are retained; the old Dashboard chart assertions moved with the charts, not deleted. One unrelated local timeout under concurrent load disappeared on the full rerun without changing/skipping that test.
 
 Sprint28 OPEN pending final validation/deployment references, Regan's Administrator restart/phone acceptance and independent review. No live data save, migration, rate seed, eBay/provider call or Codex restart; no next sprint. UI fixtures do not stand in for live financial parity or owner phone evidence.
+
+## 2026-11-21: Final Validation And Restart Handoff
+
+Implementation head: `9078f154b00be7daaf6c7e2d6f90eb766a5cbe07`. [Validation44840855075](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44840855075) **SUCCESS on both lanes**, for this exact head:
+
+| Gate | Result |
+|---|---|
+| SQLite, job136648555306 |557 passed,1 existing skip; frontend257/48 files; Playwright44 passed. |
+| PostgreSQL, job136648555507 |545 passed,13 existing skips. |
+| Local final verification |557 passed/1 existing backend skip,445.54s; final11 Sprint28 and21 focused dashboard/profit cases also PASS after all-in-cost refinement. Frontend257, typecheck/check/build/no migration drift PASS. |
+| Browser refinements |Full44 PASS, then10 final month-label/remeasurement cases and1 final asynchronous queue-scroll/focus case PASS; no skip or flaky result. CI re-runs all44 on the final code. |
+| Documentation and secrets |Eight exact handoff replacements; spec/kickoff worktree and staged blobs equal Downloads byte-for-byte. Changed files and production bundle checked against known local credentials/patterns; PASS, no values revealed. |
+
+Collected only after both CI lanes passed: **7 copied,155 unmodified,425 post-processed**; index and `index-D9aeatgJ.js` / `index-C4v03QMP.css` byte-match the tested build. Read-only database guard and a network-denied collection process: database, protected configuration and64 media files unchanged,0 network attempts, no service restart.
+
+Actual NSSM/Waitress port8000 after collection: health200, root200 referencing the new assets; both new JS/CSS URLs404 in the old running static map. **Administrator restart and hard-refresh REQUIRED**; assets are collected, not yet proven live-served. Do not mistake the earlier root200 or synthetic browser images for post-restart acceptance. No temporary dev server is left for owner acceptance, and no authenticated write/provider request was used for the local route check.
+
+The final queue navigation also waits for hub data, then scrolls/focuses its named section; changing a hash alone is not treated as a working jump. Tap metrics count navigation/focus, not horizontal tab-strip panning or typing; vertical scroll is cumulative absolute window movement. The prior raw tables/images remain unchanged. No new test or measurement is claimed for this documentation-only follow-up.
+
+### Owner Gate
+
+Regan: restart Magpie in Administrator PowerShell and hard-refresh on iPhone. Check Home's saved row/order (four new defaults only if no preference existed), quick actions, honest empty/unknown/cents states where present, alert links where there is genuine work, Record a sale -> item selection -> that item's Sales form, router/phone Back, and Profit Charts & trends including its independent filters and listing-priority jump. Do not submit a sale/preference or sync/reconcile/publish for this acceptance. Check normal/larger text and that Sprint27's keyboard/nav behaviour still holds. No extra real data is requested to manufacture a missing state.
+
+**Sprint28 OPEN:** final implementation/automated gates PASS; Administrator restart, served-build verification, real iPhone acceptance and independent review remain pending. No migration, live save, eBay/provider call or Codex restart; no next sprint.
