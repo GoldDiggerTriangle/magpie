@@ -105,15 +105,15 @@ Read-only actual-port8000 verification after Regan's response: Magpie service Ru
 | 2.4 Monthly links reach matching figures | PASS | Monthly ledger/chart query parameters and browser destination/filter assertions; neither silently opens an all-time metric. |
 | 2.5 Two-column phone tiles, legibility/44px | PASS |320/390 normal/larger automated screenshots, no horizontal overflow, button geometry assertions and visual review; Regan's general acceptance, now supplemented by [real iPhone Home stats](docs/evidence/sprint28/phone-acceptance/01-home-quick-stats.jpg). The real image does not establish exact CSS width or target measurements. |
 | 3 All six shortcuts; Record sale selects item then opens its Sales form; works if stats fail | PASS | Real component browser flow, owner acceptance,503/auth unit/browser cases, and [real iPhone quick actions](docs/evidence/sprint28/phone-acceptance/02-home-actions-alert.jpg). Photograph shows all six entries, not the item-selection/Sales transition or a submitted sale. |
-| 4 Urgent strip/queues; no false intentional/unrecorded allocation alert; empty hidden | PASS | Owned-record backend alert tests, canonical quantity-state reuse, frontend route/async queue-focus tests; [real iPhone Home](docs/evidence/sprint28/phone-acceptance/02-home-actions-alert.jpg) shows one sold-out take-down alert. No alert click, sync, reconciliation or listing-ending action is inferred. |
+| 4 Urgent strip/queues; no false intentional/unrecorded allocation alert; empty hidden | PARTIAL: fix built, restart/re-review pending | Independent review found an absent-listing false positive; see the dated contained fix round below. `6a82467` adds existence checks and eight regression cases. The [Home photo](docs/evidence/sprint28/phone-acceptance/02-home-actions-alert.jpg) proves rendering only, not a genuine take-down case. No alert click, sync, reconciliation or listing-ending action is inferred. |
 | 5.1 All charts/priorities and all filters moved; independent from accountant export | PASS | Original chart render helpers/assertions retained in ChartsAndTrends, seven sections, category/channel/unknown/date filters; browser CSV unchanged by chart-filter edits. [Real iPhone Charts & trends](docs/evidence/sprint28/phone-acceptance/06-profit-charts-and-trends.jpg) shows the heading, four filter controls and first chart-section heading/caveat; plots, other sections and filter interactions are not pictured. |
 | 5.2 Phone estimate-vs-actual table and small-sample warnings retained | PASS | Preserved chart/table code and old Dashboard assertions moved with it; CI/browser proofs. |
 | 5.3 Listing priorities one tap from Home | PASS | What to list next link and browser viewport assertion on the actual target section. |
 | 5.4 Old anchors redirect; /dashboard still works | PASS | Redirect preserves query filter parameters; actual Profit destination/section tests. |
 | 5.5 Home fetches no chart data | PASS | Request interception/trace shows summary and preferences only, plus existing saved-health GET; chart endpoint assertions on normal/failure/navigation paths. |
-| 6 Backend/frontend tests,320/390/larger, Back/targets/keyboard and dual CI | PASS | Run44840855075; local557 backend/257 frontend/44 browser plus final focused refinements; router-history Back and inherited Sprint27 keyboard gates retained. General owner testimony is supplemented by [six original iPhone images](docs/evidence/sprint28/phone-acceptance/README.md) of Home, Profit ledger and Charts & trends. No new video or keyboard/Back demonstration is supplied. |
-| 7 Deployment/restart, owner iPhone check, final head/run/closure record | PASS | User response to restart/phone checklist and actual tested assets200/body-matched; [real Home](docs/evidence/sprint28/phone-acceptance/01-home-quick-stats.jpg), [Profit overview](docs/evidence/sprint28/phone-acceptance/03-profit-ledger-overview.jpg), [cash-lock summary](docs/evidence/sprint28/phone-acceptance/04-profit-cash-lock-summary.jpg), [per-sale cents](docs/evidence/sprint28/phone-acceptance/05-profit-sale-cents.jpg) and [Charts & trends heading/filters](docs/evidence/sprint28/phone-acceptance/06-profit-charts-and-trends.jpg). Automated tests/general testimony remain the evidence for the unpictured chart sections and interactions. Exact restart time unavailable. |
-| 7 Independent review before CLOSED | PENDING | D-143 independent verdict/update still required. Codex does not self-approve or mark CLOSED. |
+| 6 Backend/frontend tests,320/390/larger, Back/targets/keyboard and dual CI | PASS | Fix `6a82467`, Validation44900255869 both lanes green: SQLite565/1 existing skip, PostgreSQL553/13 existing skips, frontend257/browser44. Local565/1 existing skip; focused28 PASS. Router-history Back and Sprint27 keyboard gates retained; [six original iPhone images](docs/evidence/sprint28/phone-acceptance/README.md) remain earlier owner evidence, not a new post-fix phone/keyboard/Back check. |
+| 7 Deployment/restart, owner iPhone check, final head/run/closure record | PARTIAL: contained backend fix needs restart | Earlier deployment/owner acceptance and six original phone images remain historical evidence for `9078f15`; backend fix `6a82467` needs an Administrator restart and read-only verification. No new served-build or post-fix phone acceptance is claimed. |
+| 7 Independent review before CLOSED | NOT MET: DO NOT CLOSE | Independent review rejected closure on the active-listing existence blocker. Fix evidence below is for re-review, not self-approval or a CLOSED verdict. |
 
 **Recorded qualifications:** new Home Add shortcut needs more vertical scrolling at320px than the unchanged fixed-nav Add path; Profit is longer because every chart remains there; geometry fixtures are not live profit evidence; phone acceptance is verbal, with no newly supplied phone screenshots; exact restart time unavailable. Existing drawer attribution, genuine multi-unit live proof and evidence cosmetics remain separate backlog items, not changed or closed here.
 
@@ -134,3 +134,46 @@ Filed Regan's [Charts & trends screenshot](docs/evidence/sprint28/phone-acceptan
 The image shows Charts & trends, its range/category/channel/unknown-cost controls, and the Realised P&L over time heading with the known-cost caveat. It resolves the previously recorded missing-view photo gap. The plots/other sections are below the captured area; no filter click, complete chart coverage, Back/keyboard action or new profit calculation is inferred. Updated closure rows 5.1, 6 and 7 cite this precise coverage; earlier missing-photo statements remain historical.
 
 Owner acceptance remains PASS; independent review PENDING, NOT CLOSED. Implementation `9078f154b00be7daaf6c7e2d6f90eb766a5cbe07` / Validation `44840855075` unchanged. Documentation/image filing only: no new application build/test, code, live save, migration, collectstatic, restart or eBay/provider call; no next sprint.
+
+## 2026-11-21: Independent Review Blocker - Contained Fix Round
+
+**Sprint 28 OPEN / DO NOT CLOSE.** Regan relayed independent review's one blocker: a reverse `channel_listings__ended_at__isnull=True` lookup can match the NULL side of an outer join for an item with no listings. The earlier general owner acceptance and phone images are retained, but do not waive this defect. In particular image 02 proves an alert was rendered, not that it was a genuine take-down case. This section supersedes earlier "pending independent review only"/row-4 PASS claims; no historical evidence is deleted.
+
+### Fix And Whole-Backend Audit
+
+Implementation `6a82467165d66a65bc60972061fd6b0d629724e7` replaces both item-level reverse joins with correlated `Exists(ChannelListing.objects.filter(item=OuterRef("pk"), ended_at__isnull=True))`. Multiple active listings cannot duplicate an item; quantity/sale semantics are unchanged.
+
+| Location | Affected Surface | Change |
+|---|---|---|
+| `backend/apps/listing/channel_listings.py:120`, `take_down_items_queryset` | Shared checklist, Home summary/action count/urgent strip and Listings board take-down group | Require an existing unended listing; remove redundant distinct. |
+| `backend/apps/listing/views.py:151`, `ChannelListingViewSet.board` | Partial-stock "still listed" group | Same Exists requirement; remove redundant distinct. |
+
+Whole-backend source search covered `__isnull`, `__ended_at`, `channel_listings`, `channel_listing` and their model relationships, including code outside apps. These were the only reverse-relation NULL lookups used to mean an active listing; no additional fix sites found. Direct `ChannelListing`/related-manager queries already select real rows (dashboard count, hub, item state and quantity validation); profit ledger first checks actual rows. `listing/draft_status.py` uses reverse `channel_listing__isnull=False` to prove an existing historical row, not an active listing, and stays unchanged. Allocation cleanup's `channel_listing__isnull=True` intentionally means no linked row. `ebay/quantity.py:284` is a forward-FK send barrier, not another reverse lookup; its existing allocation-selection/can_write path requires a real unended listing, and no quantity/write path is changed in this round.
+
+### Read-Only Live Findings
+
+Live SQLite inspected directly with `mode=ro` and `PRAGMA query_only=ON`, no Django startup/HTTP/provider calls. Compared the old left-join eligibility with existing-unended-row eligibility for all 10 items, using the same correction-aware sales sum and remaining-stock floor as `InventoryItem.quantity_sold/quantity_remaining`. Connection total_changes stayed 0; findings were rechecked unchanged after the local suite on 2026-11-21:
+
+| SKU | Total / Sold / Remaining | Listing Rows / Unended | Old Take-Down | Correct Take-Down |
+|---|---|---|---|---|
+| STM-00002 | 3 / 3 / 0 | 0 / 0 | Falsely included | Excluded |
+
+One false take-down item; old count 1, corrected count 0. Partial-stock group: old 0, corrected 0, no live false positives. No data was changed or new records created. This is a read-only local-data/query comparison, not a claim that the unrestarted service is already using the fix.
+
+### Regression And Deployment Gates
+
+`backend/apps/listing/tests/test_sprint28_listing_presence.py` parameterises sold-out and partial-stock items across never-listed, two ended-only, one active and mixed two-active/two-ended histories (8 cases). Each checks item eligibility, exact Listings board groups/active row counts, Home action count and exact presence/absence/count/destination of the urgent take-down entry. Partial stock with an active listing appears only in the partial group, never the sold-out take-down alert. Multiple active rows count once per item. Existing copy-pack/take-down and Sprint 28 dashboard tests remain unchanged.
+
+Before the fix: 2 failed/6 passed on the new cases (both never-listed states reproduced). After the fix: focused 28 passed, including Sprint 22 copy packs/checklist and Sprint 28 dashboard tests. Isolated local test runs disable live .env loading, use a test database/temp media and deny sockets; focused run had 0 network attempts. Django check PASS; `makemigrations --check --dry-run` reports no changes.
+
+Full local suite: **565 passed, 1 existing skip**, 207.81s, 0 network attempts. [Validation 44900255869](https://github.com/GoldDiggerTriangle/magpie/actions/runs/44900255869), exact implementation `6a82467165d66a65bc60972061fd6b0d629724e7`: **SUCCESS on both lanes**.
+
+| Validation Gate | Result |
+|---|---|
+| SQLite, job136834462703 | 565 passed, 1 existing skip, 62.35s. |
+| PostgreSQL, job136834462908 | 553 passed, 13 existing skips, 84.50s. |
+| Frontend / browser (SQLite lane) | 257 tests / 48 files; 44 Playwright checks passed. Original behavioural assertions retained. |
+| System / schema / workflow | Django check and migration-drift checks PASS; existing workflow, build and production-smoke gates green. No migration added or applied live. |
+| Scope / secrets | Only two backend query sites, their new test and closure docs changed; frontend and protected handoff sections 3/8 unchanged. Secret scan PASS; no credential values printed or committed. |
+
+**Backend-only fix: Administrator restart REQUIRED.** Regan should run `Restart-Service -Name Magpie` in Administrator PowerShell, then hard-refresh. No frontend changes; live collectstatic not run or needed. No migration, live save, service restart or eBay/provider call performed. No post-fix live serving/phone acceptance claimed. Stop after validation/evidence filing; Sprint 28 stays OPEN for restart/live verification and independent re-review, with no new sprint authorised.
